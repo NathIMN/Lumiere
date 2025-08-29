@@ -1,17 +1,17 @@
 import mongoose from "mongoose";
+import {
+  hashPasswordMiddleware,
+  comparePassword,
+} from "../middleware/password-middleware.js";
 
 const UserSchema = new mongoose.Schema(
   {
-    employeeId: {
+    userId: {
       type: String,
-      required: [true, "Employee ID is required"],
       unique: true,
       trim: true,
       uppercase: true,
-      match: [
-        /^[A-Z0-9]{6,20}$/,
-        "Employee ID must be 6-20 alphanumeric characters",
-      ],
+      // Will be auto-generated based on role
     },
     email: {
       type: String,
@@ -51,10 +51,6 @@ const UserSchema = new mongoose.Schema(
         trim: true,
         maxlength: [50, "Last name cannot exceed 50 characters"],
       },
-      fullName: {
-        type: String,
-        trim: true,
-      },
       dateOfBirth: {
         type: Date,
         required: [true, "Date of birth is required"],
@@ -71,133 +67,181 @@ const UserSchema = new mongoose.Schema(
         unique: true,
         trim: true,
         match: [
-          /^[0-9]{9}[vVxX]$|^[0-9]{12}$/,
-          "Please enter a valid NIC number",
+          /^([0-9]{9}[vVxX]|[0-9]{12})$/,
+          "Please enter a valid NIC number (9 digits + V/X or 12 digits)",
         ],
       },
       phoneNumber: {
         type: String,
         required: [true, "Phone number is required"],
         trim: true,
-        match: [
-          /^(\+94|0)[0-9]{9}$/,
-          "Please enter a valid Sri Lankan phone number",
-        ],
+        // Will be normalized to +94 format in middleware
       },
       address: {
-        street: {
-          type: String,
-          required: [true, "Street address is required"],
-          trim: true,
-          maxlength: [100, "Street address cannot exceed 100 characters"],
-        },
-        city: {
-          type: String,
-          required: [true, "City is required"],
-          trim: true,
-          maxlength: [50, "City name cannot exceed 50 characters"],
-        },
-        province: {
-          type: String,
-          required: [true, "Province is required"],
-          enum: {
-            values: [
-              "Western",
-              "Central",
-              "Southern",
-              "Northern",
-              "Eastern",
-              "North Western",
-              "North Central",
-              "Uva",
-              "Sabaragamuwa",
-            ],
-            message: "Invalid province",
-          },
-        },
-        postalCode: {
-          type: String,
-          required: [true, "Postal code is required"],
-          trim: true,
-          match: [/^[0-9]{5}$/, "Postal code must be 5 digits"],
-        },
-      },
-      emergencyContact: {
-        name: {
-          type: String,
-          required: [true, "Emergency contact name is required"],
-          trim: true,
-          maxlength: [
-            100,
-            "Emergency contact name cannot exceed 100 characters",
-          ],
-        },
-        relationship: {
-          type: String,
-          required: [true, "Emergency contact relationship is required"],
-          enum: ["spouse", "parent", "sibling", "child", "friend", "other"],
-        },
-        phoneNumber: {
-          type: String,
-          required: [true, "Emergency contact phone is required"],
-          trim: true,
-          match: [/^(\+94|0)[0-9]{9}$/, "Please enter a valid phone number"],
-        },
+        type: String,
+        required: [true, "Address is required"],
+        trim: true,
+        maxlength: [200, "Address cannot exceed 200 characters"],
       },
     },
+    // Employment details - only for employees
     employment: {
       department: {
         type: String,
-        required: [true, "Department is required"],
         trim: true,
         maxlength: [100, "Department name cannot exceed 100 characters"],
+        required: function () {
+          return this.role === "employee";
+        },
       },
       designation: {
         type: String,
-        required: [true, "Designation is required"],
         trim: true,
         maxlength: [100, "Designation cannot exceed 100 characters"],
+        required: function () {
+          return this.role === "employee";
+        },
       },
       employmentType: {
         type: String,
-        required: [true, "Employment type is required"],
         enum: ["permanent", "contract", "probation", "executive"],
+        required: function () {
+          return this.role === "employee";
+        },
       },
       joinDate: {
         type: Date,
-        required: [true, "Join date is required"],
+        required: function () {
+          return this.role === "employee";
+        },
         validate: {
           validator: function (v) {
-            return v <= new Date();
+            return !v || v <= new Date();
           },
           message: "Join date cannot be in the future",
         },
       },
       salary: {
         type: Number,
-        required: [true, "Salary is required"],
         min: [0, "Salary cannot be negative"],
-      },
-      manager: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        required: function () {
+          return this.role === "employee";
+        },
       },
     },
-    verification: {
-      isVerified: {
-        type: Boolean,
-        default: false,
+    // Dependent information - only for employees
+    dependents: [
+      {
+        name: {
+          type: String,
+          required: [true, "Dependent name is required"],
+          trim: true,
+          maxlength: [100, "Dependent name cannot exceed 100 characters"],
+        },
+        relationship: {
+          type: String,
+          required: [true, "Relationship is required"],
+          enum: ["spouse", "child"],
+        },
+        dateOfBirth: {
+          type: Date,
+          required: [true, "Dependent date of birth is required"],
+          validate: {
+            validator: function (v) {
+              return v <= new Date();
+            },
+            message: "Date of birth cannot be in the future",
+          },
+        },
+        nic: {
+          type: String,
+          trim: true,
+          match: [
+            /^([0-9]{9}[vVxX]|[0-9]{12})$/,
+            "Please enter a valid NIC number",
+          ],
+        },
       },
-      verifiedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+    ],
+    // Bank details - only for employees
+    bankDetails: {
+      accountHolderName: {
+        type: String,
+        trim: true,
+        maxlength: [100, "Account holder name cannot exceed 100 characters"],
+        required: function () {
+          return this.role === "employee";
+        },
       },
-      verifiedAt: {
-        type: Date,
+      bankName: {
+        type: String,
+        trim: true,
+        maxlength: [100, "Bank name cannot exceed 100 characters"],
+        required: function () {
+          return this.role === "employee";
+        },
       },
-      documents: {
-        nicVerified: { type: Boolean, default: false },
-        passportVerified: { type: Boolean, default: false },
+      branchName: {
+        type: String,
+        trim: true,
+        maxlength: [100, "Branch name cannot exceed 100 characters"],
+        required: function () {
+          return this.role === "employee";
+        },
+      },
+      accountNumber: {
+        type: String,
+        trim: true,
+        match: [/^[0-9]{8,20}$/, "Account number must be 8-20 digits"],
+        required: function () {
+          return this.role === "employee";
+        },
+      },
+    },
+    // Insurance provider details - only for insurance agents
+    insuranceProvider: {
+      companyName: {
+        type: String,
+        trim: true,
+        maxlength: [100, "Company name cannot exceed 100 characters"],
+        required: function () {
+          return this.role === "insurance_agent";
+        },
+      },
+      agentId: {
+        type: String,
+        trim: true,
+        maxlength: [50, "Agent ID cannot exceed 50 characters"],
+        required: function () {
+          return this.role === "insurance_agent";
+        },
+      },
+      licenseNumber: {
+        type: String,
+        trim: true,
+        maxlength: [50, "License number cannot exceed 50 characters"],
+        required: function () {
+          return this.role === "insurance_agent";
+        },
+      },
+      contactEmail: {
+        type: String,
+        lowercase: true,
+        trim: true,
+        match: [
+          /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+          "Please enter a valid email",
+        ],
+        required: function () {
+          return this.role === "insurance_agent";
+        },
+      },
+      contactPhone: {
+        type: String,
+        trim: true,
+        required: function () {
+          return this.role === "insurance_agent";
+        },
       },
     },
     status: {
@@ -218,29 +262,129 @@ const UserSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-// Indexes
-UserSchema.index({ employeeId: 1 });
-UserSchema.index({ email: 1 });
-UserSchema.index({ "profile.nic": 1 });
+//Implicit Indexes so commented out
+//UserSchema.index({ userId: 1 });
+//UserSchema.index({ email: 1 });
+//UserSchema.index({ "profile.nic": 1 });
 UserSchema.index({ role: 1 });
 UserSchema.index({ status: 1 });
 UserSchema.index({ "employment.department": 1 });
 
-// Virtual for full name
-UserSchema.pre("save", function (next) {
-  if (this.profile.firstName && this.profile.lastName) {
-    this.profile.fullName = `${this.profile.firstName} ${this.profile.lastName}`;
+UserSchema.pre("save", hashPasswordMiddleware);
+UserSchema.methods.comparePassword = comparePassword;
+
+// Auto-generate userId based on role
+UserSchema.pre("save", async function (next) {
+  if (this.isNew && !this.userId) {
+    try {
+      const rolePrefix = {
+        employee: "E",
+        hr_officer: "H",
+        insurance_agent: "I",
+        admin: "A",
+      };
+
+      const prefix = rolePrefix[this.role];
+      if (!prefix) {
+        return next(new Error("Invalid role for userId generation"));
+      }
+
+      // Find the highest existing userId for this role
+      const lastUser = await this.constructor
+        .findOne({ userId: new RegExp(`^${prefix}`) })
+        .sort({ userId: -1 })
+        .select("userId");
+
+      let nextNumber = 1;
+      if (lastUser && lastUser.userId) {
+        const currentNumber = parseInt(lastUser.userId.substring(1));
+        nextNumber = currentNumber + 1;
+      }
+
+      this.userId = `${prefix}${nextNumber.toString().padStart(5, "0")}`;
+    } catch (error) {
+      return next(error);
+    }
   }
+
+  // Normalize phone number to +94 format
+  if (this.profile && this.profile.phoneNumber) {
+    let phone = this.profile.phoneNumber.replace(/\s+/g, "");
+    if (phone.startsWith("0")) {
+      phone = "+94" + phone.substring(1);
+    } else if (!phone.startsWith("+94")) {
+      phone = "+94" + phone;
+    }
+    this.profile.phoneNumber = phone;
+  }
+
+  // Normalize insurance agent contact phone
+  if (this.insuranceProvider && this.insuranceProvider.contactPhone) {
+    let phone = this.insuranceProvider.contactPhone.replace(/\s+/g, "");
+    if (phone.startsWith("0")) {
+      phone = "+94" + phone.substring(1);
+    } else if (!phone.startsWith("+94")) {
+      phone = "+94" + phone;
+    }
+    this.insuranceProvider.contactPhone = phone;
+  }
+
+  // Validation for dependents (only 1 spouse allowed)
+  if (
+    this.role === "employee" &&
+    this.dependents &&
+    this.dependents.length > 0
+  ) {
+    const spouseCount = this.dependents.filter(
+      (dep) => dep.relationship === "spouse",
+    ).length;
+    if (spouseCount > 1) {
+      return next(new Error("Only one spouse is allowed as a dependent"));
+    }
+  }
+
   next();
+});
+
+// Virtual for full name
+UserSchema.virtual("fullName").get(function () {
+  if (this.profile && this.profile.firstName && this.profile.lastName) {
+    return `${this.profile.firstName} ${this.profile.lastName}`;
+  }
+  return "";
+});
+
+// Virtual for age
+UserSchema.virtual("age").get(function () {
+  if (this.profile && this.profile.dateOfBirth) {
+    const today = new Date();
+    const birthDate = new Date(this.profile.dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
+    }
+
+    return age;
+  }
+  return null;
 });
 
 // Virtual for account locked status
 UserSchema.virtual("isLocked").get(function () {
   return !!(this.lockUntil && this.lockUntil > Date.now());
 });
+
+// Ensure virtuals are included in JSON output
+UserSchema.set("toJSON", { virtuals: true });
+UserSchema.set("toObject", { virtuals: true });
 
 const User = mongoose.model("User", UserSchema);
 export default User;
