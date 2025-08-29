@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 const PolicySchema = new mongoose.Schema(
   {
-    policyNumber: {
+    policyId: {
       type: String,
-      required: [true, "Policy number is required"],
+      required: [true, "Policy ID is required"],
       unique: true,
       trim: true,
       uppercase: true,
@@ -20,30 +20,12 @@ const PolicySchema = new mongoose.Schema(
     policyCategory: {
       type: String,
       required: [true, "Policy category is required"],
-      enum: ["individual", "group", "family"],
+      enum: ["individual", "group"],
     },
-    insuranceProvider: {
-      name: {
-        type: String,
-        required: [true, "Insurance provider name is required"],
-        trim: true,
-      },
-      agentId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: [true, "Insurance agent is required"],
-      },
-      contactEmail: {
-        type: String,
-        required: [true, "Provider contact email is required"],
-        lowercase: true,
-        trim: true,
-      },
-      contactPhone: {
-        type: String,
-        required: [true, "Provider contact phone is required"],
-        trim: true,
-      },
+    insuranceAgent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Insurance agent is required"],
     },
     coverage: {
       coverageAmount: {
@@ -107,9 +89,6 @@ const PolicySchema = new mongoose.Schema(
           message: "End date must be after start date",
         },
       },
-      renewalDate: {
-        type: Date,
-      },
     },
     premium: {
       amount: {
@@ -122,31 +101,12 @@ const PolicySchema = new mongoose.Schema(
         required: [true, "Premium frequency is required"],
         enum: ["monthly", "quarterly", "semi-annual", "annual"],
       },
-      lastPayment: {
-        type: Date,
-      },
-      nextPayment: {
-        type: Date,
-      },
     },
     beneficiaries: [
       {
-        employeeId: {
-          type: String,
-          required: true,
-          ref: "User",
-        },
-        relationship: {
-          type: String,
-          required: true,
-          enum: ["self", "spouse", "child", "parent", "sibling", "dependent"],
-        },
-        percentage: {
-          type: Number,
-          required: true,
-          min: [0, "Percentage cannot be negative"],
-          max: [100, "Percentage cannot exceed 100"],
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
       },
     ],
     status: {
@@ -172,11 +132,12 @@ const PolicySchema = new mongoose.Schema(
 );
 
 // Indexes
-PolicySchema.index({ policyNumber: 1 });
+PolicySchema.index({ policyId: 1 });
 PolicySchema.index({ policyType: 1 });
-PolicySchema.index({ "beneficiaries.employeeId": 1 });
+PolicySchema.index({ beneficiaries: 1 });
 PolicySchema.index({ status: 1 });
 PolicySchema.index({ "validity.endDate": 1 });
+PolicySchema.index({ insuranceAgent: 1 });
 
 const Policy = mongoose.model("Policy", PolicySchema);
 export default Policy;
