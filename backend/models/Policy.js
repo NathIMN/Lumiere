@@ -4,17 +4,17 @@ const PolicySchema = new mongoose.Schema(
   {
     policyId: {
       type: String,
-      required: [true, "Policy ID is required"],
       unique: true,
       trim: true,
       uppercase: true,
+      // Will be auto-generated based on policy type and category
     },
     policyType: {
       type: String,
       required: [true, "Policy type is required"],
       enum: {
-        values: ["life", "medical", "vehicle", "travel", "property"],
-        message: "Invalid policy type",
+        values: ["life", "vehicle"],
+        message: "Invalid policy type. Must be either 'life' or 'vehicle'",
       },
     },
     policyCategory: {
@@ -44,17 +44,43 @@ const PolicySchema = new mongoose.Schema(
             type: String,
             required: true,
             enum: [
+              // Life policy coverage types
               "hospitalization",
               "surgery",
               "medication",
-              "dental",
-              "optical",
-              "maternity",
-              "accident",
               "death",
-              "disability",
-              "other",
+              // Vehicle policy coverage types
+              "collision",
+              "liability", 
+              "comprehensive",
+              "personal_accident",
             ],
+            validate: {
+              validator: function(value) {
+                const parent = this.parent().parent();
+                const policyType = parent.policyType;
+                
+                const lifeCoverageTypes = ["hospitalization", "surgery", "medication", "death"];
+                const vehicleCoverageTypes = ["collision", "liability", "comprehensive", "personal_accident"];
+                
+                if (policyType === "life") {
+                  return lifeCoverageTypes.includes(value);
+                } else if (policyType === "vehicle") {
+                  return vehicleCoverageTypes.includes(value);
+                }
+                return false;
+              },
+              message: function(props) {
+                const parent = this.parent().parent();
+                const policyType = parent.policyType;
+                if (policyType === "life") {
+                  return "Life policy coverage type must be one of: hospitalization, surgery, medication, death";
+                } else if (policyType === "vehicle") {
+                  return "Vehicle policy coverage type must be one of: collision, liability, comprehensive, personal_accident";
+                }
+                return "Invalid coverage type for policy";
+              }
+            }
           },
           description: {
             type: String,
@@ -64,11 +90,6 @@ const PolicySchema = new mongoose.Schema(
           limit: {
             type: Number,
             required: true,
-            min: 0,
-          },
-          used: {
-            type: Number,
-            default: 0,
             min: 0,
           },
         },
@@ -131,9 +152,39 @@ const PolicySchema = new mongoose.Schema(
   }
 );
 
+// Auto-generate policyId based on policy type and category
+PolicySchema.pre("save", async function (next) {
+  if (this.isNew && !this.policyId) {
+    try {
+      // Determine prefix based on policy type and category
+      const typePrefix = this.policyType === "life" ? "L" : "V";
+      const categoryPrefix = this.policyCategory === "individual" ? "I" : "G";
+      const prefix = typePrefix + categoryPrefix;
+
+      // Find the highest existing policyId for this prefix
+      const lastPolicy = await this.constructor
+        .findOne({ policyId: new RegExp(`^${prefix}`) })
+        .sort({ policyId: -1 })
+        .select("policyId");
+
+      let nextNumber = 1;
+      if (lastPolicy && lastPolicy.policyId) {
+        const currentNumber = parseInt(lastPolicy.policyId.substring(2));
+        nextNumber = currentNumber + 1;
+      }
+
+      this.policyId = `${prefix}${nextNumber.toString().padStart(4, "0")}`;
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
+
 // Indexes
 PolicySchema.index({ policyId: 1 });
 PolicySchema.index({ policyType: 1 });
+PolicySchema.index({ policyCategory: 1 });
 PolicySchema.index({ beneficiaries: 1 });
 PolicySchema.index({ status: 1 });
 PolicySchema.index({ "validity.endDate": 1 });

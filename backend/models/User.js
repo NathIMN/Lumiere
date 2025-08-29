@@ -262,7 +262,7 @@ const UserSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 //Implicit Indexes so commented out
@@ -339,7 +339,7 @@ UserSchema.pre("save", async function (next) {
     this.dependents.length > 0
   ) {
     const spouseCount = this.dependents.filter(
-      (dep) => dep.relationship === "spouse",
+      (dep) => dep.relationship === "spouse"
     ).length;
     if (spouseCount > 1) {
       return next(new Error("Only one spouse is allowed as a dependent"));
