@@ -38,49 +38,25 @@ const PolicySchema = new mongoose.Schema(
         default: 0,
         min: [0, "Deductible cannot be negative"],
       },
+      // Life policy coverage types
+      typeLife: [
+        {
+          type: String,
+          enum: ["life_cover", "hospitalization", "surgical_benefits", "outpatient", "prescription_drugs"],
+        }
+      ],
+      // Vehicle policy coverage types
+      typeVehicle: [
+        {
+          type: String,
+          enum: ["collision", "liability", "comprehensive", "personal_accident"],
+        }
+      ],
       coverageDetails: [
         {
           type: {
             type: String,
             required: true,
-            enum: [
-              // Life policy coverage types
-              "hospitalization",
-              "surgery",
-              "medication",
-              "death",
-              // Vehicle policy coverage types
-              "collision",
-              "liability", 
-              "comprehensive",
-              "personal_accident",
-            ],
-            validate: {
-              validator: function(value) {
-                const parent = this.parent().parent();
-                const policyType = parent.policyType;
-                
-                const lifeCoverageTypes = ["hospitalization", "surgery", "medication", "death"];
-                const vehicleCoverageTypes = ["collision", "liability", "comprehensive", "personal_accident"];
-                
-                if (policyType === "life") {
-                  return lifeCoverageTypes.includes(value);
-                } else if (policyType === "vehicle") {
-                  return vehicleCoverageTypes.includes(value);
-                }
-                return false;
-              },
-              message: function(props) {
-                const parent = this.parent().parent();
-                const policyType = parent.policyType;
-                if (policyType === "life") {
-                  return "Life policy coverage type must be one of: hospitalization, surgery, medication, death";
-                } else if (policyType === "vehicle") {
-                  return "Vehicle policy coverage type must be one of: collision, liability, comprehensive, personal_accident";
-                }
-                return "Invalid coverage type for policy";
-              }
-            }
           },
           description: {
             type: String,
@@ -127,7 +103,7 @@ const PolicySchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        //required: true,
       },
     ],
     status: {
@@ -151,6 +127,28 @@ const PolicySchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Validation middleware to ensure correct coverage types based on policy type
+PolicySchema.pre("save", function (next) {
+  if (this.policyType === "life") {
+    // For life policies, typeLife is required and typeVehicle should be empty
+    if (!this.coverage.typeLife || this.coverage.typeLife.length === 0) {
+      return next(new Error("Life policy must have at least one life coverage type"));
+    }
+    if (this.coverage.typeVehicle && this.coverage.typeVehicle.length > 0) {
+      return next(new Error("Life policy cannot have vehicle coverage types"));
+    }
+  } else if (this.policyType === "vehicle") {
+    // For vehicle policies, typeVehicle is required and typeLife should be empty
+    if (!this.coverage.typeVehicle || this.coverage.typeVehicle.length === 0) {
+      return next(new Error("Vehicle policy must have at least one vehicle coverage type"));
+    }
+    if (this.coverage.typeLife && this.coverage.typeLife.length > 0) {
+      return next(new Error("Vehicle policy cannot have life coverage types"));
+    }
+  }
+  next();
+});
 
 // Auto-generate policyId based on policy type and category
 PolicySchema.pre("save", async function (next) {
@@ -182,7 +180,7 @@ PolicySchema.pre("save", async function (next) {
 });
 
 // Indexes
-PolicySchema.index({ policyId: 1 });
+//PolicySchema.index({ policyId: 1 });
 PolicySchema.index({ policyType: 1 });
 PolicySchema.index({ policyCategory: 1 });
 PolicySchema.index({ beneficiaries: 1 });

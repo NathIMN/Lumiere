@@ -5,7 +5,10 @@ import notFound from "./middleware/not-found.js";
 import errorHandlerMiddleware from "./middleware/error-handler.js";
 import documents from "./routes/documents.js";
 import documentUploads from "./routes/documentUpload.js";
-import users from "./routes/users.js"
+import users from "./routes/users.js";
+import policies from "./routes/policies.js";
+import qnas from "./routes/questionnaireTemplates.js";
+import claims from "./routes/claims.js"
 
 const app = express();
 dotenv.config();
@@ -19,6 +22,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/documents", documents);
 app.use("/api/v1/files", documentUploads);
 app.use("/api/v1/users", users);
+app.use("/api/v1/policies", policies);
+app.use("/api/v1/questionnaireTemplates", qnas);
+app.use("/api/v1/claims", claims);
 
 app.use(notFound);
 app.use(errorHandlerMiddleware);

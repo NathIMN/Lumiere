@@ -77,3 +77,23 @@ export const authorizeOwnerOrAdmin = asyncWrapper(async (req, res, next) => {
 
   return next(createCustomError("Access denied, can only access your own data", 403));
 });
+
+export const authorizeOwnerOrRole = (...allowedRoles) => {
+  return async (req, res, next) => {
+    try {
+      const claim = await Claim.findById(req.params.id);
+      if (!claim) {
+        return next(createCustomError("Claim not found", 404));
+      }
+      
+      // Check if user owns the resource or has required role
+      if (claim.employeeId === req.user.userId || allowedRoles.includes(req.user.role)) {
+        return next();
+      }
+      
+      return next(createCustomError("Access denied", 403));
+    } catch (error) {
+      return next(error);
+    }
+  };
+};
