@@ -1,18 +1,19 @@
 import express from "express";
 import {
   createClaim,
-  loadQuestionnaire,
   updateQuestionnaireAnswer,
-  setClaimAmount,
   submitClaim,
+  forwardToInsurer,
+  makeDecision,
+  returnClaim,
   getAllClaims,
   getClaimById,
   getClaimsRequiringAction,
-  updateClaimStatus,
-  addClaimNote,
-  getClaimStatistics
+  getClaimStatistics,
+  getQuestionnaireQuestions,
+  submitQuestionnaireAnswers,
 } from "../controllers/claims.js";
-import { authenticate, authorize, authorizeOwnerOrRole } from "../middleware/auth.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -28,41 +29,52 @@ router.route("/")
   .post(authenticate, authorize("employee", "admin", "hr_officer"), createClaim);
 
 router.route("/:id")
-  .get(authenticate, getClaimById)
-  .patch(authenticate, authorize("admin", "hr_officer", "insurance_agent"), updateClaimStatus);
+  .get(authenticate, getClaimById);
 
-// Claim lifecycle management routes
-router.patch("/:id/load-questionnaire", 
-  (req, res, next) => {
-    console.log("Route hit: /load-questionnaire");
-    console.log("Method:", req.method);
-    console.log("Params:", req.params);
-    next();
-  },
-  authenticate, 
-  authorize("employee", "admin", "hr_officer"), 
-  loadQuestionnaire
+// Employee actions (questionnaire and submission)
+router.get("/:id/questionnaire",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
+  getQuestionnaireQuestions
 );
 
-router.patch("/:id/questionnaire/answer", 
-  authenticate, 
-  authorize("employee", "admin", "hr_officer"), 
+router.patch("/:id/questionnaire/answer",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
   updateQuestionnaireAnswer
 );
 
-router.patch("/:id/set-amount", 
-  authenticate, 
-  authorize("employee", "admin", "hr_officer"), 
-  setClaimAmount
+router.patch("/:id/questionnaire/submit-answers",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
+  submitQuestionnaireAnswers
 );
 
-router.patch("/:id/submit", 
-  authenticate, 
-  authorize("employee", "admin", "hr_officer"), 
+router.patch("/:id/submit",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
   submitClaim
 );
 
-// Notes management
-router.post("/:id/notes", authenticate, addClaimNote);
+// HR actions (forward to insurer)
+router.patch("/:id/forward",
+  authenticate,
+  authorize("hr_officer", "admin"),
+  forwardToInsurer
+);
+
+// Insurance agent actions (final decision)
+router.patch("/:id/decision",
+  authenticate,
+  authorize("insurance_agent", "admin"),
+  makeDecision
+);
+
+// Return claim to previous stage (HR or Insurance agent)
+router.patch("/:id/return",
+  authenticate,
+  authorize("hr_officer", "insurance_agent", "admin"),
+  returnClaim
+);
 
 export default router;

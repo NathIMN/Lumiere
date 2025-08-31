@@ -4,7 +4,6 @@ const ClaimSchema = new mongoose.Schema(
   {
     claimId: {
       type: String,
-      //required: [true, "Claim ID is required"], //auto generated
       unique: true,
       trim: true,
       uppercase: true,
@@ -22,81 +21,40 @@ const ClaimSchema = new mongoose.Schema(
     claimType: {
       type: String,
       enum: ["life", "vehicle"],
-      required: true,
+      required: [true, "Claim type is required"],
     },
     
-    // Life insurance coverage
+    // Life insurance claim options
     lifeClaimOption: {
       type: String,
       enum: ["hospitalization", "channelling", "medication", "death"],
       required: function () {
-        return this.claimType === "lifex";
+        return this.claimType === "life";
       },
     },
     
-    // Vehicle insurance coverage
+    // Vehicle insurance claim options
     vehicleClaimOption: {
       type: String,
       enum: ["accident", "theft", "fire", "naturalDisaster"],
       required: function () {
-        return this.claimType === "vehiclex";
+        return this.claimType === "vehicle";
       },
     },
 
-    // Claim lifecycle status tracking
+    // Simplified claim status - linear workflow
     claimStatus: {
       type: String,
       enum: [
-        "draft",           // Initial creation - basic info only
-        "questionnaire_pending", // Questionnaire loaded but not completed
-        "questionnaire_completed", // Employee completed questionnaire
-        "submitted",       // Claim submitted with all required info
-        "under_hr_review", // HR reviewing the claim
-        "forwarded_to_insurer", // Sent to insurance agent
-        "under_insurer_review", // Insurance agent reviewing
-        "approved",        // Claim approved
-        "rejected",        // Claim rejected
-        "returned_to_employee", // Returned for more info/corrections
-        "cancelled"        // Claim cancelled
+        "draft",           // Initial creation - empty claim with type and option
+        "employee",        // Employee needs to complete questionnaire and submit
+        "hr",              // HR needs to review and forward to insurer
+        "insurer",         // Insurance agent needs to review and decide
+        "approved",        // Final state - claim approved
+        "rejected"         // Final state - claim rejected
       ],
       default: "draft",
       required: true,
-    },
-
-    // Workflow status flags
-    statusFlags: {
-      isQuestionnaireLoaded: {
-        type: Boolean,
-        default: false,
-      },
-      isQuestionnaireComplete: {
-        type: Boolean,
-        default: false,
-      },
-      isDocumentationComplete: {
-        type: Boolean,
-        default: false,
-      },
-      isReadyForSubmission: {
-        type: Boolean,
-        default: false,
-      },
-      hasBeenSubmitted: {
-        type: Boolean,
-        default: false,
-      },
-      requiresEmployeeAction: {
-        type: Boolean,
-        default: false,
-      },
-      requiresHRAction: {
-        type: Boolean,
-        default: false,
-      },
-      requiresInsurerAction: {
-        type: Boolean,
-        default: false,
-      }
     },
 
     // Get the appropriate claim option regardless of type
@@ -107,22 +65,11 @@ const ClaimSchema = new mongoose.Schema(
       }
     },
     
-    // Embedded QnA section - populated after claim option selection
+    // Embedded questionnaire section
     questionnaire: {
       templateReference: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "QuestionnaireTemplate",
-      },
-      templateSnapshot: {
-        templateId: String,
-        claimType: String,
-        claimOption: String,
-        title: String,
-        version: Number,
-        loadedAt: {
-          type: Date,
-          default: Date.now,
-        }
       },
       responses: [
         {
@@ -160,31 +107,16 @@ const ClaimSchema = new mongoose.Schema(
             default: false,
           },
           answeredAt: Date,
-          answeredBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-          },
         },
       ],
-      completionStatus: {
-        type: String,
-        enum: ["not_loaded", "loaded", "in_progress", "completed", "reviewed"],
-        default: "not_loaded",
+      isComplete: {
+        type: Boolean,
+        default: false,
       },
       completedAt: Date,
-      reviewedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-      reviewedAt: Date,
-      reviewNotes: {
-        type: String,
-        trim: true,
-        maxlength: [500, "Review notes cannot exceed 500 characters"],
-      },
     },
 
-    // Claim amount - set after questionnaire completion
+    // Claim amounts
     claimAmount: {
       requested: {
         type: Number,
@@ -197,108 +129,82 @@ const ClaimSchema = new mongoose.Schema(
       },
     },
 
-    // Legacy status for backward compatibility
-    status: {
-      type: String,
-      default: "pending",
-      enum: ["pending", "approved", "rejected"],
-    },
-
-    // Current location and direction tracking
-    currentLocation: {
-      type: String,
-      default: "employee",
-      enum: ["employee", "hr", "insurer"],
-      required: true,
-    },
-    lastDirection: {
-      type: String,
-      enum: ["forward", "reverse"],
-      default: "forward",
-    },
-
-    // Workflow history
-    workflowHistory: [
-      {
-        from: String,
-        to: String,
-        action: String,
-        performedBy: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-        timestamp: {
-          type: Date,
-          default: Date.now,
-        },
-        notes: String,
-      }
-    ],
-
-    // Separate notes fields for each actor
-    notes: {
-      employee: [
+    // HR forwarding details (filled when HR forwards to insurer)
+    hrForwardingDetails: {
+      coverageBreakdown: [
         {
-          note: {
+          coverageType: {
             type: String,
             required: true,
-            trim: true,
-            maxlength: [1000, "Employee note cannot exceed 1000 characters"],
           },
-          createdAt: {
-            type: Date,
-            default: Date.now,
-          },
-        },
-      ],
-      hr: [
-        {
-          note: {
-            type: String,
+          requestedAmount: {
+            type: Number,
             required: true,
-            trim: true,
-            maxlength: [1000, "HR note cannot exceed 1000 characters"],
+            min: 0,
           },
-          createdAt: {
-            type: Date,
-            default: Date.now,
-          },
-        },
-      ],
-      insurer: [
-        {
-          note: {
+          notes: {
             type: String,
-            required: true,
             trim: true,
-            maxlength: [1000, "Insurer note cannot exceed 1000 characters"],
-          },
-          createdAt: {
-            type: Date,
-            default: Date.now,
-          },
-        },
+          }
+        }
       ],
+      hrNotes: {
+        type: String,
+        trim: true,
+        maxlength: [1000, "HR notes cannot exceed 1000 characters"],
+      },
+      forwardedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      forwardedAt: Date,
+    },
+
+    // Decision details (filled by insurer)
+    decision: {
+      status: {
+        type: String,
+        enum: ["approved", "rejected"],
+      },
+      approvedAmount: {
+        type: Number,
+        min: 0,
+      },
+      rejectionReason: {
+        type: String,
+        trim: true,
+      },
+      insurerNotes: {
+        type: String,
+        trim: true,
+        maxlength: [1000, "Insurer notes cannot exceed 1000 characters"],
+      },
+      decidedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      decidedAt: Date,
+    },
+
+    // Return reasons (when claim is sent back)
+    returnReason: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Return reason cannot exceed 500 characters"],
     },
     
+    // Supporting documents
     documents: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Document",
-        required: false,
       },
     ],
-    priority: {
-      type: String,
-      default: "normal",
-      enum: ["low", "normal", "high", "urgent"],
-    },
 
-    // Timestamps for key lifecycle events
+    // Important dates
     submittedAt: Date,
-    reviewStartedAt: Date,
-    forwardedAt: Date,
-    decidedAt: Date,
+    forwardedToInsurerAt: Date,
+    finalizedAt: Date,
   },
   { 
     timestamps: true,
@@ -326,16 +232,8 @@ ClaimSchema.methods.loadQuestionnaire = async function() {
       throw new Error(`No active questionnaire template found for ${this.claimType} - ${claimOption}`);
     }
 
-    // Store template reference and snapshot
+    // Store template reference
     this.questionnaire.templateReference = template._id;
-    this.questionnaire.templateSnapshot = {
-      templateId: template.templateId,
-      claimType: template.claimType,
-      claimOption: claimOption,
-      title: template.title,
-      version: template.version,
-      loadedAt: new Date(),
-    };
 
     // Initialize responses from template questions
     this.questionnaire.responses = template.questions
@@ -349,20 +247,8 @@ ClaimSchema.methods.loadQuestionnaire = async function() {
         isAnswered: false,
       }));
 
-    // Update status flags and claim status
-    this.questionnaire.completionStatus = "loaded";
-    this.statusFlags.isQuestionnaireLoaded = true;
-    this.claimStatus = "questionnaire_pending";
-    
-    // Add to workflow history
-    this.workflowHistory.push({
-      from: "draft",
-      to: "questionnaire_pending",
-      action: "questionnaire_loaded",
-      performedBy: this.employeeId,
-      timestamp: new Date(),
-      notes: `Questionnaire template ${template.templateId} loaded`
-    });
+    // Update status to employee (questionnaire loaded, ready for completion)
+    this.claimStatus = "employee";
     
     return this.save();
   } catch (error) {
@@ -371,15 +257,7 @@ ClaimSchema.methods.loadQuestionnaire = async function() {
 };
 
 // Method to update questionnaire answer
-ClaimSchema.methods.updateQuestionnaireAnswer = function(questionId, answerValue, userId) {
-  if (!this.statusFlags.isQuestionnaireLoaded) {
-    throw new Error("Questionnaire not loaded");
-  }
-
-  if (!this.questionnaire.responses) {
-    throw new Error("No questionnaire responses available");
-  }
-
+ClaimSchema.methods.updateQuestionnaireAnswer = function(questionId, answerValue) {
   const response = this.questionnaire.responses.find((r) => r.questionId === questionId);
   if (!response) {
     throw new Error("Question not found");
@@ -415,15 +293,11 @@ ClaimSchema.methods.updateQuestionnaireAnswer = function(questionId, answerValue
 
   response.isAnswered = true;
   response.answeredAt = new Date();
-  response.answeredBy = userId;
 
-  // Update questionnaire completion status
-  this.questionnaire.completionStatus = "in_progress";
-  
   return this.save();
 };
 
-// Method to check and update questionnaire completion
+// Method to check if questionnaire is complete
 ClaimSchema.methods.checkQuestionnaireCompletion = function() {
   if (!this.questionnaire.responses || this.questionnaire.responses.length === 0) {
     return false;
@@ -434,57 +308,92 @@ ClaimSchema.methods.checkQuestionnaireCompletion = function() {
   const answeredRequired = requiredQuestions.filter(r => r.isAnswered);
   const allRequiredAnswered = requiredQuestions.length === answeredRequired.length;
   
-  if (allRequiredAnswered && this.questionnaire.completionStatus !== "completed") {
-    this.questionnaire.completionStatus = "completed";
+  if (allRequiredAnswered && !this.questionnaire.isComplete) {
+    this.questionnaire.isComplete = true;
     this.questionnaire.completedAt = new Date();
-    this.statusFlags.isQuestionnaireComplete = true;
-    this.claimStatus = "questionnaire_completed";
-    
-    // Add to workflow history
-    this.workflowHistory.push({
-      from: "questionnaire_pending",
-      to: "questionnaire_completed",
-      action: "questionnaire_completed",
-      performedBy: this.employeeId,
-      timestamp: new Date(),
-      notes: "All required questions answered"
-    });
   }
 
   return allRequiredAnswered;
 };
 
-// Method to check if claim is ready for submission
-ClaimSchema.methods.checkSubmissionReadiness = function() {
-  const isReady = this.statusFlags.isQuestionnaireComplete && 
-                  this.claimAmount.requested > 0;
+// Method to submit claim (employee to HR)
+ClaimSchema.methods.submitToHR = function() {
+  if (!this.questionnaire.isComplete) {
+    throw new Error("Questionnaire must be completed before submission");
+  }
   
-  this.statusFlags.isReadyForSubmission = isReady;
-  return isReady;
-};
-
-// Method to submit claim
-ClaimSchema.methods.submitClaim = function(userId) {
-  if (!this.checkSubmissionReadiness()) {
-    throw new Error("Claim is not ready for submission");
+  if (!this.claimAmount.requested || this.claimAmount.requested <= 0) {
+    throw new Error("Claim amount must be set before submission");
   }
 
-  this.claimStatus = "submitted";
-  this.statusFlags.hasBeenSubmitted = true;
-  this.statusFlags.requiresHRAction = true;
-  this.statusFlags.requiresEmployeeAction = false;
+  this.claimStatus = "hr";
   this.submittedAt = new Date();
-  this.currentLocation = "hr";
+  
+  return this.save();
+};
 
-  // Add to workflow history
-  this.workflowHistory.push({
-    from: "questionnaire_completed",
-    to: "submitted",
-    action: "claim_submitted",
-    performedBy: userId,
-    timestamp: new Date(),
-    notes: `Claim submitted with amount ${this.claimAmount.requested}`
-  });
+// Method to forward claim to insurer (HR to insurer)
+ClaimSchema.methods.forwardToInsurer = function(coverageBreakdown, hrNotes, hrUserId) {
+  if (this.claimStatus !== "hr") {
+    throw new Error("Claim must be with HR to forward to insurer");
+  }
+
+  if (!coverageBreakdown || coverageBreakdown.length === 0) {
+    throw new Error("Coverage breakdown is required when forwarding to insurer");
+  }
+
+  this.claimStatus = "insurer";
+  this.hrForwardingDetails = {
+    coverageBreakdown,
+    hrNotes,
+    forwardedBy: hrUserId,
+    forwardedAt: new Date(),
+  };
+  this.forwardedToInsurerAt = new Date();
+
+  return this.save();
+};
+
+// Method to make final decision (insurer)
+ClaimSchema.methods.makeDecision = function(decision, insurerUserId) {
+  if (this.claimStatus !== "insurer") {
+    throw new Error("Claim must be with insurer to make decision");
+  }
+
+  if (!["approved", "rejected"].includes(decision.status)) {
+    throw new Error("Decision status must be either approved or rejected");
+  }
+
+  this.claimStatus = decision.status;
+  this.decision = {
+    ...decision,
+    decidedBy: insurerUserId,
+    decidedAt: new Date(),
+  };
+
+  if (decision.status === "approved" && decision.approvedAmount) {
+    this.claimAmount.approved = decision.approvedAmount;
+  }
+
+  this.finalizedAt = new Date();
+
+  return this.save();
+};
+
+// Method to return claim to previous stage
+ClaimSchema.methods.returnToPreviousStage = function(returnReason, currentUserId) {
+  let newStatus;
+  
+  if (this.claimStatus === "hr") {
+    newStatus = "employee";
+  } else if (this.claimStatus === "insurer") {
+    newStatus = "hr";
+  } else {
+    throw new Error("Cannot return claim from current status");
+  }
+
+  this.claimStatus = newStatus;
+  this.returnReason = returnReason;
 
   return this.save();
 };
@@ -509,6 +418,32 @@ ClaimSchema.pre("save", async function (next) {
       return next(error);
     }
   }
+  next();
+});
+
+// Validation middleware to ensure claim option matches claim type
+ClaimSchema.pre("save", function (next) {
+  const lifeOptions = ["hospitalization", "channelling", "medication", "death"];
+  const vehicleOptions = ["accident", "theft", "fire", "naturalDisaster"];
+
+  if (this.claimType === "life") {
+    if (this.lifeClaimOption && !lifeOptions.includes(this.lifeClaimOption)) {
+      return next(new Error(`Invalid life claim option: ${this.lifeClaimOption}`));
+    }
+    if (this.vehicleClaimOption) {
+      return next(new Error("Life claims cannot have vehicle claim options"));
+    }
+  }
+
+  if (this.claimType === "vehicle") {
+    if (this.vehicleClaimOption && !vehicleOptions.includes(this.vehicleClaimOption)) {
+      return next(new Error(`Invalid vehicle claim option: ${this.vehicleClaimOption}`));
+    }
+    if (this.lifeClaimOption) {
+      return next(new Error("Vehicle claims cannot have life claim options"));
+    }
+  }
+
   next();
 });
 
@@ -538,18 +473,11 @@ ClaimSchema.pre("save", async function (next) {
 });
 
 // Indexes for performance
-//ClaimSchema.index({ claimId: 1 });
 ClaimSchema.index({ employeeId: 1 });
 ClaimSchema.index({ policy: 1 });
 ClaimSchema.index({ claimStatus: 1 });
-ClaimSchema.index({ currentLocation: 1 });
 ClaimSchema.index({ claimType: 1 });
-ClaimSchema.index({ priority: 1 });
 ClaimSchema.index({ createdAt: -1 });
-ClaimSchema.index({ "questionnaire.completionStatus": 1 });
-ClaimSchema.index({ "statusFlags.requiresEmployeeAction": 1 });
-ClaimSchema.index({ "statusFlags.requiresHRAction": 1 });
-ClaimSchema.index({ "statusFlags.requiresInsurerAction": 1 });
 
 const Claim = mongoose.model("Claim", ClaimSchema);
 export default Claim;

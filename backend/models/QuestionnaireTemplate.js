@@ -8,13 +8,13 @@ const VALID_CLAIM_COMBINATIONS = {
 
 const QuestionnaireTemplateSchema = new mongoose.Schema(
   {
-    // templateId: {
-    //   type: String,
-    //   required: true,
-    //   unique: true,
-    //   trim: true,
-    //   uppercase: true,
-    // },
+    templateId: {
+      type: String,
+      //required: true,
+      unique: true,
+      trim: true,
+      uppercase: true,
+    },
     claimType: {
       type: String,
       enum: ["life", "vehicle"],
@@ -106,21 +106,21 @@ QuestionnaireTemplateSchema.index({ claimType: 1, claimOption: 1 }, { unique: tr
 QuestionnaireTemplateSchema.pre("save", async function (next) {
   if (this.isNew && !this.templateId) {
     try {
-      const typePrefix = this.claimType === "life" ? "LT" : "VT";
+      const typePrefix = this.claimType === "life" ? "LIFE" : "VEHICLE";
       
       // Create specific suffix based on option
       const optionSuffixes = {
         life: {
-          hospitalization: "H",
-          channelling: "C", 
-          medication: "M",
-          death: "D"
+          hospitalization: "HOSP",
+          channelling: "CHANNEL", 
+          medication: "MEDIC",
+          death: "DEATH"
         },
         vehicle: {
-          accident: "A",
-          theft: "T",
-          fire: "F",
-          naturalDisaster: "N"
+          accident: "ACC",
+          theft: "THEFT",
+          fire: "FIRE",
+          naturalDisaster: "NATURAL"
         }
       };
       
