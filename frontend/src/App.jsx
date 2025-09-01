@@ -1,7 +1,6 @@
 import './App.css'
 import { LandingPage } from './pages/garbage/LandingPage';
-import { LumiereLanding } from './pages/garbage/LumiereLanding';
-import { Someother } from './pages/Someother';
+import { LumiereLanding } from './pages/LandingPage/LumiereLanding';
 
 const getUser = () => {
   // null → logged out
@@ -31,7 +30,7 @@ function App() {
 
   return (
     <>
-      <Someother/>
+      <LumiereLanding/>
     </>
   )
 }

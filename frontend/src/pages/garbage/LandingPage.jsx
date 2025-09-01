@@ -182,9 +182,6 @@ export const LandingPage = () => {
               <span className="bg-gradient-to-r from-orange-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
                 Claims
               </span>
-              <span >
-                <FallingStar/>
-              </span>
             </h1>
             
             <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
