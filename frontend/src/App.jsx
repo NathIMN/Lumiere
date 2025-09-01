@@ -1,6 +1,6 @@
 import './App.css'
-import { LandingPage } from './pages/LandingPage';
-import { LumiereLanding } from './pages/LumiereLanding';
+import { LandingPage } from './pages/garbage/LandingPage';
+import { LumiereLanding } from './pages/garbage/LumiereLanding';
 import { Someother } from './pages/Someother';
 
 const getUser = () => {
