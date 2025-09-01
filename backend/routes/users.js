@@ -33,7 +33,7 @@ router.route("/")
   .post(authenticate, authorize("admin", "hr_officer"), createUser);
 
 router.route("/:id")
-  .get(authenticate, authorizeOwnerOrAdmin, getUserById)
+  .get(authenticate, authorize("admin", "hr_officer"), getUserById)
   .patch(authenticate, authorize("admin", "hr_officer"), updateUser)
   .delete(authenticate, authorize("admin"), deleteUser);
 

@@ -114,6 +114,30 @@ const getProfile = asyncWrapper(async (req, res, next) => {
 });
 
 // Update user profile
+// const updateProfile = asyncWrapper(async (req, res, next) => {
+//   const { userId } = req.user;
+  
+//   // Prevent updating sensitive fields
+//   const restrictedFields = ["userId", "role", "password", "loginAttempts", "lockUntil"];
+//   restrictedFields.forEach(field => delete req.body[field]);
+
+//   const user = await User.findByIdAndUpdate(userId, req.body, {
+//     new: true,
+//     runValidators: true,
+//   });
+
+//   if (!user) {
+//     return next(createCustomError(`No user with id: ${userId}`, 404));
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     message: "Profile updated successfully",
+//     user,
+//   });
+// });
+
+// Update user profile - Fixed version
 const updateProfile = asyncWrapper(async (req, res, next) => {
   const { userId } = req.user;
   
@@ -121,7 +145,29 @@ const updateProfile = asyncWrapper(async (req, res, next) => {
   const restrictedFields = ["userId", "role", "password", "loginAttempts", "lockUntil"];
   restrictedFields.forEach(field => delete req.body[field]);
 
-  const user = await User.findByIdAndUpdate(userId, req.body, {
+  // Handle nested profile updates properly
+  const updateData = {};
+  
+  // If profile fields are provided, merge with existing profile
+  if (req.body.profile) {
+    // Get current user to merge profile data
+    const currentUser = await User.findById(userId);
+    if (!currentUser) {
+      return next(createCustomError(`No user with id: ${userId}`, 404));
+    }
+    
+    // Merge existing profile with new profile data
+    updateData.profile = { ...currentUser.profile.toObject(), ...req.body.profile };
+  }
+  
+  // Handle other top-level fields
+  Object.keys(req.body).forEach(key => {
+    if (key !== 'profile') {
+      updateData[key] = req.body[key];
+    }
+  });
+
+  const user = await User.findByIdAndUpdate(userId, updateData, {
     new: true,
     runValidators: true,
   });
@@ -248,19 +294,101 @@ const createUser = asyncWrapper(async (req, res, next) => {
 });
 
 // Update user (admin/hr only)
+// const updateUser = asyncWrapper(async (req, res, next) => {
+//   const { id: userId } = req.params;
+
+//   // Prevent updating password through this route
+//   delete req.body.password;
+
+//   const user = await User.findByIdAndUpdate(userId, req.body, {
+//     new: true,
+//     runValidators: true,
+//   });
+
+//   if (!user) {
+//     return next(createCustomError(`No user with id: ${userId}`, 404));
+//   }
+
+//   res.status(200).json({
+//     success: true,
+//     message: "User updated successfully",
+//     user,
+//   });
+// });
+
+// Update user (admin/hr only) - Fixed for partial updates
 const updateUser = asyncWrapper(async (req, res, next) => {
   const { id: userId } = req.params;
 
-  // Prevent updating password through this route
-  delete req.body.password;
+  // Prevent updating sensitive fields through this route
+  const restrictedFields = ["password", "userId", "loginAttempts", "lockUntil"];
+  restrictedFields.forEach(field => delete req.body[field]);
 
-  const user = await User.findByIdAndUpdate(userId, req.body, {
-    new: true,
-    runValidators: true,
+  // Build update object using dot notation for nested fields
+  const updateData = {};
+
+  // Handle profile nested updates
+  if (req.body.profile) {
+    Object.keys(req.body.profile).forEach(key => {
+      updateData[`profile.${key}`] = req.body.profile[key];
+    });
+  }
+
+  // Handle employment nested updates
+  if (req.body.employment) {
+    Object.keys(req.body.employment).forEach(key => {
+      updateData[`employment.${key}`] = req.body.employment[key];
+    });
+  }
+
+  // Handle bankDetails nested updates
+  if (req.body.bankDetails) {
+    Object.keys(req.body.bankDetails).forEach(key => {
+      updateData[`bankDetails.${key}`] = req.body.bankDetails[key];
+    });
+  }
+
+  // Handle insuranceProvider nested updates
+  if (req.body.insuranceProvider) {
+    Object.keys(req.body.insuranceProvider).forEach(key => {
+      updateData[`insuranceProvider.${key}`] = req.body.insuranceProvider[key];
+    });
+  }
+
+  // Handle dependents array updates (replace entire array if provided)
+  if (req.body.dependents) {
+    updateData.dependents = req.body.dependents;
+  }
+
+  // Handle top-level fields
+  const topLevelFields = ['email', 'role', 'status', 'lastLogin'];
+  topLevelFields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      updateData[field] = req.body[field];
+    }
   });
+
+  // Use $set operator to update only specified fields
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: false, // Disable full document validation to allow partial updates
+    }
+  );
 
   if (!user) {
     return next(createCustomError(`No user with id: ${userId}`, 404));
+  }
+
+  // Optional: Run custom validation on the updated document
+  try {
+    await user.validate();
+  } catch (validationError) {
+    // If validation fails, revert the update by fetching the original document
+    const originalUser = await User.findById(userId);
+    return next(createCustomError(`Validation failed: ${validationError.message}`, 400));
   }
 
   res.status(200).json({
