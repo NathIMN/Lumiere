@@ -14,8 +14,6 @@ export function HeaderLanding() {
             className="h-8 w-auto"
           />
 
-          {/* Brand name */}
-          <span className="text-xl font-semibold">Lumiere</span>
         </div>
 
           </a>
