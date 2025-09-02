@@ -2,6 +2,7 @@ import './App.css'
 import { LandingPage } from './pages/garbage/LandingPage';
 import { LumiereLanding } from './pages/LandingPage/LumiereLanding';
 import { AdminDashboard } from './pages/Admin/AdminDashboard';
+import UserAuthApp from './pages/Common/UserAuthApp';
 
 const getUser = () => {
   // null → logged out
@@ -31,7 +32,7 @@ function App() {
 
   return (
     <>
-      <AdminDashboard/>
+      <UserAuthApp/>
     </>
   )
 }
