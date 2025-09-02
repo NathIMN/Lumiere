@@ -36,7 +36,12 @@ app.use(express.urlencoded({ extended: true }));
 //   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
 //   next();
 // });
-app.use(cors());
+//app.use(cors());
+
+app.use(cors({
+  origin: 'http://localhost:5174',  // frontend URL
+  credentials: true,                // allow cookies/auth headers
+}));
 
 //routes
 app.use("/api/v1/documents", documents);

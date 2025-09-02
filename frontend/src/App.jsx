@@ -1,7 +1,9 @@
 import './App.css'
 import { LandingPage } from './pages/garbage/LandingPage';
 import { LumiereLanding } from './pages/LandingPage/LumiereLanding';
-import { AdminDashboard } from './pages/Admin/AdminDashboard';
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import Test from "./pages/Admin/Test"
+import Test2 from "./pages/HR/Test"
 import UserAuthApp from './pages/Common/UserAuthApp';
 
 const getUser = () => {
@@ -16,7 +18,7 @@ function App() {
 
   return (
     <>
-      <UserAuthApp/>
+      <AdminDashboard/>
     </>
   )
 }
