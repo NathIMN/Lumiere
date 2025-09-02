@@ -2,6 +2,7 @@ import './App.css'
 import { LandingPage } from './pages/garbage/LandingPage';
 import { LumiereLanding } from './pages/LandingPage/LumiereLanding';
 import { AdminDashboard } from './pages/Admin/AdminDashboard';
+import { AllRoutes } from './routes/AllRoutes';
 
 const getUser = () => {
   // null → logged out
@@ -13,25 +14,9 @@ function App() {
 
   const user = getUser();
 
-  const getDashboard = () => {
-    switch (user?.role) {
-      case "Employee":
-        return <EmployeeDashboard />;
-      case "HR":
-        return <HRDashboard />;
-      case "Admin":
-        return <AdminDashboard />;
-      case "Agent":
-        return <AgentDashboard />;
-      default:
-        return <Navigate to="/" />;
-    }
-  };
-  
-
   return (
     <>
-      <AdminDashboard/>
+      <AllRoutes user={user}/>
     </>
   )
 }
