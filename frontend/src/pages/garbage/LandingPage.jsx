@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {Shield, Users, FileText, MessageCircle, Zap, ArrowRight, CheckCircle, Menu, X, Bot, Bell, Database, Lock, Clock, BarChart3, Upload, Eye, Search, ChevronLeft, ChevronRight, Star, Play, Pause } from 'lucide-react';
-import { FallingStar } from '../components/FallingStar';
+import { FallingStar } from '../../components/garbage/FallingStar';
 
 export const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -181,9 +181,6 @@ export const LandingPage = () => {
               <br />
               <span className="bg-gradient-to-r from-orange-400 via-pink-500 to-red-500 bg-clip-text text-transparent">
                 Claims
-              </span>
-              <span >
-                <FallingStar/>
               </span>
             </h1>
             

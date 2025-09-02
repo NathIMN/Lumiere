@@ -224,7 +224,7 @@ export const Particles = ({
     disableRotation
   ]);
 
-  return <div ref={containerRef} className={`relative w-full h-full ${className}`} />;
+  return <div ref={containerRef} className={`${className}`} />;
 };
 
 

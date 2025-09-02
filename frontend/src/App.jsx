@@ -1,8 +1,7 @@
 import './App.css'
-import { LandingPage } from './pages/LandingPage';
-import { LumiereLanding } from './pages/LumiereLanding';
-import { Someother } from './pages/Someother';
-import { AdminDashboard } from './pages/Admin/AdminDashboard';
+import { LandingPage } from './pages/garbage/LandingPage';
+import { LumiereLanding } from './pages/LandingPage/LumiereLanding';
+
 const getUser = () => {
   // null → logged out
   // or return { role: "Employee" | "HR" | "Admin" | "Agent" }
@@ -31,7 +30,7 @@ function App() {
 
   return (
     <>
-      <AdminDashboard/>
+      <LumiereLanding/>
     </>
   )
 }
