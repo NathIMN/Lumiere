@@ -4,7 +4,7 @@ export function HeroLanding() {
   return (
     <div>
              {/* Hero Section */}
-             <section className="relative z-10 pb-20 px-6 min-h-screen flex items-center">
+             <section className="relative z-10 pt-30 pb-20 px-6 min-h-screen flex items-center">
                <div className="max-w-7xl mx-auto w-full">
                  <div className="text-center max-w-4xl mx-auto">
                    <div className="inline-flex items-center space-x-2 bg-white/60 backdrop-blur-sm border border-gray-200/50 rounded-full px-4 py-2 mb-8">

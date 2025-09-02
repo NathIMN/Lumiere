@@ -1,37 +1,23 @@
 export function HeaderLanding() {
   return (
-    <div>
-      <header className="sticky top-5 z-[100] flex items-center justify-between p-4 mx-auto w-[90%] md:w-[95%] lg:w-[80%] max-w-[1400px] bg-white rounded-[40px] border border-gray-200/50 shadow-lg mt-6">
+
+<header className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-between p-4 w-[90%] md:w-[95%] lg:w-[80%] max-w-[1400px] bg-white rounded-[40px] border border-gray-200/50 shadow-lg">
 
         {/* Logo + Brand */}
         <div className="flex items-center gap-8">
           <a href="/">
-            <div className="inline-flex items-center gap-3 col-span-2">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-auto text-[#FC7A1F]"
-              >
-                <circle cx="12" cy="12" r="12" fill="#FD7A1E" />
-                <foreignObject width="24" height="24">
-                  <div className="flex items-center justify-center w-full h-full p-1">
-                    <img
-                      src="/images/prompt-genie-icon_white.png"
-                      alt="Prompt Genie"
-                      className="w-5/6 h-5/6"
-                    />
-                  </div>
-                </foreignObject>
-              </svg>
+        <div className="inline-flex items-center gap-3 col-span-2">
+          {/* Logo */}
+          <img
+            src="/LumiereLogo.svg"
+            alt="Lumiere Logo"
+            className="h-8 w-auto"
+          />
 
-              <div className="flex items-center">
-                <span className="text-xl text-[#030712] font-semibold">Prompt</span>
-                <span className="text-xl font-semibold text-gray-500">Genie</span>
-              </div>
-            </div>
+          {/* Brand name */}
+          <span className="text-xl font-semibold">Lumiere</span>
+        </div>
+
           </a>
 
           {/* Desktop Nav */}
@@ -134,6 +120,6 @@ export function HeaderLanding() {
           </button>
         </div>
       </header>
-    </div>
+
   );
 }
