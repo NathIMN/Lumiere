@@ -7,7 +7,8 @@ import { AllRoutes } from './routes/AllRoutes';
 const getUser = () => {
   // null → logged out
   // or return { role: "Employee" | "HR" | "Admin" | "Agent" }
-  return JSON.parse(localStorage.getItem("user")) || null;
+  //JSON.parse(localStorage.getItem("user")) || null;
+  return "employee"
 };
 
 function App() {
