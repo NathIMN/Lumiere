@@ -14,6 +14,7 @@ import qnas from "./routes/questionnaireTemplates.js";
 import claims from "./routes/claims.js";
 import messages from "./routes/messages.js";
 import notifications from "./routes/notifications.js"
+import cors from "cors";
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ app.use(express.static("./public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS middleware (add this if you'll have a frontend later)
+//CORS middleware (add this if you'll have a frontend later)
 // app.use((req, res, next) => {
 //   res.header("Access-Control-Allow-Origin", process.env.CLIENT_URL || "http://localhost:3000");
 //   res.header("Access-Control-Allow-Credentials", "true");
@@ -35,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 //   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
 //   next();
 // });
+app.use(cors());
 
 //routes
 app.use("/api/v1/documents", documents);

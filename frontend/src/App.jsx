@@ -1,6 +1,7 @@
 import './App.css'
 import { LandingPage } from './pages/garbage/LandingPage';
 import { LumiereLanding } from './pages/LandingPage/LumiereLanding';
+import { AdminDashboard } from './pages/Admin/AdminDashboard';
 
 const getUser = () => {
   // null → logged out
@@ -30,7 +31,7 @@ function App() {
 
   return (
     <>
-      <LumiereLanding/>
+      <AdminDashboard/>
     </>
   )
 }
