@@ -3,7 +3,7 @@ import ProtectedRoute from "./ProtectedRoute";
 
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
 import { AdminDashboard } from "../pages/Admin/AdminDashboard";
-import { HRDashboard } from "../pages/hr/HRDashboard";
+import { HRDashboard } from "../pages/HR/HRDashboard";
 import { EmployeeDashboard } from "../pages/Employee/EmployeeDashboard";
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 
@@ -18,6 +18,9 @@ export const AllRoutes = ({ user }) => {
                             <Route path="/login" element={<Login />} />
                             <Route path="/unauthorized" element={<Unauthorized />} />
                             */}
+
+                   
+
 
                             {/* Role-Specific Dashboards */}
                             <Route

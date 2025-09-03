@@ -1,7 +1,9 @@
 import React from 'react'
-
+import UserRegistrationPage from './UserRegistrationPage'
 export const HRDashboard = () => {
   return (
-    <div>HRDashboard</div>
+    <div>
+      <UserRegistrationPage/>
+    </div>
   )
 }
