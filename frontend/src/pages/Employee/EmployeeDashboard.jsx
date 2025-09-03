@@ -1,7 +1,8 @@
-import React from 'react'
-
+import { MaterialDashboard } from "./MaterialDashboard"
 export const EmployeeDashboard = () => {
   return (
-    <div>EmployeeDashboard</div>
+    <div>
+        <MaterialDashboard />
+    </div>
   )
 }
