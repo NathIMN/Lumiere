@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, RefreshCw, Download } from 'lucide-react';
 import ContentCard from '../../../components/dashboard/ui/ContentCard';
 import ThemeIndicator from '../../../components/dashboard/ui/ThemeIndicator';
-import ContextMenu from '../../../components/dashboard/ui/ContextMenu';
 import LoadingSpinner from '../../../components/dashboard/ui/LoadingSpinner';
 import { useTheme } from '../../../components/dashboard/hooks/useTheme';
 import ApiService from '../../../services/api';
@@ -15,7 +14,6 @@ const PolicyManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchPolicies();
@@ -44,42 +42,13 @@ const PolicyManagement = () => {
     if (window.confirm('Are you sure you want to delete this policy?')) {
       try {
         await ApiService.deletePolicy(policyId);
-        fetchPolicies(); // Refresh the list
+        fetchPolicies();
       } catch (error) {
         console.error('Error deleting policy:', error);
         alert('Error deleting policy: ' + error.message);
       }
     }
   };
-
-  const getContextMenuItems = (policy) => [
-    {
-      label: 'View Details',
-      icon: Eye,
-      onClick: () => console.log('View policy:', policy._id)
-    },
-    {
-      label: 'Edit Policy',
-      icon: Edit,
-      onClick: () => console.log('Edit policy:', policy._id)
-    },
-    {
-      label: 'Download',
-      icon: Download,
-      onClick: () => console.log('Download policy:', policy._id)
-    },
-    {
-      label: 'Refresh Status',
-      icon: RefreshCw,
-      onClick: () => console.log('Refresh policy status:', policy._id)
-    },
-    {
-      label: 'Delete Policy',
-      icon: Trash2,
-      onClick: () => handleDeletePolicy(policy._id),
-      destructive: true
-    }
-  ];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -98,7 +67,7 @@ const PolicyManagement = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Policy Management</h1>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => console.log('Create policy')}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -215,7 +184,43 @@ const PolicyManagement = () => {
                       }
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <ContextMenu items={getContextMenuItems(policy)} />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => console.log('View policy:', policy._id)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Edit policy:', policy._id)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
+                          title="Edit Policy"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Download policy:', policy._id)}
+                          className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
+                          title="Download PDF"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Refresh policy status:', policy._id)}
+                          className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50"
+                          title="Refresh Status"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeletePolicy(policy._id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                          title="Delete Policy"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

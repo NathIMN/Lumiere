@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, UserCheck, UserX, Shield, Phone, Building } from 'lucide-react';
 import ContentCard from '../../../components/dashboard/ui/ContentCard';
 import ThemeIndicator from '../../../components/dashboard/ui/ThemeIndicator';
-import ContextMenu from '../../../components/dashboard/ui/ContextMenu';
 import LoadingSpinner from '../../../components/dashboard/ui/LoadingSpinner';
 import { useTheme } from '../../../components/dashboard/hooks/useTheme';
 import ApiService from '../../../services/api';
@@ -41,7 +40,7 @@ const InsuranceAgentManagement = () => {
     if (window.confirm('Are you sure you want to delete this insurance agent?')) {
       try {
         await ApiService.deleteUser(agentId);
-        fetchAgents(); // Refresh the list
+        fetchAgents();
       } catch (error) {
         console.error('Error deleting agent:', error);
         alert('Error deleting agent: ' + error.message);
@@ -52,53 +51,12 @@ const InsuranceAgentManagement = () => {
   const handleStatusChange = async (agentId, newStatus) => {
     try {
       await ApiService.updateUserStatus(agentId, newStatus);
-      fetchAgents(); // Refresh the list
+      fetchAgents();
     } catch (error) {
       console.error('Error updating agent status:', error);
       alert('Error updating agent status: ' + error.message);
     }
   };
-
-  const getContextMenuItems = (agent) => [
-    {
-      label: 'View Details',
-      icon: Eye,
-      onClick: () => console.log('View agent:', agent._id)
-    },
-    {
-      label: 'View Policies',
-      icon: Shield,
-      onClick: () => console.log('View agent policies:', agent._id)
-    },
-    {
-      label: 'Edit Agent',
-      icon: Edit,
-      onClick: () => console.log('Edit agent:', agent._id)
-    },
-    {
-      label: 'Call Agent',
-      icon: Phone,
-      onClick: () => console.log('Call agent:', agent.profile?.phone),
-      disabled: !agent.profile?.phone
-    },
-    {
-      label: 'View Company',
-      icon: Building,
-      onClick: () => console.log('View company:', agent.insuranceProvider?.companyName),
-      disabled: !agent.insuranceProvider?.companyName
-    },
-    {
-      label: agent.status === 'active' ? 'Deactivate' : 'Activate',
-      icon: agent.status === 'active' ? UserX : UserCheck,
-      onClick: () => handleStatusChange(agent._id, agent.status === 'active' ? 'inactive' : 'active')
-    },
-    {
-      label: 'Delete Agent',
-      icon: Trash2,
-      onClick: () => handleDeleteAgent(agent._id),
-      destructive: true
-    }
-  ];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -200,13 +158,13 @@ const InsuranceAgentManagement = () => {
                 {agents.map((agent) => (
                   <tr key={agent._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {agent.firstName} {agent.lastName}
+                      {agent.profile.firstName} {agent.profile.lastName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {agent.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {agent.profile?.phone || 'N/A'}
+                      {agent.profile?.phoneNumber || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(agent.status)}`}>
@@ -220,7 +178,77 @@ const InsuranceAgentManagement = () => {
                       {agent.insuranceProvider?.licenseNumber || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <ContextMenu items={getContextMenuItems(agent)} />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => console.log('View agent:', agent._id)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('View agent policies:', agent._id)}
+                          className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50"
+                          title="View Policies"
+                        >
+                          <Shield className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Edit agent:', agent._id)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
+                          title="Edit Agent"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Call agent:', agent.profile?.phone)}
+                          disabled={!agent.profile?.phone}
+                          className={`p-1 rounded ${
+                            agent.profile?.phone
+                              ? 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                              : 'text-gray-400 cursor-not-allowed'
+                          }`}
+                          title="Call Agent"
+                        >
+                          <Phone className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('View company:', agent.insuranceProvider?.companyName)}
+                          disabled={!agent.insuranceProvider?.companyName}
+                          className={`p-1 rounded ${
+                            agent.insuranceProvider?.companyName
+                              ? 'text-orange-600 hover:text-orange-900 hover:bg-orange-50'
+                              : 'text-gray-400 cursor-not-allowed'
+                          }`}
+                          title="View Company"
+                        >
+                          <Building className="h-4 w-4" />
+                        </button>
+                        {agent.status === 'active' ? (
+                          <button
+                            onClick={() => handleStatusChange(agent._id, 'inactive')}
+                            className="text-yellow-600 hover:text-yellow-900 p-1 rounded hover:bg-yellow-50"
+                            title="Deactivate"
+                          >
+                            <UserX className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleStatusChange(agent._id, 'active')}
+                            className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
+                            title="Activate"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteAgent(agent._id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                          title="Delete Agent"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Eye, UserCheck, UserX, Key, Mail } from 'lucide-react';
 import ContentCard from '../../../components/dashboard/ui/ContentCard';
 import ThemeIndicator from '../../../components/dashboard/ui/ThemeIndicator';
-import ContextMenu from '../../../components/dashboard/ui/ContextMenu';
 import LoadingSpinner from '../../../components/dashboard/ui/LoadingSpinner';
 import { useTheme } from '../../../components/dashboard/hooks/useTheme';
 import ApiService from '../../../services/api';
@@ -41,7 +40,7 @@ const HRManagement = () => {
     if (window.confirm('Are you sure you want to delete this HR user?')) {
       try {
         await ApiService.deleteUser(userId);
-        fetchHRUsers(); // Refresh the list
+        fetchHRUsers();
       } catch (error) {
         console.error('Error deleting user:', error);
         alert('Error deleting user: ' + error.message);
@@ -52,46 +51,12 @@ const HRManagement = () => {
   const handleStatusChange = async (userId, newStatus) => {
     try {
       await ApiService.updateUserStatus(userId, newStatus);
-      fetchHRUsers(); // Refresh the list
+      fetchHRUsers();
     } catch (error) {
       console.error('Error updating user status:', error);
       alert('Error updating user status: ' + error.message);
     }
   };
-
-  const getContextMenuItems = (user) => [
-    {
-      label: 'View Details',
-      icon: Eye,
-      onClick: () => console.log('View user:', user._id)
-    },
-    {
-      label: 'Edit User',
-      icon: Edit,
-      onClick: () => console.log('Edit user:', user._id)
-    },
-    {
-      label: 'Send Email',
-      icon: Mail,
-      onClick: () => console.log('Send email to:', user.email)
-    },
-    {
-      label: 'Reset Password',
-      icon: Key,
-      onClick: () => console.log('Reset password for:', user._id)
-    },
-    {
-      label: user.status === 'active' ? 'Deactivate' : 'Activate',
-      icon: user.status === 'active' ? UserX : UserCheck,
-      onClick: () => handleStatusChange(user._id, user.status === 'active' ? 'inactive' : 'active')
-    },
-    {
-      label: 'Delete User',
-      icon: Trash2,
-      onClick: () => handleDeleteUser(user._id),
-      destructive: true
-    }
-  ];
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -178,9 +143,7 @@ const HRManagement = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Department
-                  </th>
+                  
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Last Login
                   </th>
@@ -193,27 +156,78 @@ const HRManagement = () => {
                 {hrUsers.map((user) => (
                   <tr key={user._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {user.firstName} {user.lastName}
+                      {user.profile.firstName} {user.profile.lastName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.employeeId || 'N/A'}
+                      {user.userId || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
                         {user.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.employment?.department || 'N/A'}
-                    </td>
+                    
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <ContextMenu items={getContextMenuItems(user)} />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => console.log('View user:', user._id)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50"
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Edit user:', user._id)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded hover:bg-indigo-50"
+                          title="Edit User"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Send email to:', user.email)}
+                          className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
+                          title="Send Email"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => console.log('Reset password for:', user._id)}
+                          className="text-purple-600 hover:text-purple-900 p-1 rounded hover:bg-purple-50"
+                          title="Reset Password"
+                        >
+                          <Key className="h-4 w-4" />
+                        </button>
+                        {user.status === 'active' ? (
+                          <button
+                            onClick={() => handleStatusChange(user._id, 'inactive')}
+                            className="text-yellow-600 hover:text-yellow-900 p-1 rounded hover:bg-yellow-50"
+                            title="Deactivate"
+                          >
+                            <UserX className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleStatusChange(user._id, 'active')}
+                            className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50"
+                            title="Activate"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50"
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
