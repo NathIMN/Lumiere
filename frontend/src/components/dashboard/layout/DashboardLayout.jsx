@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ThemeProvider } from '../context/ThemeContext';
 import { SidebarProvider } from '../context/SidebarContext';
 import MainLayout from './MainLayout';
@@ -14,13 +14,9 @@ const DashboardLayout = ({
   notifications = 0,
   onNotificationClick,
   logo,
-  defaultActiveItem
+  activeItem,
+  onItemClick
 }) => {
-  const [activeItem, setActiveItem] = useState(defaultActiveItem || navigationItems[0]?.id);
-
-  const handleItemClick = (itemId) => {
-    setActiveItem(itemId);
-  };
 
   return (
     <ThemeProvider>
@@ -29,7 +25,7 @@ const DashboardLayout = ({
           <Sidebar
             navigationItems={navigationItems}
             activeItem={activeItem}
-            onItemClick={handleItemClick}
+            onItemClick={onItemClick}
             bottomContent={bottomContent}
             logo={logo}
             title={title}
@@ -44,7 +40,7 @@ const DashboardLayout = ({
             />
             
             <main className="flex-1 overflow-auto p-6">
-              {typeof children === 'function' ? children({ activeItem, navigationItems }) : children}
+              {children}
             </main>
           </div>
         </MainLayout>
