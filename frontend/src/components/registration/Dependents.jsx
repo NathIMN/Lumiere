@@ -1,7 +1,24 @@
 import React from 'react';
 import { User, Plus, Trash2 } from 'lucide-react';
-import { relationships } from '../../utils/constants';
-import { handleKeyPress } from '../../utils/validation';
+
+const relationships = [
+  { value: 'spouse', label: 'Spouse' },
+  { value: 'child', label: 'Child' }
+];
+
+const handleKeyPress = (e, type) => {
+  if (type === 'name') {
+    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  } else if (type === 'nic') {
+    // Allow numbers, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  }
+};
 
 const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
   return (
@@ -47,7 +64,7 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                     onChange={(e) => onUpdate(index, 'name', e.target.value, 'name')}
                     onKeyDown={(e) => handleKeyPress(e, 'name')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter dependent name"
+                    placeholder="Enter dependent name "
                   />
                 </div>
 
@@ -70,6 +87,8 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                     type="date"
                     value={dependent.dateOfBirth}
                     onChange={(e) => onUpdate(index, 'dateOfBirth', e.target.value)}
+                    min="1970-01-01"
+                    max="2025-12-31"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -79,9 +98,10 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                   <input
                     type="text"
                     value={dependent.nic}
-                    onChange={(e) => onUpdate(index, 'nic', e.target.value)}
+                    onChange={(e) => onUpdate(index, 'nic', e.target.value, 'nic')}
+                    onKeyDown={(e) => handleKeyPress(e, 'nic')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter NIC number"
+                    placeholder="Enter NIC number "
                   />
                 </div>
               </div>

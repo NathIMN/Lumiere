@@ -1,10 +1,19 @@
 import React from 'react';
 import { Shield } from 'lucide-react';
-import { handleKeyPress } from '../../utils/validation';
+
+const handleKeyPress = (e, type) => {
+  if (type === 'phone') {
+    // Allow numbers, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  }
+};
+
 const InsuranceProviderDetails = ({ formData, errors, onChange }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center gap-3 mbs-6">
+      <div className="flex items-center gap-3 mb-6">
         <Shield className="w-5 h-5 text-blue-600" />
         <h3 className="text-lg font-semibold text-gray-900">Insurance Provider Details</h3>
       </div>
@@ -71,7 +80,7 @@ const InsuranceProviderDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'insuranceProvider', 'phone')}
             onKeyDown={(e) => handleKeyPress(e, 'phone')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.contactPhone ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter contact phone number"
+            placeholder="Enter contact phone number (numbers only)"
           />
           {errors.contactPhone && <p className="text-red-500 text-sm mt-1">{errors.contactPhone}</p>}
         </div>

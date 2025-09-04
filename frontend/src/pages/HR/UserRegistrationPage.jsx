@@ -190,7 +190,7 @@ const UserRegistrationPage = () => {
                 <Shield className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">User Registration</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Employee Registration</h1>
             <p className="text-gray-600">Insurance Claim Management System</p>
           </div>
 

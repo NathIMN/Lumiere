@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
-import { userRoles } from '../../utils/constants';
+
 
 const BasicInformation = ({ formData, errors, onChange }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,17 +31,14 @@ const BasicInformation = ({ formData, errors, onChange }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">User Role *</label>
-          <select
-            name="role"
-            value={formData.role}
-            onChange={onChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {userRoles.map(role => (
-              <option key={role.value} value={role.value}>{role.label}</option>
-            ))}
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-2">User Role</label>
+          <input
+            type="text"
+            value="Employee"
+            disabled
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+          />
+          {/* <p className="text-xs text-gray-500 mt-1">Default role for registration</p> */}
         </div>
 
         <div>

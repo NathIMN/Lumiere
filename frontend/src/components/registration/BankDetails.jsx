@@ -1,6 +1,19 @@
 import React from 'react';
 import { CreditCard } from 'lucide-react';
-import { handleKeyPress } from '../../utils/validation';
+
+const handleKeyPress = (e, type) => {
+  if (type === 'name') {
+    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  } else if (type === 'accountNumber') {
+    // Allow numbers, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  }
+};
 
 const BankDetails = ({ formData, errors, onChange }) => {
   return (
@@ -20,7 +33,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountHolderName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter account holder name"
+            placeholder="Enter account holder name "
           />
           {errors.accountHolderName && <p className="text-red-500 text-sm mt-1">{errors.accountHolderName}</p>}
         </div>
@@ -31,9 +44,10 @@ const BankDetails = ({ formData, errors, onChange }) => {
             type="text"
             name="bankName"
             value={formData.bankName}
-            onChange={(e) => onChange(e, 'bankDetails')}
+            onChange={(e) => onChange(e, 'bankDetails', 'name')}
+            onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.bankName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter bank name"
+            placeholder="Enter bank name "
           />
           {errors.bankName && <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>}
         </div>
@@ -44,9 +58,10 @@ const BankDetails = ({ formData, errors, onChange }) => {
             type="text"
             name="branchName"
             value={formData.branchName}
-            onChange={(e) => onChange(e, 'bankDetails')}
+            onChange={(e) => onChange(e, 'bankDetails', 'name')}
+            onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.branchName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter branch name"
+            placeholder="Enter branch name "
           />
           {errors.branchName && <p className="text-red-500 text-sm mt-1">{errors.branchName}</p>}
         </div>
@@ -57,10 +72,10 @@ const BankDetails = ({ formData, errors, onChange }) => {
             type="text"
             name="accountNumber"
             value={formData.accountNumber}
-            onChange={(e) => onChange(e, 'bankDetails', 'phone')}
-            onKeyDown={(e) => handleKeyPress(e, 'phone')}
+            onChange={(e) => onChange(e, 'bankDetails', 'accountNumber')}
+            onKeyDown={(e) => handleKeyPress(e, 'accountNumber')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter account number"
+            placeholder="Enter account number "
           />
           {errors.accountNumber && <p className="text-red-500 text-sm mt-1">{errors.accountNumber}</p>}
         </div>

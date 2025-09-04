@@ -1,10 +1,27 @@
 import React from 'react';
-import { handleKeyPress } from '../../utils/validation';
+import { User } from 'lucide-react';
+
+const handleKeyPress = (e, type) => {
+  if (type === 'name') {
+    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  } else if (type === 'phone' || type === 'nic') {
+    // Allow numbers, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  }
+};
 
 const PersonalInformation = ({ formData, errors, onChange }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <User className="w-5 h-5 text-indigo-600" />
+        <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
@@ -16,7 +33,7 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'profile', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter first name"
+            placeholder="Enter first name "
           />
           {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
         </div>
@@ -30,7 +47,7 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'profile', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter last name"
+            placeholder="Enter last name "
           />
           {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
         </div>
@@ -42,6 +59,8 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             name="dateOfBirth"
             value={formData.dateOfBirth}
             onChange={(e) => onChange(e, 'profile')}
+            min="1970-01-01"
+            max="2005-12-31"
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`}
           />
           {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}
@@ -53,9 +72,10 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             type="text"
             name="nic"
             value={formData.nic}
-            onChange={(e) => onChange(e, 'profile')}
+            onChange={(e) => onChange(e, 'profile', 'nic')}
+            onKeyDown={(e) => handleKeyPress(e, 'nic')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.nic ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter NIC number"
+            placeholder="Enter NIC number "
           />
           {errors.nic && <p className="text-red-500 text-sm mt-1">{errors.nic}</p>}
         </div>

@@ -1,6 +1,23 @@
 import React from 'react';
 import { Building } from 'lucide-react';
-import { employmentTypes } from '../../utils/constants';
+
+const employmentTypes = [
+  { value: 'permanent', label: 'Permanent' },
+  { value: 'contract', label: 'Contract' },
+  { value: 'probation', label: 'Probation' },
+  { value: 'executive', label: 'Executive' }
+];
+
+const handleKeyPress = (e, type) => {
+  if (type === 'name') {
+    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
+    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+    }
+  }
+};
+
+
 const EmploymentDetails = ({ formData, errors, onChange }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -16,9 +33,10 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
             type="text"
             name="department"
             value={formData.department}
-            onChange={(e) => onChange(e, 'employment')}
+            onChange={(e) => onChange(e, 'employment', 'name')}
+            onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.department ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter department"
+            placeholder="Enter department "
           />
           {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department}</p>}
         </div>
@@ -29,9 +47,10 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
             type="text"
             name="designation"
             value={formData.designation}
-            onChange={(e) => onChange(e, 'employment')}
+            onChange={(e) => onChange(e, 'employment', 'name')}
+            onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.designation ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter designation"
+            placeholder="Enter designation "
           />
           {errors.designation && <p className="text-red-500 text-sm mt-1">{errors.designation}</p>}
         </div>
@@ -51,15 +70,14 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Join Date *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Join Date</label>
           <input
-            type="date"
-            name="joinDate"
+            type="text"
             value={formData.joinDate}
-            onChange={(e) => onChange(e, 'employment')}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.joinDate ? 'border-red-500' : 'border-gray-300'}`}
+            disabled
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
           />
-          {errors.joinDate && <p className="text-red-500 text-sm mt-1">{errors.joinDate}</p>}
+          
         </div>
 
         <div className="md:col-span-2">
