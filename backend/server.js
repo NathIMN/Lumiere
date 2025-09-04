@@ -39,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 //app.use(cors());
 
 app.use(cors({
-  origin: 'http://localhost:5174',  // frontend URL
+  origin: 'http://localhost:5173',  // frontend URL
   credentials: true,                // allow cookies/auth headers
 }));
 
