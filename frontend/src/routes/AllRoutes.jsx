@@ -1,16 +1,18 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
+import UserAuthApp from "../pages/Common/UserAuthApp";
+import { Navigate } from "react-router-dom";
 
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
+
 import AdminDashboard from "../pages/Admin/AdminDashboard";
 import { HRDashboard } from "../pages/HR/HRDashboard";
-import { EmployeeDashboard } from "../pages/Employee/EmployeeDashboard";
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
-import UserAuthApp from "../pages/Common/UserAuthApp";
-import { useNavigate } from "react-router-dom";
 
+import { EmployeeDashboard } from "../pages/Employee/EmployeeDashboard";
 import { EmployeeOverview } from "../pages/Employee/EmployeeOverview";
+import { EmployeeClaims } from "../pages/Employee/employeeClaims";
 
 const Logout = () => {
   const { logout } = useAuth();
@@ -19,7 +21,6 @@ const Logout = () => {
 
 export const AllRoutes = () => {
   const { user } = useAuth();
-
 
   return (
     <Router>
@@ -57,11 +58,11 @@ export const AllRoutes = () => {
             </ProtectedRoute>
           }
         >
-          {/* 
-          <Route index element={<Navigate to="overview" replace />} />*/}
+          
+          <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<EmployeeOverview/>} />
-          <Route path="tasks" element={<div>My Tasks</div>} />
-          <Route path="profile" element={<div>My Profile</div>} />
+          <Route path="claims" element={<EmployeeClaims/>} />
+          <Route path="policies" element={<div>My Profile</div>} />
         </Route>
 
         {/* Agent Dashboard with sub-routes */}

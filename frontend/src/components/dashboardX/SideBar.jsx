@@ -1,33 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
 
 import {
    LayoutDashboard,
-   Table,
-   CreditCard,
-   RotateCcw,
-   Bell,
-   User,
-   LogIn,
-   UserPlus,
-   ChevronLeft,
-   ChevronRight,
    Menu,
    LogOut
 } from "lucide-react";
-
-const getIconForPath = (path) => {
-   const iconMap = {
-      'dashboard': LayoutDashboard,
-      'overview': Table,
-      'claims': CreditCard,
-      'reports': RotateCcw,
-      'users': Bell,
-      'profile': User,
-      'signup': UserPlus,
-   };
-   return iconMap[path] || LayoutDashboard;
-};
 
 export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
 
@@ -37,8 +14,8 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
     className={`
       fixed top-4 left-4 bottom-4 
       h-[calc(100vh-2rem)] 
-      bg-gradient-to-b from-neutral-800 to-neutral-900
-      dark:from-neutral-600 dark:to-neutral-700
+      bg-gradient-to-b from-zinc-700 to-zinc-800
+      dark:from-zinc-600 dark:to-zinc-700
       text-white shadow-xl 
       transition-[width] duration-700 ease-in-out z-50 flex flex-col 
       rounded-2xl
@@ -46,7 +23,7 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
     `}
   >
 {/* Header */}
-<div className="px-4 py-3 border-b border-gray-500 flex items-center justify-between">
+<div className="px-4 py-5 border-b border-gray-700 flex items-center justify-between">
   {!isCollapsed && (
     <img
       src="/lumierenew.png"
@@ -73,7 +50,7 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
          <nav className="flex-1 p-4">
             <ul className="space-y-2">
                {links.map((link) => {
-                  const IconComponent = getIconForPath(link.path);
+                  const IconComponent = link.icon || LayoutDashboard;
 
                   return (
                      <li key={link.path}>
@@ -116,7 +93,7 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
          {/* Upgrade to Pro button (optional) */}
          {!isCollapsed && (
             <div className="p-4 border-t border-gray-700">
-               <button className="w-full bg-rose-500 hover:bg-blue-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors duration-200">
+               <button className="w-full bg-rose-500 hover:bg-rose-700 text-white py-2.5 px-4 rounded-lg font-medium transition-colors duration-200">
                   Logout
                </button>
             </div>

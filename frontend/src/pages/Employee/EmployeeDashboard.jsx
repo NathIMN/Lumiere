@@ -12,14 +12,21 @@ import { getThemeClasses } from '../../components/dashboard/utils/themeUtils';
 import { Outlet, NavLink } from "react-router-dom";
 import { SideBar } from '../../components/dashboardX/SideBar';
 import { Header } from '../../components/dashboardX/Header';
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
+import {
+   SquareKanban,
+   Trophy,
+   LifeBuoy
+} from "lucide-react";
+
 export const EmployeeDashboard = () => {
   
-    const employeeLinks = [
-    { path: "overview", label: "Overview" },
-    { path: "users", label: "Manage Users" },
-    { path: "reports", label: "Reports" },
-  ];
+const employeeLinks = [
+  { path: "overview", label: "Overview", icon: SquareKanban },
+  { path: "claims", label: "Claims", icon: Trophy },
+  { path: "policies", label: "Policies", icon: LifeBuoy },
+];
 
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);
@@ -37,26 +44,25 @@ export const EmployeeDashboard = () => {
 
 
   return (
-  <div className="employee-dashboard flex bg-neutral-200 dark:bg-neutral-800 h-screen">
+  <div className="employee-dashboard flex bg-neutral-300 dark:bg-neutral-800 h-screen">
+
     {/* Sidebar */}
     <SideBar links={employeeLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed}/> 
-    {/* use w-64 or dynamic width for expanded state, w-20 for collapsed */}
 
     {/* Main Content */}
     <div className="flex-1 flex flex-col ">
+
       {/* Common Header */}
-      <Header onToggleTheme={toggleTheme} isCollapsed={isCollapsed} scrolled={scrolled}/>
+      <Header onToggleTheme={toggleTheme} isDark={isDark} isCollapsed={isCollapsed} scrolled={scrolled}/>
 
       {/* Scrollable Content */}
       <main
       className={`flex-1 overflow-y-auto pt-25 transition-all duration-300 pr-4
-         ${
-         isCollapsed ? "ml-32" : "ml-75"
-      }`}
-      onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 10)}
-      >
+         ${ isCollapsed ? "ml-32" : "ml-75"}`}
+         onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 10)}>
         <Outlet />
       </main>
+
     </div>
   </div>
   )
