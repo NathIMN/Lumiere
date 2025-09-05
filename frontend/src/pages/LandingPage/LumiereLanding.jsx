@@ -25,6 +25,7 @@ export const LumiereLanding = () => {
 
       <HeroLanding />
 
+{/* 
       <ScrollStack>
         <ScrollStackItem>
           <h2>Card 1</h2>
@@ -39,7 +40,7 @@ export const LumiereLanding = () => {
           <p>This is the third card in the stack</p>
         </ScrollStackItem>
       </ScrollStack>
-
+*/}
       <CardsFeatures />
 
     </div>

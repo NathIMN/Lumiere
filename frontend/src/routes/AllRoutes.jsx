@@ -8,6 +8,9 @@ import { HRDashboard } from "../pages/HR/HRDashboard";
 import { EmployeeDashboard } from "../pages/Employee/EmployeeDashboard";
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 import UserAuthApp from "../pages/Common/UserAuthApp";
+import { useNavigate } from "react-router-dom";
+
+import { EmployeeOverview } from "../pages/Employee/EmployeeOverview";
 
 const Logout = () => {
   const { logout } = useAuth();
@@ -17,14 +20,12 @@ const Logout = () => {
 export const AllRoutes = () => {
   const { user } = useAuth();
 
+
   return (
     <Router>
       <Routes>
         <Route path="/" element={<LumiereLanding />} />
-        
-        {/* User Authentication App */}
         <Route path="/auth" element={<UserAuthApp />} />
-
         <Route path="/logout" element={<Logout />} />
         
         {/* Admin Dashboard with sub-routes */}
@@ -47,15 +48,21 @@ export const AllRoutes = () => {
           }
         />
 
-        {/* Employee Dashboard with sub-routes */}
+        {/* ================== EMPLOYEE DASHBOARD ================== */}
         <Route
-          path="/employee/*"
+          path="/employee"
           element={
             <ProtectedRoute allowedRoles={["employee"]}>
               <EmployeeDashboard />
             </ProtectedRoute>
           }
-        />
+        >
+          {/* 
+          <Route index element={<Navigate to="overview" replace />} />*/}
+          <Route path="overview" element={<EmployeeOverview/>} />
+          <Route path="tasks" element={<div>My Tasks</div>} />
+          <Route path="profile" element={<div>My Profile</div>} />
+        </Route>
 
         {/* Agent Dashboard with sub-routes */}
         <Route
