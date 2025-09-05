@@ -1,37 +1,28 @@
-import { useEffect, useState } from "react";
+
 import { useLocation } from "react-router-dom";
 import { Bell, User, Sun, Moon } from "lucide-react";
 
-export const Header = ({ onToggleTheme, isDark }) => {
+export const Header = ({ onToggleTheme, isDark , isCollapsed, scrolled}) => {
   const location = useLocation();
-  const [scrolled, setScrolled] = useState(false);
 
-  // Track scroll for backdrop effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Get current active tab name from path
   const activeTab = location.pathname.split("/").pop() || "Dashboard";
 
   return (
-    <header
-      className={`
-        sticky top-0 right-0 left-auto
-        h-16 flex items-center justify-between px-6 z-40
-        transition-all duration-300
-        border border-indigo-600 bg-transparent
-        transition-all duration-300 ease-in-out
-        ${scrolled
-            ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50'
-            : 'bg-transparent'}
-      `}
+        <header
+          className={`
+            fixed top-4 right-8
+            h-20 flex items-center justify-between px-6 z-40
+            rounded-2xl shadow-md 
+            transition-all duration-300
+            ${scrolled
+              ? "backdrop-blur-sm bg-white/70 dark:bg-neutral-900/70 shadow-lg"
+              : "bg-transparent shadow-none"}
+            ${isCollapsed ? "left-32" : "left-75"}
+          `}
 
-    >
+        >
       {/* Left: Active tab */}
       <h2 className="text-lg font-semibold capitalize text-gray-800 dark:text-gray-100">
         {activeTab}

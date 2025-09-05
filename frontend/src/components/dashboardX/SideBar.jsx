@@ -18,35 +18,31 @@ import {
 
 const getIconForPath = (path) => {
    const iconMap = {
-      '/dashboard': LayoutDashboard,
+      'dashboard': LayoutDashboard,
       'overview': Table,
       'claims': CreditCard,
       'reports': RotateCcw,
-      '/users': Bell,
-      '/profile': User,
-      '/signin': LogIn,
-      '/signup': UserPlus,
+      'users': Bell,
+      'profile': User,
+      'signup': UserPlus,
    };
    return iconMap[path] || LayoutDashboard;
 };
 
-export const SideBar = ({ links }) => {
-   const [isCollapsed, setIsCollapsed] = useState(false);
+export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
 
-   const toggleSidebar = () => {
-      setIsCollapsed(!isCollapsed);
-   };
 
    return (
   <aside
     className={`
-             shrink-0
-       m-5
-      bg-gradient-to-b from-neutral-700 to-neutral-900 
+      fixed top-4 left-4 bottom-4 
+      h-[calc(100vh-2rem)] 
+      bg-gradient-to-b from-neutral-800 to-neutral-900
+      dark:from-neutral-600 dark:to-neutral-700
       text-white shadow-xl 
       transition-[width] duration-700 ease-in-out z-50 flex flex-col 
       rounded-2xl
-      ${isCollapsed ? "w-[72px]" : "w-64"}
+      ${isCollapsed ? "w-18" : "w-64"}
     `}
   >
 {/* Header */}
