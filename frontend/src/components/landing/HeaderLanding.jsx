@@ -23,9 +23,8 @@ export function HeaderLanding() {
             <a href="/" className="text-[#FC7A1F] hover:text-[#FC7A1F]">Home</a>
             <a href="/features" className="hover:text-[#FC7A1F]">Features</a>
             <a href="/faq" className="hover:text-[#FC7A1F]">FAQs</a>
-            <a href="#" className="hover:text-[#FC7A1F]">Pricing</a>
-            <a href="/contact-us" className="hover:text-[#FC7A1F]">Contact</a>
             <a href="#" className="hover:text-[#FC7A1F]">Reviews</a>
+            <a href="/contact-us" className="hover:text-[#FC7A1F]">Contact</a>
           </nav>
         </div>
 
@@ -38,7 +37,7 @@ export function HeaderLanding() {
             aria-label="Get Chrome Extension"
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium h-9 px-6 py-2 rounded-full text-black border border-gray-400/50 hover:bg-transparent hover:text-accent-foreground"
           >
-            Get Chrome Extension
+            Get Started
           </a>
 
           <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium shadow h-9 rounded-full bg-[#1A1A2E] text-white hover:bg-[#282845] px-6 py-2">
