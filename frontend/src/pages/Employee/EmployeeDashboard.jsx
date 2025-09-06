@@ -1,17 +1,7 @@
 
-import { Home, Users, Settings, BarChart3, FileText, LogOut, HelpCircle } from 'lucide-react';
-import DashboardLayout from '../../components/dashboard/layout/DashboardLayout';
-import StatCard from '../../components/dashboard/ui/StatCard';
-import ContentCard from '../../components/dashboard/ui/ContentCard';
-import ThemeIndicator from '../../components/dashboard/ui/ThemeIndicator';
-import SidebarItem from '../../components/dashboard/layout/SidebarItem';
-import { useSidebar } from '../../components/dashboard/hooks/useSidebar';
-import { useTheme } from '../../components/dashboard/hooks/useTheme';
-import { getThemeClasses } from '../../components/dashboard/utils/themeUtils';
-
 import { Outlet, NavLink } from "react-router-dom";
-import { SideBar } from '../../components/dashboardX/SideBar';
-import { Header } from '../../components/dashboardX/Header';
+import { SideBar } from '../../components/dashboard/SideBar';
+import { Header } from '../../components/dashboard/Header';
 import { useState } from "react";
 
 import {

@@ -1,7 +1,6 @@
 import { Particles } from '../../components/landing/Particles';
 import { HeaderLanding } from '../../components/landing/HeaderLanding';
 import { CardsFeatures } from '../../components/landing/CardsFeatures';
-import { HorizontalCarousel } from '../../components/landing/HorizontalCarousel';
 import { HeroLanding } from '../../components/landing/HeroLanding';
 import ScrollStack, { ScrollStackItem } from '../../components/landing/ScrollStack';
 
