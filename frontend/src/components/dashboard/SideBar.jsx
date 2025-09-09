@@ -15,7 +15,7 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
       fixed top-4 left-4 bottom-4 
       h-[calc(100vh-2rem)] 
       bg-gradient-to-b from-zinc-700 to-zinc-800
-      dark:from-zinc-600 dark:to-zinc-700
+      dark:from-zinc-600 dark:to-neutral-700
       text-white shadow-xl 
       transition-[width] duration-700 ease-in-out z-50 flex flex-col 
       rounded-2xl
@@ -38,7 +38,7 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
     className="p-1 rounded-lg hover:bg-gray-700 transition-colors"
   >
     <Menu
-      className={`w-8 h-8 transform transition-transform duration-300 ${
+      className={`w-8 h-8 transform transition-transform duration-400 ${
         isCollapsed ? 'rotate-90' : 'rotate-0'
       }`}
     />
