@@ -1,0 +1,17 @@
+[
+  {
+    "email": "harry@gmail.com",
+    "password": "ImaPass123!",
+    "role": "hr_officer",
+    "profile": {
+       "firstName": "Harry",
+       "lastName": "Porter",
+       "dateOfBirth": "1995-12-10",
+       "nic": "851235772369",
+       "phoneNumber": "0779876540",
+       "address": "Sliit, Colombo 02, Sri Lanka"
+    }
+  }
+  
+
+]
