@@ -24,6 +24,19 @@
        "phoneNumber": "0719886540",
        "address": "Sliit, Colombo 02, Sri Lanka"
     }
+  },
+  {
+     "email": "albus@gmail.com",
+     "password": "albPass123!",
+     "role": "hr_officer",
+     "profile": {
+        "firstName": "Albus",
+        "lastName": "Dumbledore",
+        "dateOfBirth": "1988-08-16",
+        "nic": "850035762660",
+        "phoneNumber": "0719868548",
+        "address": "Sliit, Colombo 02, Sri Lanka"
+      }
   }
   
 
