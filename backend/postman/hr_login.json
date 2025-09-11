@@ -11,6 +11,19 @@
        "phoneNumber": "0779876540",
        "address": "Sliit, Colombo 02, Sri Lanka"
     }
+  },
+  {
+    "email": "hermione@gmail.com",
+    "password": "herPass123!",
+    "role": "hr_officer",
+    "profile": {
+       "firstName": "Hermione",
+       "lastName": "Granger",
+       "dateOfBirth": "1997-10-10",
+       "nic": "851035775669",
+       "phoneNumber": "0719886540",
+       "address": "Sliit, Colombo 02, Sri Lanka"
+    }
   }
   
 
