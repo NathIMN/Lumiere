@@ -50,6 +50,19 @@
         "phoneNumber": "0701268556",
         "address": "Sliit, Colombo 02, Sri Lanka"
       }
+  },
+  {
+      "email": "draco@gmail.com",
+      "password": "draPass123!",
+      "role": "hr_officer",
+      "profile": {
+        "firstName": "Draco",
+        "lastName": "Malfoy",
+        "dateOfBirth": "1993-06-18",
+        "nic": "930022762610",
+        "phoneNumber": "0701368450",
+        "address": "Sliit, Colombo 02, Sri Lanka"
+      }
   }
   
 
