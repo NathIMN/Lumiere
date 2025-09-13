@@ -37,6 +37,19 @@
         "phoneNumber": "0719868548",
         "address": "Sliit, Colombo 02, Sri Lanka"
       }
+  },
+  {
+     "email": "ginny@gmail.com",
+     "password": "ginPass123!",
+     "role": "hr_officer",
+     "profile": {
+        "firstName": "Ginny",
+        "lastName": "Weasely",
+        "dateOfBirth": "1992-07-10",
+        "nic": "920098762640",
+        "phoneNumber": "0701268556",
+        "address": "Sliit, Colombo 02, Sri Lanka"
+      }
   }
   
 
