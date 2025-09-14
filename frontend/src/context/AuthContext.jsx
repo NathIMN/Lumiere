@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
 // Get API URL with fallback
 const getApiUrl = () => {
@@ -124,8 +124,8 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  // Login function
-  const login = async (email, password) => {
+  // Login function - wrapped in useCallback
+  const login = useCallback(async (email, password) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     try {
@@ -189,33 +189,33 @@ export const AuthProvider = ({ children }) => {
       });
       return { success: false, error: errorMessage };
     }
-  };
+  }, []);
 
-  // Logout function
-  const logout = () => {
+  // Logout function - wrapped in useCallback
+  const logout = useCallback(() => {
     localStorage.removeItem('authToken');
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
-  };
+  }, []);
 
-  // Clear error function
-  const clearError = () => {
+  // Clear error function - wrapped in useCallback
+  const clearError = useCallback(() => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-  };
+  }, []);
 
-  // Get user role
-  const getUserRole = () => {
+  // Get user role - wrapped in useCallback
+  const getUserRole = useCallback(() => {
     return state.user?.role || null;
-  };
+  }, [state.user?.role]);
 
-  // Check if user has specific role
-  const hasRole = (role) => {
+  // Check if user has specific role - wrapped in useCallback
+  const hasRole = useCallback((role) => {
     return state.user?.role === role;
-  };
+  }, [state.user?.role]);
 
-  // Check if user has any of the specified roles
-  const hasAnyRole = (roles) => {
+  // Check if user has any of the specified roles - wrapped in useCallback
+  const hasAnyRole = useCallback((roles) => {
     return roles.includes(state.user?.role);
-  };
+  }, [state.user?.role]);
 
   const value = {
     ...state,
