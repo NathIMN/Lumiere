@@ -7,10 +7,12 @@ import { Navigate } from "react-router-dom";
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
 
 import {AdminDashboard} from "../pages/Admin/AdminDashboard";
-import { HRDashboard } from "../pages/HR/HRDashboard";
+import { HRDashboard, HROverview, Registration } from "../pages/HR";
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 
 import { EmployeeDashboard, EmployeeOverview, EmployeeClaims } from "../pages/Employee";
+
+
 
 
 
@@ -56,8 +58,8 @@ export const AllRoutes = () => {
           }
         >
           <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<div>HR Overview</div>} />
-          <Route path="employees" element={<div>Manage Employees</div>} />
+          <Route path="overview" element={<HROverview />} />
+          <Route path="reg" element={<Registration/>} />
           <Route path="reports" element={<div>HR Reports</div>} />
         </Route>
 

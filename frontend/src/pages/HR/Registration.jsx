@@ -10,7 +10,7 @@ import InsuranceProviderDetails from '../../components/registration/InsuarancePr
 import { validateForm } from '../../utils/validation';
 import { initialFormData } from '../../utils/constants';
 
-const UserRegistrationPage = () => {
+export const Registration = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -247,4 +247,3 @@ const UserRegistrationPage = () => {
   );
 };
 
-export default UserRegistrationPage;
