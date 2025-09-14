@@ -429,6 +429,7 @@ class InsuranceApiService {
     
     const endpoint = queryString ? `/policies/my-policies?${queryString}` : '/policies/my-policies';
     return this.request(endpoint);
+
   }
 
   /**
