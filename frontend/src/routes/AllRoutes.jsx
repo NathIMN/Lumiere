@@ -1,3 +1,4 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
@@ -6,17 +7,36 @@ import { Navigate } from "react-router-dom";
 
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
 
-import {AdminDashboard} from "../pages/Admin/AdminDashboard";
+import {
+  AdminDashboard,
+  AdminOverview,
+  AdminPolicies,
+  AdminHrOfficers,
+  AdminInsuranceAgents,
+} from "../pages/Admin";
 import { HRDashboard } from "../pages/HR/HRDashboard";
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 
-import { EmployeeDashboard, EmployeeOverview, EmployeeClaims } from "../pages/Employee";
-
-
+import {
+  EmployeeDashboard,
+  EmployeeOverview,
+  EmployeeClaims,
+} from "../pages/Employee";
 
 const Logout = () => {
   const { logout } = useAuth();
-  logout();
+  const [done, setDone] = React.useState(false);
+
+  React.useEffect(() => {
+    logout();
+    setDone(true);
+  }, [logout]);
+
+  if (done) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return null;
 };
 
 export const AllRoutes = () => {
@@ -28,7 +48,7 @@ export const AllRoutes = () => {
         <Route path="/" element={<LumiereLanding />} />
         <Route path="/auth" element={<UserAuthApp />} />
         <Route path="/logout" element={<Logout />} />
-        
+
         {/* ================== ADMIN DASHBOARD ================== */}
         <Route
           path="/admin"
@@ -39,12 +59,15 @@ export const AllRoutes = () => {
           }
         >
           <Route index element={<Navigate to="overview" replace />} />
-
-          <Route path="overview" element={<div>Admin Overview</div>} />
-          <Route path="users" element={<div>Manage Users</div>} />
-          <Route path="reports" element={<div>Admin Reports</div>} />
+          <Route path="overview" element={<AdminOverview />} />
+          <Route path="manage-policies" element={<AdminPolicies />} />
+          <Route path="hr-officers" element={<AdminHrOfficers />} />
+          <Route
+            path="insurance-agents"
+            element={<AdminInsuranceAgents />}
+          />
+          <Route path="messaging" element={<div>messaging</div>} />
         </Route>
-
 
         {/* ================== HR DASHBOARD ================== */}
         <Route
@@ -61,7 +84,6 @@ export const AllRoutes = () => {
           <Route path="reports" element={<div>HR Reports</div>} />
         </Route>
 
-
         {/* ================== EMPLOYEE DASHBOARD ================== */}
         <Route
           path="/employee"
@@ -71,13 +93,11 @@ export const AllRoutes = () => {
             </ProtectedRoute>
           }
         >
-          
           <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<EmployeeOverview/>} />
-          <Route path="claims" element={<EmployeeClaims/>} />
+          <Route path="overview" element={<EmployeeOverview />} />
+          <Route path="claims" element={<EmployeeClaims />} />
           <Route path="policies" element={<div>My Profile</div>} />
         </Route>
-
 
         {/* ================== AGENT DASHBOARD ================== */}
         <Route
@@ -93,7 +113,6 @@ export const AllRoutes = () => {
           <Route path="clients" element={<div>Manage Clients</div>} />
           <Route path="reports" element={<div>Agent Reports</div>} />
         </Route>
-
       </Routes>
     </Router>
   );
