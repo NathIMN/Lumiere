@@ -15,10 +15,10 @@ export const SideBar = ({ links , toggleSidebar, isCollapsed}) => {
       fixed top-4 left-4 bottom-4 
       h-[calc(100vh-2rem)] 
       bg-gradient-to-b from-zinc-700 to-zinc-800
-      dark:from-zinc-600 dark:to-neutral-700
+      dark:from-neutral-600 dark:to-neutral-700
       text-white shadow-xl 
       transition-[width] duration-700 ease-in-out z-50 flex flex-col 
-      rounded-2xl
+      rounded-xl
       ${isCollapsed ? "w-18" : "w-64"}
     `}
   >
