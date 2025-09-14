@@ -16,6 +16,7 @@ const employeeLinks = [
   { path: "overview", label: "Overview", icon: SquareKanban },
   { path: "claims", label: "Claims", icon: Trophy },
   { path: "policies", label: "Policies", icon: LifeBuoy },
+  { path: "messaging", label: "Messaging", icon: LifeBuoy },
 ];
 
    const [isDark, setIsDark] = useState(false);
