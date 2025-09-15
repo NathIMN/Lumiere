@@ -1,137 +1,138 @@
-# Postman Test Payloads for Policy Routes
+# Policy Routes - Postman Test Payloads
 
 ## Authentication Setup
-First, ensure you have the JWT token from login in your Authorization header:
+For all requests, add to Headers:
 ```
-Authorization: Bearer <your_jwt_token>
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
 ```
 
-## 1. Create Policy (Admin Only)
-**POST** `/api/policies`
+## 1. Create Policy
+**POST** `{{baseUrl}}/api/v1/policies`
+**Role Required:** Admin
 
-### Life Insurance Policy (Group)
+### Life Insurance Policy - Individual
 ```json
 {
   "policyType": "life",
-  "policyCategory": "group",
-  "insuranceAgent": "64f1a2b3c4d5e6f7g8h9i0j1",
+  "policyCategory": "individual",
+  "insuranceAgent": "64f123456789abcdef123456",
   "coverage": {
-    "coverageAmount": 1000000,
-    "deductible": 5000,
+    "coverageAmount": 100000,
+    "deductible": 1000,
     "typeLife": ["life_cover", "hospitalization", "surgical_benefits"],
     "coverageDetails": [
       {
         "type": "life_cover",
-        "description": "Basic life insurance coverage",
-        "limit": 500000
+        "description": "Life insurance coverage for natural death",
+        "limit": 100000
       },
       {
         "type": "hospitalization",
-        "description": "Hospital stay coverage",
-        "limit": 300000
-      },
-      {
-        "type": "surgical_benefits",
-        "description": "Surgical procedure coverage",
-        "limit": 200000
+        "description": "Hospital expenses coverage",
+        "limit": 50000
       }
     ]
   },
   "validity": {
-    "startDate": "2025-01-01",
-    "endDate": "2025-12-31"
+    "startDate": "2024-01-01",
+    "endDate": "2025-01-01"
   },
   "premium": {
-    "amount": 25000,
+    "amount": 2400,
     "frequency": "annual"
   },
-  "beneficiaries": [
-    "64f1a2b3c4d5e6f7g8h9i0j2",
-    "64f1a2b3c4d5e6f7g8h9i0j3"
-  ],
-  "notes": "Group life insurance policy for Janashakthi employees"
+  "beneficiaries": ["64f123456789abcdef123457", "64f123456789abcdef123458"],
+  "notes": "Standard life insurance policy for employee"
 }
 ```
 
-### Vehicle Insurance Policy (Individual)
+### Vehicle Insurance Policy - Group
 ```json
 {
   "policyType": "vehicle",
-  "policyCategory": "individual",
-  "insuranceAgent": "64f1a2b3c4d5e6f7g8h9i0j1",
+  "policyCategory": "group",
+  "insuranceAgent": "64f123456789abcdef123456",
   "coverage": {
-    "coverageAmount": 2000000,
-    "deductible": 25000,
+    "coverageAmount": 50000,
+    "deductible": 500,
     "typeVehicle": ["collision", "liability", "comprehensive"],
     "coverageDetails": [
       {
         "type": "collision",
-        "description": "Vehicle collision damage coverage",
-        "limit": 800000
+        "description": "Collision damage coverage",
+        "limit": 25000
       },
       {
         "type": "liability",
         "description": "Third party liability coverage",
-        "limit": 1000000
-      },
-      {
-        "type": "comprehensive",
-        "description": "Comprehensive damage coverage",
-        "limit": 200000
+        "limit": 30000
       }
     ]
   },
   "validity": {
-    "startDate": "2025-01-01",
-    "endDate": "2025-12-31"
+    "startDate": "2024-01-01",
+    "endDate": "2025-01-01"
   },
   "premium": {
-    "amount": 45000,
+    "amount": 1200,
     "frequency": "annual"
   },
-  "beneficiaries": [
-    "64f1a2b3c4d5e6f7g8h9i0j4"
-  ],
-  "notes": "Executive vehicle insurance policy"
+  "beneficiaries": ["64f123456789abcdef123457"],
+  "notes": "Corporate vehicle insurance policy"
 }
 ```
 
-## 2. Get All Policies (Admin/HR)
-**GET** `/api/policies`
+## 2. Get All Policies
+**GET** `{{baseUrl}}/api/v1/policies`
+**Role Required:** Admin, HR Officer
 
-### Query Parameters Examples:
+### Query Parameters (all optional):
 ```
-/api/policies?policyType=life
-/api/policies?status=active&policyCategory=group
-/api/policies?page=1&limit=5
-/api/policies?search=LG0001
-/api/policies?insuranceAgent=64f1a2b3c4d5e6f7g8h9i0j1
+?policyType=life
+&policyCategory=individual
+&status=active
+&insuranceAgent=64f123456789abcdef123456
+&page=1
+&limit=10
+&search=LI0001
 ```
 
-## 3. Get Policy by ID (Admin/HR/Agent)
-**GET** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5`
+## 3. Get Policy by ID
+**GET** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459`
+**Role Required:** Admin, HR Officer, Insurance Agent
 
-**GET** `/api/policies/policy-id/LG0001`
+## 4. Get Policy by Policy ID
+**GET** `{{baseUrl}}/api/v1/policies/policy-id/LI0001`
+**Role Required:** Admin, HR Officer, Insurance Agent
 
-## 4. Update Policy (Admin Only)
-**PATCH** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5`
+## 5. Update Policy
+**PATCH** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459`
+**Role Required:** Admin
 
 ```json
 {
   "coverage": {
-    "coverageAmount": 1200000,
-    "deductible": 6000
+    "coverageAmount": 120000,
+    "deductible": 1200
   },
   "premium": {
-    "amount": 28000,
+    "amount": 2800,
     "frequency": "annual"
   },
-  "notes": "Updated coverage amount for 2025"
+  "notes": "Updated coverage amount and premium"
 }
 ```
 
-## 5. Update Policy Status (Admin/HR)
-**PATCH** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5/status`
+## 6. Delete Policy
+**DELETE** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459`
+**Role Required:** Admin
+
+No body required.
+
+## 7. Update Policy Status
+**PATCH** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459/status`
+**Role Required:** Admin, HR Officer
 
 ```json
 {
@@ -139,116 +140,157 @@ Authorization: Bearer <your_jwt_token>
 }
 ```
 
-### Valid status values:
-- `"active"`
-- `"expired"`
-- `"cancelled"`
-- `"suspended"`
-- `"pending"`
+Valid statuses: `active`, `expired`, `cancelled`, `suspended`, `pending`
 
-## 6. Add Beneficiary (Admin/HR)
-**PATCH** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5/beneficiaries/add`
+## 8. Renew Policy
+**PATCH** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459/renew`
+**Role Required:** Admin
 
 ```json
 {
-  "beneficiaryId": "64f1a2b3c4d5e6f7g8h9i0j6"
+  "newEndDate": "2026-01-01",
+  "newPremiumAmount": 2600
 }
 ```
 
-## 7. Remove Beneficiary (Admin/HR)
-**PATCH** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5/beneficiaries/remove`
+## 9. Add Beneficiary
+**PATCH** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459/beneficiaries/add`
+**Role Required:** Admin, HR Officer
 
 ```json
 {
-  "beneficiaryId": "64f1a2b3c4d5e6f7g8h9i0j6"
+  "beneficiaryId": "64f123456789abcdef123460"
 }
 ```
 
-## 8. Renew Policy (Admin Only)
-**PATCH** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5/renew`
+## 10. Remove Beneficiary
+**PATCH** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459/beneficiaries/remove`
+**Role Required:** Admin, HR Officer
 
 ```json
 {
-  "newEndDate": "2026-12-31",
-  "newPremiumAmount": 30000
+  "beneficiaryId": "64f123456789abcdef123460"
 }
 ```
 
-## 9. Get User's Own Policies (Any authenticated user)
-**GET** `/api/policies/my-policies`
+## 11. Get My Policies (User)
+**GET** `{{baseUrl}}/api/v1/policies/my-policies`
+**Role Required:** Any authenticated user
 
-### Query Parameters:
+### Query Parameters (optional):
 ```
-/api/policies/my-policies?policyType=life
-/api/policies/my-policies?status=active
-```
-
-## 10. Get Agent's Policies (Insurance Agent only)
-**GET** `/api/policies/my-agent-policies`
-
-### Query Parameters:
-```
-/api/policies/my-agent-policies?status=active
-/api/policies/my-agent-policies?policyType=vehicle&policyCategory=individual
+?status=active
+&policyType=life
 ```
 
-## 11. Check Policy Eligibility (Any authenticated user)
-**GET** `/api/policies/eligibility/life`
-**GET** `/api/policies/eligibility/vehicle`
+## 12. Get My Agent Policies
+**GET** `{{baseUrl}}/api/v1/policies/my-agent-policies`
+**Role Required:** Insurance Agent
 
-## 12. Get Policy Statistics (Admin/HR)
-**GET** `/api/policies/stats/overview`
-
-## 13. Get Expiring Policies (Admin/HR)
-**GET** `/api/policies/stats/expiring`
-
-### Query Parameters:
+### Query Parameters (optional):
 ```
-/api/policies/stats/expiring?days=30
-/api/policies/stats/expiring?days=7
+?status=active
+&policyType=life
+&policyCategory=individual
 ```
 
-## 14. Get Policy Usage (Admin/HR)
-**GET** `/api/policies/64f1a2b3c4d5e6f7g8h9i0j5/usage`
+## 13. Get Policy Statistics
+**GET** `{{baseUrl}}/api/v1/policies/stats/overview`
+**Role Required:** Admin, HR Officer
 
-## 15. Get Policies by Agent (Admin/HR)
-**GET** `/api/policies/agent/64f1a2b3c4d5e6f7g8h9i0j1`
+No body required. Returns comprehensive policy statistics.
 
-### Query Parameters:
+## 14. Get Expiring Policies
+**GET** `{{baseUrl}}/api/v1/policies/stats/expiring`
+**Role Required:** Admin, HR Officer
+
+### Query Parameters (optional):
 ```
-/api/policies/agent/64f1a2b3c4d5e6f7g8h9i0j1?status=active
-/api/policies/agent/64f1a2b3c4d5e6f7g8h9i0j1?policyType=life
+?days=30
 ```
 
-## 16. Bulk Update Status (Admin Only)
-**PATCH** `/api/policies/bulk/status`
+## 15. Get Policy Usage
+**GET** `{{baseUrl}}/api/v1/policies/64f123456789abcdef123459/usage`
+**Role Required:** Admin, HR Officer
+
+No body required. Returns policy usage summary.
+
+## 16. Get Policies by Agent
+**GET** `{{baseUrl}}/api/v1/policies/agent/64f123456789abcdef123456`
+**Role Required:** Admin, HR Officer
+
+### Query Parameters (optional):
+```
+?status=active
+&policyType=life
+```
+
+## 17. Check Policy Eligibility
+**GET** `{{baseUrl}}/api/v1/policies/eligibility/life`
+**GET** `{{baseUrl}}/api/v1/policies/eligibility/vehicle`
+**Role Required:** Any authenticated user
+
+No body required. Checks if current user is eligible for the specified policy type.
+
+## 18. Bulk Update Status
+**PATCH** `{{baseUrl}}/api/v1/policies/bulk/status`
+**Role Required:** Admin
 
 ```json
 {
   "policyIds": [
-    "64f1a2b3c4d5e6f7g8h9i0j5",
-    "64f1a2b3c4d5e6f7g8h9i0j6",
-    "64f1a2b3c4d5e6f7g8h9i0j7"
+    "64f123456789abcdef123459",
+    "64f123456789abcdef123460",
+    "64f123456789abcdef123461"
   ],
-  "status": "expired"
+  "status": "suspended"
 }
+```
+
+## Environment Variables
+Set up these variables in Postman:
+
+```
+baseUrl: http://localhost:5000
+adminToken: YOUR_ADMIN_JWT_TOKEN
+hrToken: YOUR_HR_OFFICER_JWT_TOKEN
+agentToken: YOUR_INSURANCE_AGENT_JWT_TOKEN
+userToken: YOUR_USER_JWT_TOKEN
+```
+
+## Sample Object IDs
+Use these sample MongoDB ObjectIds for testing:
+
+```
+Insurance Agent ID: 64f123456789abcdef123456
+Employee ID 1: 64f123456789abcdef123457
+Employee ID 2: 64f123456789abcdef123458
+Policy ID: 64f123456789abcdef123459
+Document ID: 64f123456789abcdef123461
 ```
 
 ## Error Response Examples
-
-### 401 Unauthorized (Missing/Invalid Token)
+### 400 Bad Request
 ```json
 {
   "success": false,
-  "message": "Access token is required"
+  "msg": "One or more beneficiaries are invalid"
 }
 ```
 
-### 403 Forbidden (Wrong Role)
+### 401 Unauthorized
 ```json
 {
   "success": false,
-  "message": "Access denied. Insufficient permissions"
+  "msg": "Authentication invalid"
+}
+```
+
+### 403 Forbidden
+```json
+{
+  "success": false,
+  "msg": "Access denied. Insufficient permissions"
 }
 ```
 
@@ -256,22 +298,47 @@ Authorization: Bearer <your_jwt_token>
 ```json
 {
   "success": false,
-  "message": "No policy with id: 64f1a2b3c4d5e6f7g8h9i0j5"
+  "msg": "No policy with id: 64f123456789abcdef123459"
 }
 ```
 
-### 400 Bad Request (Validation Error)
+## Success Response Examples
+### Policy Created
 ```json
 {
-  "success": false,
-  "message": "Life policy must have at least one life coverage type"
+  "success": true,
+  "message": "Policy created successfully",
+  "policy": {
+    "_id": "64f123456789abcdef123459",
+    "policyId": "LI0001",
+    "policyType": "life",
+    "policyCategory": "individual",
+    "insuranceAgent": {
+      "_id": "64f123456789abcdef123456",
+      "firstName": "John",
+      "lastName": "Agent",
+      "email": "agent@company.com",
+      "role": "insurance_agent"
+    },
+    "beneficiaries": [
+      {
+        "_id": "64f123456789abcdef123457",
+        "firstName": "Jane",
+        "lastName": "Doe",
+        "email": "jane@company.com",
+        "employeeId": "EMP001"
+      }
+    ],
+    "status": "active",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
 }
 ```
 
 ## Testing Notes
-
-1. **Authentication Required**: All routes require a valid JWT token in the Authorization header
-2. **Role-Based Access**: Make sure to test with different user roles (admin, hr_officer, insurance_agent, employee, executive)
-3. **ObjectId Format**: Replace the example ObjectIds with actual MongoDB ObjectIds from your database
-4. **Date Format**: Use ISO 8601 format for dates (YYYY-MM-DD)
-5. **Enum Values**: Ensure you use exact enum values as defined in your Policy model
+1. Replace all ObjectIds with actual IDs from your database
+2. Ensure users have appropriate roles for testing different endpoints
+3. Test both success and error scenarios
+4. Verify that auto-generated policyIds follow the correct format (LI0001, VG0001, etc.)
+5. Test pagination and filtering parameters thoroughly
+6. Verify that policy validation rules are working (e.g., life policies can't have vehicle coverage types)

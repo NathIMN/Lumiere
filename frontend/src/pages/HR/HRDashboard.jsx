@@ -7,8 +7,6 @@ import { useState } from "react";
 
 import {
    SquareKanban,
-   Trophy,
-   LifeBuoy,
    MessageCircle,
    UsersRound,
    MountainSnow,

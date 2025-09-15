@@ -1,21 +1,66 @@
 import React from 'react';
 import { User } from 'lucide-react';
 
-const handleKeyPress = (e, type) => {
-  if (type === 'name') {
-    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
-    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-    }
-  } else if (type === 'phone' || type === 'nic') {
-    // Allow numbers, backspace, delete, tab, escape, enter, arrow keys
-    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-    }
-  }
-};
-
 const PersonalInformation = ({ formData, errors, onChange }) => {
+  const handleNicChange = (e) => {
+    let value = e.target.value.toUpperCase();
+    
+    // Remove any invalid characters
+    value = value.replace(/[^0-9V]/g, '');
+    
+    // Validate NIC format
+    if (value.includes('V')) {
+      // Old format: only allow V at the end and max 10 characters
+      const vIndex = value.indexOf('V');
+      if (vIndex === 9 && value.length <= 10) {
+        // Valid old format position
+        value = value.substring(0, 10);
+      } else if (vIndex < 9) {
+        // V too early, remove it
+        value = value.replace('V', '');
+      } else {
+        // Multiple Vs or V in wrong position, keep only first 9 digits + first V
+        value = value.substring(0, 9) + 'V';
+      }
+    } else {
+      // New format: max 12 digits
+      value = value.substring(0, 12);
+    }
+    
+    // Create synthetic event
+    const syntheticEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        name: 'nic',
+        value: value
+      }
+    };
+    
+    onChange(syntheticEvent, 'profile', 'nic');
+  };
+
+  const handleKeyPress = (e, type) => {
+    const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
+    
+    // Always allow control keys
+    if (isControlKey) {
+      return;
+    }
+
+    if (type === 'name') {
+      // Allow letters and space only
+      if (!/[a-zA-Z\s]/.test(e.key)) {
+        e.preventDefault();
+      }
+    } else if (type === 'phone') {
+      // Allow numbers only
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault();
+      }
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -33,7 +78,7 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'profile', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.firstName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter first name "
+            placeholder="Enter first name"
           />
           {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
         </div>
@@ -47,7 +92,7 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'profile', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.lastName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter last name "
+            placeholder="Enter last name"
           />
           {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
         </div>
@@ -72,11 +117,31 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             type="text"
             name="nic"
             value={formData.nic}
-            onChange={(e) => onChange(e, 'profile', 'nic')}
-            onKeyDown={(e) => handleKeyPress(e, 'nic')}
+            onChange={handleNicChange}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.nic ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter NIC number "
+            placeholder="Enter NIC (e.g., 123456789V or 123456789012)"
           />
+          {formData.nic && (
+            <div className="text-sm mt-1">
+              {formData.nic.includes('V') ? (
+                formData.nic.length === 10 ? (
+                  <p className="text-green-600">✓ Valid old NIC format (9 digits + V)</p>
+                ) : (
+                  <p className="text-amber-600">
+                    Old NIC format: {formData.nic.length}/10 characters
+                  </p>
+                )
+              ) : (
+                formData.nic.length === 12 ? (
+                  <p className="text-green-600">✓ Valid new NIC format (12 digits)</p>
+                ) : (
+                  <p className="text-amber-600">
+                    New NIC format: {formData.nic.length}/12 digits
+                  </p>
+                )
+              )}
+            </div>
+          )}
           {errors.nic && <p className="text-red-500 text-sm mt-1">{errors.nic}</p>}
         </div>
 
