@@ -6,6 +6,7 @@ import UserAuthApp from "../pages/Common/UserAuthApp";
 import { Navigate } from "react-router-dom";
 
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
+import DebugPage from "../components/DebugPage";
 
 import {
   AdminDashboard,
@@ -13,8 +14,10 @@ import {
   AdminPolicies,
   AdminHrOfficers,
   AdminInsuranceAgents,
+  AdminReports,
 } from "../pages/Admin";
-import { HRDashboard } from "../pages/HR/HRDashboard";
+import { HRDashboard, DocumentPool } from "../pages/HR";
+import MessagingPage from "../components/messaging/MessagingPage";
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 
 import {
@@ -48,6 +51,7 @@ export const AllRoutes = () => {
         <Route path="/" element={<LumiereLanding />} />
         <Route path="/auth" element={<UserAuthApp />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/debug" element={<DebugPage />} />
 
         {/* ================== ADMIN DASHBOARD ================== */}
         <Route
@@ -66,7 +70,8 @@ export const AllRoutes = () => {
             path="insurance-agents"
             element={<AdminInsuranceAgents />}
           />
-          <Route path="messaging" element={<div>messaging</div>} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="messaging" element={<MessagingPage userRole="admin" />} />
         </Route>
 
         {/* ================== HR DASHBOARD ================== */}
@@ -81,7 +86,9 @@ export const AllRoutes = () => {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<div>HR Overview</div>} />
           <Route path="employees" element={<div>Manage Employees</div>} />
+          <Route path="document-pool" element={<DocumentPool />} />
           <Route path="reports" element={<div>HR Reports</div>} />
+          <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
         </Route>
 
         {/* ================== EMPLOYEE DASHBOARD ================== */}

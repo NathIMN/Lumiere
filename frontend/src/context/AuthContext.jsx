@@ -2,7 +2,7 @@ import { createContext, useContext, useReducer, useEffect, useCallback } from 'r
 
 // Get API URL with fallback
 const getApiUrl = () => {
-  return window.REACT_APP_API_URL || 'http://localhost:5000';
+  return import.meta.env.VITE_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 };
 
 // Initial state
