@@ -6,6 +6,7 @@ import UserAuthApp from "../pages/Common/UserAuthApp";
 import { Navigate } from "react-router-dom";
 
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
+import DebugPage from "../components/DebugPage";
 
 import {
   AdminDashboard,
@@ -13,8 +14,21 @@ import {
   AdminPolicies,
   AdminHrOfficers,
   AdminInsuranceAgents,
+  AdminReports,
 } from "../pages/Admin";
-import { HRDashboard } from "../pages/HR/HRDashboard";
+
+import { 
+  HRDashboard, 
+  HROverview, 
+  Registration, 
+  HRMessaging, 
+  HRPolicyUser,
+  HRClaimReview,
+  DocumentPool} from "../pages/HR";
+
+
+import MessagingPage from "../components/messaging/MessagingPage";
+
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 
 import {
@@ -22,6 +36,7 @@ import {
   EmployeeOverview,
   EmployeeClaims,
 } from "../pages/Employee";
+
 
 const Logout = () => {
   const { logout } = useAuth();
@@ -48,6 +63,9 @@ export const AllRoutes = () => {
         <Route path="/" element={<LumiereLanding />} />
         <Route path="/auth" element={<UserAuthApp />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/debug" element={<DebugPage />} />
+
+
 
         {/* ================== ADMIN DASHBOARD ================== */}
         <Route
@@ -59,6 +77,7 @@ export const AllRoutes = () => {
           }
         >
           <Route index element={<Navigate to="overview" replace />} />
+
           <Route path="overview" element={<AdminOverview />} />
           <Route path="manage-policies" element={<AdminPolicies />} />
           <Route path="hr-officers" element={<AdminHrOfficers />} />
@@ -66,22 +85,28 @@ export const AllRoutes = () => {
             path="insurance-agents"
             element={<AdminInsuranceAgents />}
           />
-          <Route path="messaging" element={<div>messaging</div>} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="messaging" element={<MessagingPage userRole="admin" />} />
         </Route>
 
+
         {/* ================== HR DASHBOARD ================== */}
-        <Route
+          <Route
           path="/hr"
           element={
             <ProtectedRoute allowedRoles={["hr_officer"]}>
               <HRDashboard />
+
             </ProtectedRoute>
           }
         >
           <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<div>HR Overview</div>} />
-          <Route path="employees" element={<div>Manage Employees</div>} />
-          <Route path="reports" element={<div>HR Reports</div>} />
+          <Route path="overview" element={<HROverview />} />
+          <Route path="reg" element={<Registration/>} />
+          <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
+          <Route path="policies" element={<HRPolicyUser/>} />
+          <Route path="claims" element={<HRClaimReview/>} />
+          <Route path="document" element={<DocumentPool/>} />
         </Route>
 
         {/* ================== EMPLOYEE DASHBOARD ================== */}
@@ -93,11 +118,13 @@ export const AllRoutes = () => {
             </ProtectedRoute>
           }
         >
+
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<EmployeeOverview />} />
           <Route path="claims" element={<EmployeeClaims />} />
           <Route path="policies" element={<div>My Profile</div>} />
         </Route>
+
 
         {/* ================== AGENT DASHBOARD ================== */}
         <Route
@@ -113,6 +140,7 @@ export const AllRoutes = () => {
           <Route path="clients" element={<div>Manage Clients</div>} />
           <Route path="reports" element={<div>Agent Reports</div>} />
         </Route>
+
       </Routes>
     </Router>
   );

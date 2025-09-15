@@ -1,0 +1,75 @@
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Employee ID</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Hire Date</th>
+            <th>Status</th>
+            <th>Last Login</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each users}}
+        <tr>
+            <td>{{employeeId}}</td>
+            <td>{{fullName}}</td>
+            <td>{{email}}</td>
+            <td>{{role}}</td>
+            <td>{{department}}</td>
+            <td>{{formatDate hireDate}}</td>
+            <td><span class="status {{status}}">{{status}}</span></td>
+            <td>{{formatDate lastLogin}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+{{#if usersByRole}}
+<div class="page-break"></div>
+<h3>Users by Role Distribution</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Role</th>
+            <th>Count</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each usersByRole}}
+        <tr>
+            <td>{{role}}</td>
+            <td>{{count}}</td>
+            <td>{{percentage}}%</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if usersByDepartment}}
+<h3>Users by Department</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Department</th>
+            <th>Active Users</th>
+            <th>Inactive Users</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each usersByDepartment}}
+        <tr>
+            <td>{{department}}</td>
+            <td>{{activeCount}}</td>
+            <td>{{inactiveCount}}</td>
+            <td>{{totalCount}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}

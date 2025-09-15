@@ -13,7 +13,8 @@ import policies from "./routes/policies.js";
 import qnas from "./routes/questionnaireTemplates.js";
 import claims from "./routes/claims.js";
 import messages from "./routes/messages.js";
-import notifications from "./routes/notifications.js"
+import notifications from "./routes/notifications.js";
+import reports from "./routes/reports.js";
 import cors from "cors";
 
 dotenv.config();
@@ -39,7 +40,11 @@ app.use(express.urlencoded({ extended: true }));
 //app.use(cors());
 
 app.use(cors({
-  origin: 'http://localhost:5173',  // frontend URL
+  origin: [
+    'http://localhost:5173',
+    'http://10.36.228.250:5173',
+    process.env.CLIENT_URL
+  ].filter(Boolean),  // Remove any undefined values
   credentials: true,                // allow cookies/auth headers
 }));
 
@@ -52,6 +57,7 @@ app.use("/api/v1/questionnaireTemplates", qnas);
 app.use("/api/v1/claims", claims);
 app.use("/api/v1/messages", messages);
 app.use("/api/v1/notifications", notifications);
+app.use("/api/v1/reports", reports);
 
 app.use(notFound);
 app.use(errorHandlerMiddleware);
@@ -60,7 +66,7 @@ const port = process.env.PORT || 5000;
 const start = async () => {
   try {
     await connectDB(process.env.MONGO_URI);
-    server.listen(port, () => {
+    server.listen(port, "0.0.0.0", () => {
       console.log(`Server is listening on port ${port}...`);
       socketHandler = new SocketHandler(server);
       console.log("Socket.IO initialized successfully");
