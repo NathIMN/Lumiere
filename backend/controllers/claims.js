@@ -416,7 +416,7 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
   // Check permissions
   if (
     req.user.role === "employee" &&
-    claim.employeeId._id.toString() !== req.user.userId
+    claim.employeeId._id.toString() !== req.user.userId.toString()
   ) {
     return next(
       createCustomError("You don't have permission to view this claim", 403)

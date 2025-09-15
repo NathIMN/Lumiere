@@ -6,7 +6,7 @@ import UserAuthApp from "../pages/Common/UserAuthApp";
 import { Navigate } from "react-router-dom";
 
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
-
+import DebugPage from "../components/DebugPage";
 
 import {
   AdminDashboard,
@@ -14,6 +14,7 @@ import {
   AdminPolicies,
   AdminHrOfficers,
   AdminInsuranceAgents,
+  AdminReports,
 } from "../pages/Admin";
 
 import { 
@@ -23,7 +24,10 @@ import {
   HRMessaging, 
   HRPolicyUser,
   HRClaimReview,
-  HRDocumentPool} from "../pages/HR";
+  DocumentPool} from "../pages/HR";
+
+
+import MessagingPage from "../components/messaging/MessagingPage";
 
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 
@@ -59,6 +63,7 @@ export const AllRoutes = () => {
         <Route path="/" element={<LumiereLanding />} />
         <Route path="/auth" element={<UserAuthApp />} />
         <Route path="/logout" element={<Logout />} />
+        <Route path="/debug" element={<DebugPage />} />
 
 
 
@@ -80,7 +85,8 @@ export const AllRoutes = () => {
             path="insurance-agents"
             element={<AdminInsuranceAgents />}
           />
-          <Route path="messaging" element={<div>messaging</div>} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="messaging" element={<MessagingPage userRole="admin" />} />
         </Route>
 
 
@@ -95,16 +101,13 @@ export const AllRoutes = () => {
           }
         >
           <Route index element={<Navigate to="overview" replace />} />
-
           <Route path="overview" element={<HROverview />} />
           <Route path="reg" element={<Registration/>} />
-          <Route path="messaging" element={<HRMessaging/>} />
+          <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
           <Route path="policies" element={<HRPolicyUser/>} />
           <Route path="claims" element={<HRClaimReview/>} />
-          <Route path="document" element={<HRDocumentPool/>} />
+          <Route path="document" element={<DocumentPool/>} />
         </Route>
-
-
 
         {/* ================== EMPLOYEE DASHBOARD ================== */}
         <Route

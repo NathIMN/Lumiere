@@ -7,7 +7,11 @@ class SocketHandler {
   constructor(server) {
     this.io = new Server(server, {
       cors: {
-        origin: process.env.CLIENT_URL || "http://localhost:3000",
+        origin: [
+          "http://localhost:5173",
+          "http://10.36.228.250:5173",
+          process.env.CLIENT_URL
+        ].filter(Boolean),
         methods: ["GET", "POST"],
         credentials: true,
       },
@@ -249,12 +253,18 @@ class SocketHandler {
         return;
       }
 
+      console.log(`💬 Typing ${isTyping ? 'start' : 'stop'} from ${socket.userData.name} in conversation ${conversationId}`);
+
       // Emit typing status to others in the conversation
-      socket.to(conversationId).emit("typing_status", {
+      const eventName = isTyping ? 'typing_start' : 'typing_stop';
+      const eventData = {
+        conversationId,
         userId: socket.userId,
         userName: socket.userData.name,
-        isTyping,
-      });
+      };
+
+      console.log(`📡 Emitting ${eventName} to conversation room:`, eventData);
+      socket.to(conversationId).emit(eventName, eventData);
 
     } catch (error) {
       console.error("Error handling typing:", error);

@@ -1,4 +1,3 @@
-
 import { Outlet, NavLink } from "react-router-dom";
 import { SideBar } from '../../components/dashboard/SideBar';
 import { Header } from '../../components/dashboard/Header';
@@ -11,7 +10,13 @@ import {
    UsersRound,
    MountainSnow,
    UserRoundCheck,
-   Files
+   Files,
+   FileText,
+   Users,
+   ShieldCheck,
+   MessageSquare,
+   BarChart3,
+   FolderOpen,
 } from "lucide-react";
 
 export const HRDashboard = () => {
@@ -22,7 +27,7 @@ const hrLinks = [
   { path: "reg", label: "Registration", icon: UsersRound },
   { path: "claims", label: "Claim Review", icon: MountainSnow },
   { path: "policies", label: "Policy Users", icon: UserRoundCheck },
-  { path: "document", label: "Document Pool", icon: Files },
+  { path: "document", label: "Document Pool", icon: FolderOpen },
 ];
 
    const [isDark, setIsDark] = useState(false);
@@ -37,8 +42,6 @@ const hrLinks = [
     setIsDark(!isDark);
     document.documentElement.classList.toggle("dark", !isDark);
   };
-
-
 
   return (
   <div className="hr-dashboard flex bg-neutral-300 dark:bg-neutral-800 h-screen">

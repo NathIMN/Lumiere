@@ -4,4 +4,6 @@ export { Registration } from "./Registration";
 export { HRMessaging } from "./HRMessaging";
 export { HRPolicyUser } from "./HRPolicyUser";
 export { HRClaimReview } from "./HRClaimReview";
-export { HRDocumentPool } from "./HRDocumentPool";
+// export { HRDocumentPool } from "./HRDocumentPool";
+// HRMessaging replaced with reusable MessagingPage component
+export { default as DocumentPool } from "./DocumentPool";

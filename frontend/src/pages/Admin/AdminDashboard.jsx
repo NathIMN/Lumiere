@@ -9,6 +9,7 @@ import {
   Users,
   ShieldCheck,
   MessageSquare,
+  FileBarChart,
 } from "lucide-react";
 
 export const AdminDashboard = () => {
@@ -22,6 +23,7 @@ export const AdminDashboard = () => {
       icon: ShieldCheck,
     },
     { path: "messaging", label: "Messaging", icon: MessageSquare },
+    { path: "reports", label: "Reports", icon: FileBarChart },
   ];
 
   const [isDark, setIsDark] = useState(false);

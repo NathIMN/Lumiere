@@ -1,0 +1,150 @@
+<div class="summary-cards">
+    <div class="summary-card">
+        <h4>Total Premium Revenue</h4>
+        <div class="value">${{formatCurrency totalPremiumRevenue}}</div>
+    </div>
+    <div class="summary-card">
+        <h4>Total Claims Paid</h4>
+        <div class="value">${{formatCurrency totalClaimsPaid}}</div>
+    </div>
+    <div class="summary-card">
+        <h4>Net Profit</h4>
+        <div class="value">${{formatCurrency netProfit}}</div>
+    </div>
+    <div class="summary-card">
+        <h4>Profit Margin</h4>
+        <div class="value">{{profitMargin}}%</div>
+    </div>
+</div>
+
+<h3>Revenue and Expenses Breakdown</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Percentage of Total</th>
+            <th>Change from Previous Period</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each revenueBreakdown}}
+        <tr>
+            <td>{{category}}</td>
+            <td>${{formatCurrency amount}}</td>
+            <td>{{percentage}}%</td>
+            <td>{{changeFromPrevious}}%</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+{{#if monthlyFinancials}}
+<div class="page-break"></div>
+<h3>Monthly Financial Performance</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>Premium Revenue</th>
+            <th>Claims Paid</th>
+            <th>Operating Expenses</th>
+            <th>Net Income</th>
+            <th>Loss Ratio</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each monthlyFinancials}}
+        <tr>
+            <td>{{month}}</td>
+            <td>${{formatCurrency premiumRevenue}}</td>
+            <td>${{formatCurrency claimsPaid}}</td>
+            <td>${{formatCurrency operatingExpenses}}</td>
+            <td>${{formatCurrency netIncome}}</td>
+            <td>{{lossRatio}}%</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if policyTypeRevenue}}
+<h3>Revenue by Policy Type</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Policy Type</th>
+            <th>Premium Revenue</th>
+            <th>Number of Policies</th>
+            <th>Average Premium</th>
+            <th>Market Share</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each policyTypeRevenue}}
+        <tr>
+            <td>{{policyType}}</td>
+            <td>${{formatCurrency premiumRevenue}}</td>
+            <td>{{numberOfPolicies}}</td>
+            <td>${{formatCurrency averagePremium}}</td>
+            <td>{{marketShare}}%</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if agentPerformance}}
+<div class="page-break"></div>
+<h3>Agent Performance</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Agent Name</th>
+            <th>Policies Sold</th>
+            <th>Premium Generated</th>
+            <th>Commission Earned</th>
+            <th>Customer Satisfaction</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each agentPerformance}}
+        <tr>
+            <td>{{agentName}}</td>
+            <td>{{policiesSold}}</td>
+            <td>${{formatCurrency premiumGenerated}}</td>
+            <td>${{formatCurrency commissionEarned}}</td>
+            <td>{{customerSatisfaction}}/5</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if keyMetrics}}
+<h3>Key Performance Indicators</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Metric</th>
+            <th>Current Period</th>
+            <th>Previous Period</th>
+            <th>Change</th>
+            <th>Target</th>
+            <th>Performance</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each keyMetrics}}
+        <tr>
+            <td>{{metricName}}</td>
+            <td>{{currentPeriod}}</td>
+            <td>{{previousPeriod}}</td>
+            <td>{{change}}%</td>
+            <td>{{target}}</td>
+            <td><span class="status {{performanceStatus}}">{{performanceLabel}}</span></td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
