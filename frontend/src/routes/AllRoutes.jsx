@@ -36,6 +36,7 @@ import {
   EmployeeDashboard,
   EmployeeOverview,
   EmployeeClaims,
+  EmployeePolicy
 } from "../pages/Employee";
 
 
@@ -123,7 +124,8 @@ export const AllRoutes = () => {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<EmployeeOverview />} />
           <Route path="claims" element={<EmployeeClaims />} />
-          <Route path="policies" element={<div>My Profile</div>} />
+          <Route path="policies" element={<EmployeePolicy />} />
+          <Route path="messaging" element={<div>Messaging batchtop</div>} />
         </Route>
 
 
