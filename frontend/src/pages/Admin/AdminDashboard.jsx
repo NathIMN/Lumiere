@@ -26,6 +26,8 @@ export const AdminDashboard = () => {
     { path: "reports", label: "Reports", icon: FileBarChart },
   ];
 
+  const color = "#2e7096ff";
+
   const [isDark, setIsDark] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -46,6 +48,7 @@ export const AdminDashboard = () => {
         links={adminLinks}
         toggleSidebar={toggleSidebar}
         isCollapsed={isCollapsed}
+        color={color}
       />
 
       {/* Main Content */}
