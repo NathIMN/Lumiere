@@ -8,7 +8,7 @@ import {
    SquareKanban,
    Trophy,
    LifeBuoy
-} from "lucide-react";
+} from "lucide-react"; //icons
 
 export const EmployeeDashboard = () => {
   
