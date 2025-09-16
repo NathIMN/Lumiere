@@ -30,6 +30,8 @@ const hrLinks = [
   { path: "document", label: "Document Pool", icon: FolderOpen },
 ];
 
+  const color = "#37d449";
+
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);
    const [scrolled, setScrolled] = useState(false);
@@ -47,7 +49,7 @@ const hrLinks = [
   <div className="hr-dashboard flex bg-neutral-300 dark:bg-neutral-800 h-screen">
 
     {/* Sidebar */}
-    <SideBar links={hrLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed}/> 
+  <SideBar links={hrLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed} color={color}/> 
 
     {/* Main Content */}
     <div className="flex-1 flex flex-col ">
