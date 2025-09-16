@@ -8,22 +8,16 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
     // Remove any invalid characters
     value = value.replace(/[^0-9V]/g, '');
     
-    // Validate NIC format
     if (value.includes('V')) {
-      // Old format: only allow V at the end and max 10 characters
       const vIndex = value.indexOf('V');
       if (vIndex === 9 && value.length <= 10) {
-        // Valid old format position
         value = value.substring(0, 10);
       } else if (vIndex < 9) {
-        // V too early, remove it
         value = value.replace('V', '');
       } else {
-        // Multiple Vs or V in wrong position, keep only first 9 digits + first V
         value = value.substring(0, 9) + 'V';
       }
     } else {
-      // New format: max 12 digits
       value = value.substring(0, 12);
     }
     
@@ -40,6 +34,28 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
     onChange(syntheticEvent, 'profile', 'nic');
   };
 
+  const handlePhoneChange = (e) => {
+    let value = e.target.value;
+    
+    // Remove any non-numeric characters
+    value = value.replace(/[^0-9]/g, '');
+    
+    // Limit to exactly 10 digits only
+    value = value.substring(0, 10);
+    
+    // Create synthetic event
+    const syntheticEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        name: 'phoneNumber',
+        value: value
+      }
+    };
+    
+    onChange(syntheticEvent, 'profile', 'phone');
+  };
+
   const handleKeyPress = (e, type) => {
     const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
     
@@ -51,11 +67,6 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
     if (type === 'name') {
       // Allow letters and space only
       if (!/[a-zA-Z\s]/.test(e.key)) {
-        e.preventDefault();
-      }
-    } else if (type === 'phone') {
-      // Allow numbers only
-      if (!/[0-9]/.test(e.key)) {
         e.preventDefault();
       }
     }
@@ -151,11 +162,21 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             type="tel"
             name="phoneNumber"
             value={formData.phoneNumber}
-            onChange={(e) => onChange(e, 'profile', 'phone')}
-            onKeyDown={(e) => handleKeyPress(e, 'phone')}
+            onChange={handlePhoneChange}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter phone number"
+            placeholder="Enter 10-digit phone number"
           />
+          {formData.phoneNumber && (
+            <div className="text-sm mt-1">
+              {formData.phoneNumber.length === 10 ? (
+                <p className="text-green-600">✓ Valid phone number (10 digits)</p>
+              ) : (
+                <p className="text-amber-600">
+                  Phone number: {formData.phoneNumber.length}/10 digits
+                </p>
+              )}
+            </div>
+          )}
           {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>}
         </div>
 
