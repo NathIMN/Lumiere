@@ -1,0 +1,69 @@
+[
+  {
+    "email": "harry@gmail.com",
+    "password": "ImaPass123!",
+    "role": "hr_officer",
+    "profile": {
+       "firstName": "Harry",
+       "lastName": "Porter",
+       "dateOfBirth": "1995-12-10",
+       "nic": "851235772369",
+       "phoneNumber": "0779876540",
+       "address": "Sliit, Colombo 02, Sri Lanka"
+    }
+  },
+  {
+    "email": "hermione@gmail.com",
+    "password": "herPass123!",
+    "role": "hr_officer",
+    "profile": {
+       "firstName": "Hermione",
+       "lastName": "Granger",
+       "dateOfBirth": "1997-10-10",
+       "nic": "851035775669",
+       "phoneNumber": "0719886540",
+       "address": "Sliit, Colombo 02, Sri Lanka"
+    }
+  },
+  {
+     "email": "albus@gmail.com",
+     "password": "albPass123!",
+     "role": "hr_officer",
+     "profile": {
+        "firstName": "Albus",
+        "lastName": "Dumbledore",
+        "dateOfBirth": "1988-08-16",
+        "nic": "850035762660",
+        "phoneNumber": "0719868548",
+        "address": "Sliit, Colombo 02, Sri Lanka"
+      }
+  },
+  {
+     "email": "ginny@gmail.com",
+     "password": "ginPass123!",
+     "role": "hr_officer",
+     "profile": {
+        "firstName": "Ginny",
+        "lastName": "Weasely",
+        "dateOfBirth": "1992-07-10",
+        "nic": "920098762640",
+        "phoneNumber": "0701268556",
+        "address": "Sliit, Colombo 02, Sri Lanka"
+      }
+  },
+  {
+      "email": "draco@gmail.com",
+      "password": "draPass123!",
+      "role": "hr_officer",
+      "profile": {
+        "firstName": "Draco",
+        "lastName": "Malfoy",
+        "dateOfBirth": "1993-06-18",
+        "nic": "930022762610",
+        "phoneNumber": "0701368450",
+        "address": "Sliit, Colombo 02, Sri Lanka"
+      }
+  }
+  
+
+]
