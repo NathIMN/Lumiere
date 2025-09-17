@@ -35,7 +35,8 @@ import {
   EmployeeDashboard,
   EmployeeOverview,
   EmployeeClaims,
-  EmployeePolicy
+  EmployeePolicy,
+  ClaimForm
 } from "../pages/Employee";
 
 
@@ -123,6 +124,7 @@ export const AllRoutes = () => {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<EmployeeOverview />} />
           <Route path="claims" element={<EmployeeClaims />} />
+          <Route path="claim_form" element={<ClaimForm />} />
           <Route path="policies" element={<EmployeePolicy />} />
           <Route path="messaging" element={<div>Messaging batchtop</div>} />
         </Route>

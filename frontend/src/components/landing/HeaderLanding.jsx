@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 export function HeaderLanding() {
+     const navigate = useNavigate();
   return (
 
 <header className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] flex items-center justify-between p-4 w-[90%] md:w-[95%] lg:w-[80%] max-w-[1400px] bg-white rounded-[40px] border border-gray-200/50 shadow-lg">
@@ -40,9 +43,12 @@ export function HeaderLanding() {
             Get Started
           </a>
 
-          <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium shadow h-9 rounded-full bg-[#1A1A2E] text-white hover:bg-[#282845] px-6 py-2">
-            Login
-          </button>
+    <button
+      className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium shadow h-9 rounded-full bg-[#1A1A2E] text-white hover:bg-[#282845] px-6 py-2"
+      onClick={() => navigate("/auth")}
+    >
+      Login
+    </button>
         </div>
 
         {/* Tablet Nav Toggle */}
