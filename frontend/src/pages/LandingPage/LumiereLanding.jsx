@@ -12,13 +12,14 @@ export const LumiereLanding = () => {
 
       <Particles
         particleColors={['#ff8372', '#e092b5', '#0ac8e8']}
-        particleCount={300}
+        particleCount={200}
         particleSpread={10}
-        speed={0.1}
-        particleBaseSize={100}
+        speed={0.3}
+        particleBaseSize={200}
         moveParticlesOnHover={true}
         alphaParticles={false}
-        disableRotation={false}
+        disableRotation={true}
+        cameraDistance={50}
         className="absolute inset-0 z-0 h-[800px]"
       />
 
