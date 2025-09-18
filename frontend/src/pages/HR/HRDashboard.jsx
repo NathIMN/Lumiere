@@ -24,7 +24,7 @@ export const HRDashboard = () => {
 const hrLinks = [
   { path: "overview", label: "Overview", icon: SquareKanban },
   { path: "messaging", label: "Messaging", icon: MessageCircle },
-  { path: "reg", label: "Registration", icon: UsersRound },
+  { path: "registration", label: "Registration", icon: UsersRound },
   { path: "claims", label: "Claim Review", icon: MountainSnow },
   { path: "policies", label: "Policy Users", icon: UserRoundCheck },
   { path: "document", label: "Document Pool", icon: FolderOpen },
