@@ -605,7 +605,7 @@ class InsuranceApiService {
     if (!claimOption) {
       throw new Error('Claim option is required');
     }
-    return this.request(`/questionnaire-templates/by-type/${claimType}/${claimOption}`);
+    return this.request(`/questionnaireTemplates/by-type/${claimType}/${claimOption}`);
   }
 
   /**
