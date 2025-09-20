@@ -12,6 +12,9 @@ import {
   getClaimStatistics,
   getQuestionnaireQuestions,
   submitQuestionnaireAnswers,
+  submitSectionAnswers,  // New method
+  getSectionQuestions,   // New method
+  updateClaimStatus,
 } from "../controllers/claims.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 
@@ -38,12 +41,28 @@ router.get("/:id/questionnaire",
   getQuestionnaireQuestions
 );
 
+// Get specific section questions
+router.get("/:id/questionnaire/section/:sectionId",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
+  getSectionQuestions
+);
+
+// Update single answer (backward compatibility)
 router.patch("/:id/questionnaire/answer",
   authenticate,
   authorize("employee", "admin", "hr_officer"),
   updateQuestionnaireAnswer
 );
 
+// Submit answers for a specific section (NEW)
+router.patch("/:id/questionnaire/section/:sectionId/submit-answers",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
+  submitSectionAnswers
+);
+
+// Submit all questionnaire answers at once (updated to work with sections)
 router.patch("/:id/questionnaire/submit-answers",
   authenticate,
   authorize("employee", "admin", "hr_officer"),
@@ -75,6 +94,13 @@ router.patch("/:id/return",
   authenticate,
   authorize("hr_officer", "insurance_agent", "admin"),
   returnClaim
+);
+
+// Update claim status 
+router.patch("/:id/status",
+  authenticate,
+  authorize("employee", "admin", "hr_officer"),
+  updateClaimStatus
 );
 
 export default router;

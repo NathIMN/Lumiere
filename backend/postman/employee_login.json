@@ -208,5 +208,210 @@
             ]
          }
       ]
-   }
+   },
+   {
+    "success": true,
+    "count": 1,
+    "totalClaims": 1,
+    "currentPage": 1,
+    "totalPages": 1,
+    "claims": [
+        {
+            "questionnaire": {
+                "isComplete": true,
+                "responses": [
+                    {
+                        "questionId": "hospital_name",
+                        "questionText": "Name of the hospital where treatment was received",
+                        "questionType": "text",
+                        "isRequired": true,
+                        "answer": {
+                            "textValue": "Colombo National Hospital"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c79279",
+                        "answeredAt": "2025-08-30T17:15:35.509Z"
+                    },
+                    {
+                        "questionId": "admission_date",
+                        "questionText": "Date of hospital admission",
+                        "questionType": "date",
+                        "isRequired": true,
+                        "answer": {
+                            "dateValue": "2024-01-15T00:00:00.000Z"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c7927a",
+                        "answeredAt": "2025-08-30T17:19:08.327Z"
+                    },
+                    {
+                        "questionId": "discharge_date",
+                        "questionText": "Date of hospital discharge",
+                        "questionType": "date",
+                        "isRequired": true,
+                        "answer": {
+                            "dateValue": "2024-01-20T00:00:00.000Z"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c7927b",
+                        "answeredAt": "2025-08-30T17:19:18.878Z"
+                    },
+                    {
+                        "questionId": "reason_for_hospitalization",
+                        "questionText": "Reason for hospitalization (diagnosis)",
+                        "questionType": "text",
+                        "isRequired": true,
+                        "answer": {
+                            "textValue": "Acute appendicitis requiring emergency surgery"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c7927c",
+                        "answeredAt": "2025-08-30T17:19:27.052Z"
+                    },
+                    {
+                        "questionId": "treatment_type",
+                        "questionText": "Type of treatment received",
+                        "questionType": "select",
+                        "isRequired": true,
+                        "answer": {
+                            "selectValue": "Surgery"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c7927d",
+                        "answeredAt": "2025-08-30T17:19:37.599Z"
+                    },
+                    {
+                        "questionId": "doctor_name",
+                        "questionText": "Name of attending physician",
+                        "questionType": "text",
+                        "isRequired": true,
+                        "answer": {
+                            "textValue": "Dr. Priya Fernando"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c7927e",
+                        "answeredAt": "2025-08-30T17:19:48.100Z"
+                    },
+                    {
+                        "questionId": "total_bill_amount",
+                        "questionText": "Total hospital bill amount (LKR)",
+                        "questionType": "number",
+                        "isRequired": true,
+                        "answer": {
+                            "numberValue": 150000
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c7927f",
+                        "answeredAt": "2025-08-30T17:19:57.583Z"
+                    },
+                    {
+                        "questionId": "insurance_coverage_elsewhere",
+                        "questionText": "Do you have any other insurance coverage for this claim?",
+                        "questionType": "boolean",
+                        "isRequired": true,
+                        "answer": {
+                            "booleanValue": false
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c79280",
+                        "answeredAt": "2025-08-30T17:20:06.428Z"
+                    },
+                    {
+                        "questionId": "other_insurance_details",
+                        "questionText": "If yes, provide details of other insurance coverage",
+                        "questionType": "text",
+                        "isRequired": false,
+                        "answer": {
+                            "textValue": ""
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c79281",
+                        "answeredAt": "2025-08-30T17:20:26.783Z"
+                    },
+                    {
+                        "questionId": "medical_reports",
+                        "questionText": "Upload medical reports and discharge summary",
+                        "questionType": "file",
+                        "isRequired": true,
+                        "answer": {
+                            "fileValue": "60b8d295f8d4e8a1c8e4b456"
+                        },
+                        "isAnswered": true,
+                        "_id": "68b330476490f16e98c79282",
+                        "answeredAt": "2025-08-30T17:20:34.809Z"
+                    }
+                ],
+                "templateReference": "68b2da9461d1d20902989080",
+                "completedAt": "2025-08-30T17:20:34.908Z",
+                "sections": []
+            },
+            "claimAmount": {
+                "approved": 42000,
+                "requested": 45000
+            },
+            "hrForwardingDetails": {
+                "coverageBreakdown": [
+                    {
+                        "coverageType": "hospitalization",
+                        "requestedAmount": 35000,
+                        "notes": "Room charges and basic medical expenses",
+                        "_id": "68b33403129c9a97a91f6f20",
+                        "id": "68b33403129c9a97a91f6f20"
+                    },
+                    {
+                        "coverageType": "surgical_benefits",
+                        "requestedAmount": 8000,
+                        "notes": "Surgery related costs",
+                        "_id": "68b33403129c9a97a91f6f21",
+                        "id": "68b33403129c9a97a91f6f21"
+                    },
+                    {
+                        "coverageType": "prescription_drugs",
+                        "requestedAmount": 2000,
+                        "notes": "Post-surgery medications",
+                        "_id": "68b33403129c9a97a91f6f22",
+                        "id": "68b33403129c9a97a91f6f22"
+                    }
+                ],
+                "hrNotes": "All documentation verified. Employee has valid hospitalization coverage. Requesting approval for full amount as per policy terms.",
+                "forwardedBy": "68b0b20cfd9b373583558302",
+                "forwardedAt": "2025-08-30T17:25:23.506Z"
+            },
+            "decision": {
+                "status": "approved",
+                "approvedAmount": 42000,
+                "insurerNotes": "Claim approved with minor deduction for non-covered items. All medical documentation is in order.",
+                "decidedBy": "68b0b2feb65674fdedaf7e2c",
+                "decidedAt": "2025-08-30T17:29:33.153Z"
+            },
+            "_id": "68b330466490f16e98c7926a",
+            "employeeId": {
+                "_id": "68b0b102fd9b3735835582f9",
+                "email": "john.doe@janashakthi.lk",
+                "fullName": "",
+                "age": null,
+                "isLocked": false,
+                "id": "68b0b102fd9b3735835582f9"
+            },
+            "policy": {
+                "_id": "68b2a74e00777d7440e8d3d0",
+                "policyType": "life",
+                "id": "68b2a74e00777d7440e8d3d0"
+            },
+            "claimType": "life",
+            "lifeClaimOption": "hospitalization",
+            "claimStatus": "approved",
+            "documents": [],
+            "createdAt": "2025-08-30T17:09:26.534Z",
+            "updatedAt": "2025-08-30T17:29:33.157Z",
+            "claimId": "LC000001",
+            "__v": 1,
+            "submittedAt": "2025-08-30T17:20:43.755Z",
+            "forwardedToInsurerAt": "2025-08-30T17:25:23.508Z",
+            "finalizedAt": "2025-08-30T17:29:33.154Z",
+            "claimOption": "hospitalization",
+            "id": "68b330466490f16e98c7926a"
+        }
+    ]
+}
 ]
