@@ -41,6 +41,10 @@ const QuestionnaireTemplateSchema = new mongoose.Schema(
     },
     questions: [
       {
+        category: {
+          type: String,
+          required: true,
+        },
         questionId: {
           type: String,
           required: true,

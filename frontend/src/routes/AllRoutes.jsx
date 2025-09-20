@@ -15,6 +15,7 @@ import {
   AdminHrOfficers,
   AdminInsuranceAgents,
   AdminReports,
+  VapiTestPage
 } from "../pages/Admin";
 
 import { 
@@ -88,6 +89,7 @@ export const AllRoutes = () => {
           />
           <Route path="reports" element={<AdminReports />} />
           <Route path="messaging" element={<MessagingPage userRole="admin" />} />
+          <Route path="vapi-test" element={<VapiTestPage />} />
         </Route>
 
 
