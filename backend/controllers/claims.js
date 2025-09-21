@@ -400,6 +400,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
 });
 
 // Get claim by ID
+// Get claim by ID
 const getClaimById = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
 
@@ -407,7 +408,7 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
     .populate("policy", "policyNumber policyType provider coverage")
     .populate("employeeId", "firstName lastName email department")
     .populate("documents", "filename originalName fileType uploadedAt")
-    .populate("questionnaire.responses.answer.fileValue", "filename originalName")
+    .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName")
     .populate("hrForwardingDetails.forwardedBy", "firstName lastName email")
     .populate("decision.decidedBy", "firstName lastName email");
 
