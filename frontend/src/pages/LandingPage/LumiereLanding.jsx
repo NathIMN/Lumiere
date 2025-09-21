@@ -4,10 +4,13 @@ import { CardsFeatures } from '../../components/landing/CardsFeatures';
 import { HeroLanding } from '../../components/landing/HeroLanding';
 import ScrollStack, { ScrollStackItem } from '../../components/landing/ScrollStack';
 
+
+
 export const LumiereLanding = () => {
   return (
     <div className="bg-white relative w-full">
 
+      {/* Header Section */}
       <HeaderLanding />
 
       <Particles
