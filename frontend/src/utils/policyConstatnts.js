@@ -1,5 +1,161 @@
 // src/utils/policyConstants.js
 
+// Policy type labels
+export const POLICY_TYPE_LABELS = {
+  life: 'Life Insurance',
+  vehicle: 'Vehicle Insurance'
+};
+
+// Policy status labels
+export const POLICY_STATUS_LABELS = {
+  active: 'Active',
+  suspended: 'Suspended',
+  cancelled: 'Cancelled',
+  expired: 'Expired',
+  pending: 'Pending',
+  draft: 'Draft'
+};
+
+// Policy category labels
+export const POLICY_CATEGORY_LABELS = {
+  individual: 'Individual Policy',
+  group: 'Group Policy'
+};
+
+// Premium frequency labels
+export const PREMIUM_FREQUENCY_LABELS = {
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  semi_annually: 'Semi-Annually',
+  annually: 'Annually'
+};
+
+// Life insurance coverage type labels
+export const LIFE_COVERAGE_LABELS = {
+  life_cover: 'Life Cover',
+  hospitalization: 'Hospitalization',
+  surgical_benefits: 'Surgical Benefits',
+  outpatient: 'Outpatient',
+  prescription_drugs: 'Prescription Drugs',
+  dental: 'Dental Coverage',
+  vision: 'Vision Coverage',
+  maternity: 'Maternity Coverage',
+  critical_illness: 'Critical Illness',
+  disability: 'Disability Coverage'
+};
+
+// Vehicle insurance coverage type labels
+export const VEHICLE_COVERAGE_LABELS = {
+  collision: 'Collision',
+  liability: 'Liability',
+  comprehensive: 'Comprehensive',
+  personal_accident: 'Personal Accident',
+  third_party: 'Third Party',
+  theft: 'Theft Protection',
+  fire: 'Fire Protection',
+  natural_disaster: 'Natural Disaster',
+  windscreen: 'Windscreen Coverage'
+};
+
+// Currency configuration
+export const CURRENCY_CONFIG = {
+  code: 'LKR',
+  symbol: 'Rs.',
+  locale: 'en-LK',
+  name: 'Sri Lankan Rupee'
+};
+
+// Combined coverage labels for easier access
+export const COVERAGE_LABELS = {
+  life: LIFE_COVERAGE_LABELS,
+  vehicle: VEHICLE_COVERAGE_LABELS
+};
+
+// Policy ID patterns
+export const POLICY_ID_PATTERNS = {
+  life_individual: 'LI',
+  life_group: 'LG',
+  vehicle_individual: 'VI',
+  vehicle_group: 'VG'
+};
+
+// Status color mapping for UI
+export const STATUS_COLORS = {
+  active: {
+    bg: 'bg-green-100 dark:bg-green-900/20',
+    text: 'text-green-800 dark:text-green-200',
+    border: 'border-green-200 dark:border-green-800'
+  },
+  suspended: {
+    bg: 'bg-yellow-100 dark:bg-yellow-900/20',
+    text: 'text-yellow-800 dark:text-yellow-200',
+    border: 'border-yellow-200 dark:border-yellow-800'
+  },
+  cancelled: {
+    bg: 'bg-red-100 dark:bg-red-900/20',
+    text: 'text-red-800 dark:text-red-200',
+    border: 'border-red-200 dark:border-red-800'
+  },
+  expired: {
+    bg: 'bg-red-100 dark:bg-red-900/20',
+    text: 'text-red-800 dark:text-red-200',
+    border: 'border-red-200 dark:border-red-800'
+  },
+  pending: {
+    bg: 'bg-blue-100 dark:bg-blue-900/20',
+    text: 'text-blue-800 dark:text-blue-200',
+    border: 'border-blue-200 dark:border-blue-800'
+  },
+  draft: {
+    bg: 'bg-gray-100 dark:bg-gray-900/20',
+    text: 'text-gray-800 dark:text-gray-200',
+    border: 'border-gray-200 dark:border-gray-800'
+  }
+};
+
+// Priority levels for policies
+export const POLICY_PRIORITIES = {
+  high: 'High Priority',
+  medium: 'Medium Priority',
+  low: 'Low Priority'
+};
+
+// Default values
+export const DEFAULT_VALUES = {
+  pagination: {
+    page: 1,
+    limit: 10,
+    maxLimit: 100
+  },
+  search: {
+    minLength: 3,
+    debounceMs: 300
+  },
+  expiry: {
+    warningDays: 30,
+    criticalDays: 7
+  }
+};
+
+// Validation rules
+export const VALIDATION_RULES = {
+  policyId: {
+    pattern: /^[LV][IG]\d{4}$/,
+    message: 'Policy ID must follow format: LI0001, LG0001, VI0001, or VG0001'
+  },
+  coverageAmount: {
+    min: 1000,
+    max: 10000000,
+    message: 'Coverage amount must be between Rs. 1,000 and Rs. 10,000,000'
+  },
+  premiumAmount: {
+    min: 100,
+    max: 500000,
+    message: 'Premium amount must be between Rs. 100 and Rs. 500,000'
+  }
+};
+
+// Export types for TypeScript (if needed)
 export const POLICY_TYPES = {
   LIFE: 'life',
   VEHICLE: 'vehicle'
@@ -10,152 +166,11 @@ export const POLICY_CATEGORIES = {
   GROUP: 'group'
 };
 
-export const POLICY_STATUS = {
+export const POLICY_STATUSES = {
   ACTIVE: 'active',
-  EXPIRED: 'expired',
-  CANCELLED: 'cancelled',
   SUSPENDED: 'suspended',
-  PENDING: 'pending'
-};
-
-export const PREMIUM_FREQUENCY = {
-  MONTHLY: 'monthly',
-  QUARTERLY: 'quarterly',
-  SEMI_ANNUAL: 'semi-annual',
-  ANNUAL: 'annual'
-};
-
-export const LIFE_COVERAGE_TYPES = {
-  LIFE_COVER: 'life_cover',
-  HOSPITALIZATION: 'hospitalization',
-  SURGICAL_BENEFITS: 'surgical_benefits',
-  OUTPATIENT: 'outpatient',
-  PRESCRIPTION_DRUGS: 'prescription_drugs'
-};
-
-export const VEHICLE_COVERAGE_TYPES = {
-  COLLISION: 'collision',
-  LIABILITY: 'liability',
-  COMPREHENSIVE: 'comprehensive',
-  PERSONAL_ACCIDENT: 'personal_accident'
-};
-
-// Display labels for UI
-export const POLICY_TYPE_LABELS = {
-  [POLICY_TYPES.LIFE]: 'Life Insurance',
-  [POLICY_TYPES.VEHICLE]: 'Vehicle Insurance'
-};
-
-export const POLICY_CATEGORY_LABELS = {
-  [POLICY_CATEGORIES.INDIVIDUAL]: 'Individual',
-  [POLICY_CATEGORIES.GROUP]: 'Group'
-};
-
-export const POLICY_STATUS_LABELS = {
-  [POLICY_STATUS.ACTIVE]: 'Active',
-  [POLICY_STATUS.EXPIRED]: 'Expired',
-  [POLICY_STATUS.CANCELLED]: 'Cancelled',
-  [POLICY_STATUS.SUSPENDED]: 'Suspended',
-  [POLICY_STATUS.PENDING]: 'Pending'
-};
-
-export const PREMIUM_FREQUENCY_LABELS = {
-  [PREMIUM_FREQUENCY.MONTHLY]: 'Monthly',
-  [PREMIUM_FREQUENCY.QUARTERLY]: 'Quarterly',
-  [PREMIUM_FREQUENCY.SEMI_ANNUAL]: 'Semi-Annual',
-  [PREMIUM_FREQUENCY.ANNUAL]: 'Annual'
-};
-
-export const LIFE_COVERAGE_LABELS = {
-  [LIFE_COVERAGE_TYPES.LIFE_COVER]: 'Life Cover',
-  [LIFE_COVERAGE_TYPES.HOSPITALIZATION]: 'Hospitalization',
-  [LIFE_COVERAGE_TYPES.SURGICAL_BENEFITS]: 'Surgical Benefits',
-  [LIFE_COVERAGE_TYPES.OUTPATIENT]: 'Outpatient',
-  [LIFE_COVERAGE_TYPES.PRESCRIPTION_DRUGS]: 'Prescription Drugs'
-};
-
-export const VEHICLE_COVERAGE_LABELS = {
-  [VEHICLE_COVERAGE_TYPES.COLLISION]: 'Collision',
-  [VEHICLE_COVERAGE_TYPES.LIABILITY]: 'Liability',
-  [VEHICLE_COVERAGE_TYPES.COMPREHENSIVE]: 'Comprehensive',
-  [VEHICLE_COVERAGE_TYPES.PERSONAL_ACCIDENT]: 'Personal Accident'
-};
-
-// Status colors for UI
-export const STATUS_COLORS = {
-  [POLICY_STATUS.ACTIVE]: 'bg-green-100 text-green-800 border-green-200',
-  [POLICY_STATUS.EXPIRED]: 'bg-red-100 text-red-800 border-red-200',
-  [POLICY_STATUS.CANCELLED]: 'bg-red-100 text-red-800 border-red-200',
-  [POLICY_STATUS.SUSPENDED]: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  [POLICY_STATUS.PENDING]: 'bg-blue-100 text-blue-800 border-blue-200'
-};
-
-// Policy type colors for UI
-export const TYPE_COLORS = {
-  [POLICY_TYPES.LIFE]: 'bg-blue-100 text-blue-800 border-blue-200',
-  [POLICY_TYPES.VEHICLE]: 'bg-purple-100 text-purple-800 border-purple-200'
-};
-
-// Category colors for UI
-export const CATEGORY_COLORS = {
-  [POLICY_CATEGORIES.INDIVIDUAL]: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-  [POLICY_CATEGORIES.GROUP]: 'bg-teal-100 text-teal-800 border-teal-200'
-};
-
-// HR allowed status changes
-export const HR_ALLOWED_STATUS_CHANGES = {
-  [POLICY_STATUS.ACTIVE]: [POLICY_STATUS.SUSPENDED, POLICY_STATUS.CANCELLED],
-  [POLICY_STATUS.SUSPENDED]: [POLICY_STATUS.ACTIVE, POLICY_STATUS.CANCELLED],
-  [POLICY_STATUS.PENDING]: [POLICY_STATUS.ACTIVE, POLICY_STATUS.CANCELLED],
-  [POLICY_STATUS.CANCELLED]: [], // Cannot change from cancelled
-  [POLICY_STATUS.EXPIRED]: [] // Cannot change from expired
-};
-
-// Filter options for dropdowns
-export const POLICY_TYPE_OPTIONS = Object.entries(POLICY_TYPE_LABELS).map(([value, label]) => ({
-  value,
-  label
-}));
-
-export const POLICY_CATEGORY_OPTIONS = Object.entries(POLICY_CATEGORY_LABELS).map(([value, label]) => ({
-  value,
-  label
-}));
-
-export const POLICY_STATUS_OPTIONS = Object.entries(POLICY_STATUS_LABELS).map(([value, label]) => ({
-  value,
-  label
-}));
-
-export const PREMIUM_FREQUENCY_OPTIONS = Object.entries(PREMIUM_FREQUENCY_LABELS).map(([value, label]) => ({
-  value,
-  label
-}));
-
-// Default pagination settings
-export const PAGINATION_DEFAULTS = {
-  PAGE: 1,
-  LIMIT: 10,
-  LIMITS: [5, 10, 20, 50]
-};
-
-// Search configuration
-export const SEARCH_CONFIG = {
-  DEBOUNCE_DELAY: 300,
-  MIN_SEARCH_LENGTH: 2
-};
-
-// Date format settings
-export const DATE_FORMATS = {
-  DISPLAY: 'MMM DD, YYYY',
-  INPUT: 'YYYY-MM-DD',
-  FULL: 'MMMM DD, YYYY',
-  SHORT: 'MM/DD/YYYY'
-};
-
-// Currency configuration
-export const CURRENCY_CONFIG = {
-  LOCALE: 'en-US',
-  CURRENCY: 'LKR', // Sri Lankan Rupee
-  SYMBOL: 'Rs.'
+  CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
+  PENDING: 'pending',
+  DRAFT: 'draft'
 };

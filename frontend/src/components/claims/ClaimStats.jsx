@@ -5,9 +5,9 @@ import {
   CheckCircle, 
   XCircle, 
   Users, 
-  DollarSign,
-  TrendingUp,
-  FileText
+  DollarSign, 
+  TrendingUp, 
+  FileText 
 } from 'lucide-react';
 
 export const ClaimStats = ({ stats }) => {

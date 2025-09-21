@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ArrowLeft, AlertCircle, MessageSquare } from 'lucide-react';
-import { claimService } from '../../services/claimService';
+import insuranceApiService from '../../services/insurance-api';
 
 export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
   const [returnReason, setReturnReason] = useState('');
@@ -44,7 +44,8 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      await claimService.returnClaim(claim._id, {
+      // Fixed API method call - passing returnReason as object with returnReason property
+      await insuranceApiService.returnClaim(claim._id, {
         returnReason: returnReason.trim()
       });
       onSuccess();

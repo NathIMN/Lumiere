@@ -19,7 +19,7 @@ import {
   Clock,
   MapPin
 } from 'lucide-react';
-import { formatDate, formatCurrency } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/policyFormatters';
 
 export const PolicyDetailsModal = ({ policy, isOpen, onClose }) => {
   if (!isOpen || !policy) return null;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Minus, DollarSign, AlertCircle, ArrowRight } from 'lucide-react';
-import { claimService } from '../../services/claimService';
+import insuranceApiService from '../../services/insurance-api';
 
 export const ForwardToInsurerModal = ({ claim, onClose, onSuccess }) => {
   const [coverageBreakdown, setCoverageBreakdown] = useState([
@@ -70,7 +70,7 @@ export const ForwardToInsurerModal = ({ claim, onClose, onSuccess }) => {
     const claimAmount = claim.claimAmount?.requested || 0;
 
     if (totalRequested > claimAmount) {
-      newErrors.total = `Total breakdown (${totalRequested.toLocaleString()}) cannot exceed claimed amount (${claimAmount.toLocaleString()})`;
+      newErrors.total = `Total breakdown ($${totalRequested.toLocaleString()}) cannot exceed claimed amount ($${claimAmount.toLocaleString()})`;
     }
 
     if (totalRequested === 0) {
@@ -105,7 +105,8 @@ export const ForwardToInsurerModal = ({ claim, onClose, onSuccess }) => {
         hrNotes: hrNotes.trim()
       };
 
-      await claimService.forwardToInsurer(claim._id, payload);
+      // Fixed API method call - using forwardClaimToInsurer instead of forwardToInsurer
+      await insuranceApiService.forwardClaimToInsurer(claim._id, payload);
       onSuccess();
     } catch (error) {
       setErrors({

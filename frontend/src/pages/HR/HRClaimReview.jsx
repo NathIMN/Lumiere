@@ -16,7 +16,10 @@ import {
   Calendar,
   FileText,
   User,
-  X
+  X,
+  Download,
+  BarChart3,
+  Printer
 } from 'lucide-react';
 
 import { ClaimFilters } from '../../components/claims/ClaimFilters';
@@ -26,7 +29,8 @@ import { ForwardToInsurerModal } from '../../components/claims/ForwardToInsurerM
 import { ReturnClaimModal } from '../../components/claims/ReturnClaimModal';
 import { ClaimStats } from '../../components/claims/ClaimStats';
 
-import { claimService } from '../../services/claimService';
+import insuranceApiService from '../../services/insurance-api';
+import reportsApiService from '../../services/reports-api';
 
 // Inline Notification Component
 const Notification = ({ message, type = 'success', onClose }) => {
@@ -88,6 +92,104 @@ const Notification = ({ message, type = 'success', onClose }) => {
   );
 };
 
+// Reports Dropdown Component
+const ReportsDropdown = ({ filters, onGenerateReport }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const reportTypes = [
+    { 
+      id: 'claims', 
+      label: 'Claims Report', 
+      description: 'Generate detailed claims report with current filters',
+      icon: FileText 
+    },
+    { 
+      id: 'financial', 
+      label: 'Financial Report', 
+      description: 'Generate financial summary report',
+      icon: DollarSign 
+    }
+  ];
+
+  const handleGenerateReport = async (reportType) => {
+    setIsGenerating(true);
+    setIsOpen(false);
+    
+    try {
+      await onGenerateReport(reportType);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isGenerating}
+        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isGenerating ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <span>Generating...</span>
+          </>
+        ) : (
+          <>
+            <BarChart3 className="h-4 w-4" />
+            <span>Reports</span>
+          </>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-10">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Export data with current filters applied</p>
+          </div>
+          
+          <div className="p-2">
+            {reportTypes.map((report) => {
+              const Icon = report.icon;
+              return (
+                <button
+                  key={report.id}
+                  onClick={() => handleGenerateReport(report.id)}
+                  className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
+                >
+                  <div className="flex items-start space-x-3">
+                    <Icon className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{report.label}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{report.description}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Reports will be downloaded as PDF files with current filter settings applied.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Click outside to close */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-5" 
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
+    </div>
+  );
+};
+
 export const HRClaimReview = () => {
   const navigate = useNavigate();
   
@@ -144,7 +246,7 @@ export const HRClaimReview = () => {
   const fetchClaims = async () => {
     try {
       setLoading(true);
-      const response = await claimService.getAllClaims({
+      const response = await insuranceApiService.getClaims({
         ...filters,
         page: pagination.page,
         limit: pagination.limit,
@@ -152,15 +254,54 @@ export const HRClaimReview = () => {
         sortOrder
       });
       
-      setClaims(response.data.claims);
-      setPagination(prev => ({
-        ...prev,
-        totalPages: response.data.totalPages,
-        totalClaims: response.data.totalClaims
-      }));
+      console.log('Claims response:', response);
+      
+      // Handle different response structures for claims
+      if (response) {
+        if (response.data) {
+          if (response.data.claims && Array.isArray(response.data.claims)) {
+            setClaims(response.data.claims);
+            setPagination(prev => ({
+              ...prev,
+              totalPages: response.data.totalPages || 0,
+              totalClaims: response.data.totalClaims || 0
+            }));
+          } else if (Array.isArray(response.data)) {
+            setClaims(response.data);
+            setPagination(prev => ({
+              ...prev,
+              totalPages: 1,
+              totalClaims: response.data.length
+            }));
+          } else {
+            console.warn('Unexpected response.data structure for claims:', response.data);
+            setClaims([]);
+          }
+        } else if (Array.isArray(response)) {
+          setClaims(response);
+          setPagination(prev => ({
+            ...prev,
+            totalPages: 1,
+            totalClaims: response.length
+          }));
+        } else if (response.claims && Array.isArray(response.claims)) {
+          setClaims(response.claims);
+          setPagination(prev => ({
+            ...prev,
+            totalPages: response.totalPages || 0,
+            totalClaims: response.totalClaims || 0
+          }));
+        } else {
+          console.warn('Cannot find claims array in response:', response);
+          setClaims([]);
+        }
+      } else {
+        setClaims([]);
+      }
     } catch (err) {
       setError('Failed to fetch claims');
       showNotification('Failed to fetch claims', 'error');
+      setClaims([]);
     } finally {
       setLoading(false);
     }
@@ -168,19 +309,70 @@ export const HRClaimReview = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await claimService.getClaimStatistics();
-      setStats(response.data);
+      const response = await insuranceApiService.getClaimStatistics();
+      
+      console.log('Stats response:', response);
+      
+      // Handle different response structures for stats
+      if (response) {
+        if (response.data) {
+          setStats(response.data);
+        } else if (response.stats) {
+          setStats(response.stats);
+        } else if (typeof response === 'object' && !Array.isArray(response)) {
+          setStats(response);
+        } else {
+          console.warn('Invalid stats response structure:', response);
+          setStats({});
+        }
+      } else {
+        console.warn('Stats response is null or undefined');
+        setStats({});
+      }
     } catch (err) {
       console.error('Failed to fetch stats:', err);
+      setStats({});
     }
   };
 
   const fetchClaimsRequiringAction = async () => {
     try {
-      const response = await claimService.getClaimsRequiringAction();
-      setClaimsRequiringAction(response.data.claims);
+      const response = await insuranceApiService.getClaimsRequiringAction();
+      
+      console.log('Claims requiring action response:', response);
+      
+      // Handle different possible response structures
+      if (response) {
+        if (response.data) {
+          if (response.data.claims && Array.isArray(response.data.claims)) {
+            setClaimsRequiringAction(response.data.claims);
+          } else if (Array.isArray(response.data)) {
+            setClaimsRequiringAction(response.data);
+          } else if (response.data.data && Array.isArray(response.data.data)) {
+            setClaimsRequiringAction(response.data.data);
+          } else {
+            console.warn('Unexpected response.data structure for claims requiring action:', response.data);
+            setClaimsRequiringAction([]);
+          }
+        } else if (Array.isArray(response)) {
+          setClaimsRequiringAction(response);
+        } else if (response.claims && Array.isArray(response.claims)) {
+          setClaimsRequiringAction(response.claims);
+        } else if (response.result && Array.isArray(response.result)) {
+          setClaimsRequiringAction(response.result);
+        } else if (response.items && Array.isArray(response.items)) {
+          setClaimsRequiringAction(response.items);
+        } else {
+          console.warn('Cannot find claims array in response structure:', response);
+          setClaimsRequiringAction([]);
+        }
+      } else {
+        console.warn('Response is null or undefined');
+        setClaimsRequiringAction([]);
+      }
     } catch (err) {
       console.error('Failed to fetch claims requiring action:', err);
+      setClaimsRequiringAction([]);
     }
   };
 
@@ -235,6 +427,52 @@ export const HRClaimReview = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
+  // Report generation handler
+  const handleGenerateReport = async (reportType) => {
+    try {
+      let blob;
+      const reportFilters = {
+        ...filters,
+        // Convert dates for backend if needed
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+      };
+
+      // Remove empty values to clean up the filters
+      Object.keys(reportFilters).forEach(key => {
+        if (!reportFilters[key]) {
+          delete reportFilters[key];
+        }
+      });
+
+      switch (reportType) {
+        case 'claims':
+          blob = await reportsApiService.generateClaimsReport(reportFilters);
+          break;
+        case 'financial':
+          blob = await reportsApiService.generateFinancialReport(reportFilters);
+          break;
+        default:
+          throw new Error('Invalid report type');
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showNotification(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generated successfully`, 'success');
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      showNotification(`Failed to generate ${reportType} report: ${error.message}`, 'error');
+    }
+  };
+
   if (loading && claims.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -266,6 +504,12 @@ export const HRClaimReview = () => {
         </div>
         
         <div className="flex items-center space-x-4">
+          {/* Reports Dropdown */}
+          <ReportsDropdown 
+            filters={filters}
+            onGenerateReport={handleGenerateReport}
+          />
+          
           <div className="bg-green-100 dark:bg-green-900 px-4 py-2 rounded-lg">
             <span className="text-green-800 dark:text-green-200 font-medium">
               {claimsRequiringAction.length} Claims Pending Review

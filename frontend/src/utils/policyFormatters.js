@@ -1,13 +1,63 @@
-// src/utils/policyFormatter.js
-import { 
-  POLICY_TYPE_LABELS, 
-  POLICY_STATUS_LABELS, 
-  POLICY_CATEGORY_LABELS,
-  PREMIUM_FREQUENCY_LABELS,
-  LIFE_COVERAGE_LABELS,
-  VEHICLE_COVERAGE_LABELS,
-  CURRENCY_CONFIG 
-} from './policyConstants';
+// src/utils/policyFormatters.js
+
+// Constants defined directly in this file
+const POLICY_TYPE_LABELS = {
+  life: 'Life Insurance',
+  vehicle: 'Vehicle Insurance'
+};
+
+const POLICY_STATUS_LABELS = {
+  active: 'Active',
+  suspended: 'Suspended',
+  cancelled: 'Cancelled',
+  expired: 'Expired',
+  pending: 'Pending',
+  draft: 'Draft'
+};
+
+const POLICY_CATEGORY_LABELS = {
+  individual: 'Individual Policy',
+  group: 'Group Policy'
+};
+
+const PREMIUM_FREQUENCY_LABELS = {
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  semi_annually: 'Semi-Annually',
+  annually: 'Annually'
+};
+
+const LIFE_COVERAGE_LABELS = {
+  life_cover: 'Life Cover',
+  hospitalization: 'Hospitalization',
+  surgical_benefits: 'Surgical Benefits',
+  outpatient: 'Outpatient',
+  prescription_drugs: 'Prescription Drugs',
+  dental: 'Dental Coverage',
+  vision: 'Vision Coverage',
+  maternity: 'Maternity Coverage',
+  critical_illness: 'Critical Illness',
+  disability: 'Disability Coverage'
+};
+
+const VEHICLE_COVERAGE_LABELS = {
+  collision: 'Collision',
+  liability: 'Liability',
+  comprehensive: 'Comprehensive',
+  personal_accident: 'Personal Accident',
+  third_party: 'Third Party',
+  theft: 'Theft Protection',
+  fire: 'Fire Protection',
+  natural_disaster: 'Natural Disaster',
+  windscreen: 'Windscreen Coverage'
+};
+
+const CURRENCY_CONFIG = {
+  code: 'LKR',
+  symbol: 'Rs.',
+  locale: 'en-LK',
+  name: 'Sri Lankan Rupee'
+};
 
 // Format currency in Sri Lankan Rupees
 export const formatCurrency = (amount) => {
