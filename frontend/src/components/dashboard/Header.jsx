@@ -7,25 +7,27 @@ export const Header = ({ onToggleTheme, isDark , isCollapsed, scrolled}) => {
 
 
   // Get current active tab name from path
-  const activeTab = location.pathname.split("/").pop() || "Dashboard";
+    const activeTab = location.pathname
+    .split("/")
+    .filter(Boolean) // remove empty parts
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1)) // capitalize first letter
+    .join(" > ");
 
   return (
-        <header
-          className={`
-            fixed top-4 right-8
-            h-20 flex items-center justify-between px-6 z-40
-            rounded-2xl shadow-md 
-            transition-all duration-300
-            ${scrolled
-              ? "backdrop-blur-sm bg-white/70 dark:bg-neutral-900/70 shadow-lg"
-              : "bg-transparent shadow-none"}
-            ${isCollapsed ? "left-32" : "left-75"}
-          `}
-
-        >
-      {/* Left: Active tab */}
+    <header
+      className={`
+        fixed top-4 right-8
+        h-20 flex items-center justify-between px-6 z-40
+        rounded-2xl shadow-md 
+        transition-all duration-300
+        ${scrolled
+          ? "backdrop-blur-sm bg-white/70 dark:bg-neutral-900/70 shadow-lg"
+          : "bg-transparent shadow-none"}
+        ${isCollapsed ? "left-32" : "left-75"}
+      `}
+    >
       <h2 className="text-lg font-semibold capitalize text-gray-800 dark:text-gray-100">
-        {activeTab}
+        {activeTab || "Dashboard"}
       </h2>
 
       {/* Right: actions */}
