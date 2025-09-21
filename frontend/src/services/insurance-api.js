@@ -32,7 +32,7 @@ class InsuranceApiService {
 
     try {
       const response = await fetch(url, config);
-      
+      console.log(response)
       if (!response.ok) {
         let errorMessage = 'API request failed';
         
@@ -605,7 +605,7 @@ class InsuranceApiService {
     if (!claimOption) {
       throw new Error('Claim option is required');
     }
-    return this.request(`/questionnaire-templates/by-type/${claimType}/${claimOption}`);
+    return this.request(`/questionnaireTemplates/by-type/${claimType}/${claimOption}`);
   }
 
   /**
@@ -864,6 +864,27 @@ class InsuranceApiService {
     // Submit claim
     return this.submitClaim(claimId, { claimAmount, documents });
   }
+
+  /**
+ * Update claim status
+ * @param {string} claimId - Claim ID
+ * @param {string} status - New status ('draft', 'employee', 'hr', 'insurer', 'approved', 'rejected')
+ * @returns {Promise<Object>} Updated claim
+ */
+async updateClaimStatus(claimId, status) {
+  if (!claimId) {
+    throw new Error('Claim ID is required');
+  }
+  if (!status) {
+    throw new Error('Status is required');
+  }
+  return this.request(`/claims/${claimId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+
 }
 
 // Create and export singleton instance
