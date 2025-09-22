@@ -2,8 +2,8 @@
     <thead>
         <tr>
             <th>Policy Number</th>
-            <th>Policyholder</th>
             <th>Policy Type</th>
+            <th>Beneficiaries Count</th>
             <th>Premium Amount</th>
             <th>Start Date</th>
             <th>End Date</th>
@@ -15,8 +15,8 @@
         {{#each policies}}
         <tr>
             <td>{{policyNumber}}</td>
-            <td>{{policyholderName}}</td>
             <td>{{policyType}}</td>
+            <td>{{beneficiariesCount}}</td>
             <td>${{formatCurrency premiumAmount}}</td>
             <td>{{formatDate startDate}}</td>
             <td>{{formatDate endDate}}</td>

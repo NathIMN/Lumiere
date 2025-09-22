@@ -18,6 +18,81 @@ class ReportsService {
   }
 
   /**
+   * Get report theme based on report type
+   */
+  getReportTheme(reportType = 'default') {
+    const themes = {
+      default: {
+        primaryColor: '#2563eb',
+        primaryDark: '#1e40af',
+        secondaryColor: '#64748b',
+        accentColor: '#059669',
+        textColor: '#2c3e50',
+        backgroundColor: '#ffffff',
+        headerBackground: '#f8fafc',
+        borderColor: '#e5e7eb',
+        tableBorder: '#d1d5db',
+        tableHeaderBackground: '#2563eb',
+        tableHeaderBorder: '#1d4ed8'
+      },
+      users: {
+        primaryColor: '#059669',
+        primaryDark: '#047857',
+        secondaryColor: '#6b7280',
+        accentColor: '#2563eb',
+        textColor: '#1f2937',
+        backgroundColor: '#ffffff',
+        headerBackground: '#f0fdf4',
+        borderColor: '#d1fae5',
+        tableBorder: '#a7f3d0',
+        tableHeaderBackground: '#059669',
+        tableHeaderBorder: '#047857'
+      },
+      policies: {
+        primaryColor: '#7c3aed',
+        primaryDark: '#5b21b6',
+        secondaryColor: '#6b7280',
+        accentColor: '#f59e0b',
+        textColor: '#1f2937',
+        backgroundColor: '#ffffff',
+        headerBackground: '#faf5ff',
+        borderColor: '#e9d5ff',
+        tableBorder: '#c4b5fd',
+        tableHeaderBackground: '#7c3aed',
+        tableHeaderBorder: '#5b21b6'
+      },
+      claims: {
+        primaryColor: '#dc2626',
+        primaryDark: '#991b1b',
+        secondaryColor: '#6b7280',
+        accentColor: '#059669',
+        textColor: '#1f2937',
+        backgroundColor: '#ffffff',
+        headerBackground: '#fef2f2',
+        borderColor: '#fecaca',
+        tableBorder: '#fca5a5',
+        tableHeaderBackground: '#dc2626',
+        tableHeaderBorder: '#991b1b'
+      },
+      financial: {
+        primaryColor: '#f59e0b',
+        primaryDark: '#d97706',
+        secondaryColor: '#6b7280',
+        accentColor: '#2563eb',
+        textColor: '#1f2937',
+        backgroundColor: '#ffffff',
+        headerBackground: '#fffbeb',
+        borderColor: '#fed7aa',
+        tableBorder: '#fdba74',
+        tableHeaderBackground: '#f59e0b',
+        tableHeaderBorder: '#d97706'
+      }
+    };
+
+    return themes[reportType] || themes.default;
+  }
+
+  /**
    * Register Handlebars helper functions
    */
   registerHandlebarsHelpers() {
@@ -143,7 +218,7 @@ class ReportsService {
       }
 
       if (filters.department) {
-        query.department = filters.department;
+        query['employment.department'] = filters.department;
       }
 
       if (filters.dateFrom && filters.dateTo) {
@@ -171,7 +246,7 @@ class ReportsService {
 
       // Group by department
       const usersByDepartment = users.reduce((acc, user) => {
-        const dept = user.department || 'Unassigned';
+        const dept = user.employment?.department || 'Unassigned';
         if (!acc[dept]) {
           acc[dept] = { active: 0, inactive: 0, total: 0 };
         }
@@ -186,7 +261,7 @@ class ReportsService {
           fullName: `${user.profile?.firstName || 'N/A'} ${user.profile?.lastName || 'N/A'}`,
           email: user.email || 'N/A',
           role: (user.role || 'user').replace('_', ' ').toUpperCase(),
-          department: user.department || 'Unassigned',
+          department: user.employment?.department || 'Unassigned',
           hireDate: user.createdAt,
           status: user.status || 'unknown',
           lastLogin: user.lastLogin || null
@@ -237,6 +312,7 @@ class ReportsService {
         currentYear: new Date().getFullYear(),
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
+        theme: this.getReportTheme('users'),
         summary: [
           { label: 'Total Users', value: reportData.summary.totalUsers },
           { label: 'Active Users', value: reportData.summary.activeUsers },
@@ -321,8 +397,8 @@ class ReportsService {
       return {
         policies: policies.map(policy => ({
           policyNumber: policy.policyId || policy._id.toString().slice(-8).toUpperCase(),
-          policyholderName: 'N/A', // No direct policyholder reference in schema
           policyType: policy.policyType,
+          beneficiariesCount: policy.beneficiaries?.length || 0,
           premiumAmount: policy.premium?.amount || 0,
           startDate: policy.validity?.startDate,
           endDate: policy.validity?.endDate,
@@ -370,6 +446,7 @@ class ReportsService {
         currentYear: new Date().getFullYear(),
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
+        theme: this.getReportTheme('policies'),
         summary: [
           { label: 'Total Policies', value: reportData.summary.totalPolicies },
           { label: 'Active Policies', value: reportData.summary.activePolicies },
@@ -436,8 +513,8 @@ class ReportsService {
 
       return {
         claims: claims.map(claim => ({
-          claimNumber: claim.claimNumber || claim._id.toString().slice(-8).toUpperCase(),
-          policyNumber: claim.policy?.policyNumber || 'N/A',
+          claimNumber: claim.claimId || claim._id.toString().slice(-8).toUpperCase(),
+          policyNumber: claim.policy?.policyId || 'N/A',
           claimantName: claim.employeeId ? 
             `${claim.employeeId.profile?.firstName || 'N/A'} ${claim.employeeId.profile?.lastName || 'N/A'}` : 'N/A',
           claimType: claim.claimType || 'General',
@@ -484,6 +561,7 @@ class ReportsService {
         currentYear: new Date().getFullYear(),
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
+        theme: this.getReportTheme('claims'),
         summary: [
           { label: 'Total Claims', value: reportData.summary.totalClaims },
           { label: 'Approved Claims', value: reportData.summary.approvedClaims },
@@ -551,7 +629,7 @@ class ReportsService {
         currentYear: new Date().getFullYear(),
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
-        timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
+        theme: this.getReportTheme('financial'),
         summary: [
           { label: 'Total Revenue', value: `$${reportData.totalPremiumRevenue.toLocaleString()}` },
           { label: 'Claims Paid', value: `$${reportData.totalClaimsPaid.toLocaleString()}` },
