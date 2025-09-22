@@ -101,7 +101,7 @@ export const EmployeeClaims = () => {
         return {
           text: 'Track',
           icon: <Eye size={16} />,
-          className: 'bg-green-600 hover:bg-purple-200 text-white dark:bg-green-500 dark:hover:bg-green-600',
+          className: 'bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600',
           urgent: false
         };
       case 'approved':
