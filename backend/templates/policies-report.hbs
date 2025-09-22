@@ -1,16 +1,18 @@
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Policy Number</th>
-            <th>Policy Type</th>
-            <th>Beneficiaries Count</th>
-            <th>Premium Amount</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            <th>Status</th>
-            <th>Agent</th>
-        </tr>
-    </thead>
+<div class="table-section cols-8">
+    <h2 class="table-title">Insurance Policies</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Policy Number</th>
+                <th>Policy Type</th>
+                <th>Beneficiaries Count</th>
+                <th>Premium Amount</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Agent</th>
+            </tr>
+        </thead>
     <tbody>
         {{#each policies}}
         <tr>
@@ -26,11 +28,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 
 {{#if policyStats}}
 <div class="page-break"></div>
-<h3>Policy Statistics</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Policy Statistics</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Policy Type</th>
@@ -52,11 +56,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if monthlyTrends}}
-<h3>Monthly Premium Trends</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Monthly Premium Trends</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Month</th>
@@ -78,12 +84,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if expiringPolicies}}
-<div class="page-break"></div>
-<h3>Policies Expiring Soon (Next 30 Days)</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Policies Expiring Soon (Next 30 Days)</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Policy Number</th>
@@ -105,4 +112,5 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}

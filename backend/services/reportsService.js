@@ -175,16 +175,26 @@ class ReportsService {
       });
 
       const page = await browser.newPage();
+      
+      // Set viewport to ensure consistent rendering
+      await page.setViewport({
+        width: 1200,
+        height: 800,
+        deviceScaleFactor: 1
+      });
+      
       await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
       const pdfOptions = {
         format: 'A4',
         printBackground: true,
+        preferCSSPageSize: false,
+        displayHeaderFooter: false,
         margin: {
-          top: '20px',
-          right: '20px',
-          bottom: '20px',
-          left: '20px'
+          top: '15px',
+          right: '15px',
+          bottom: '15px',
+          left: '15px'
         },
         ...options
       };
@@ -233,9 +243,10 @@ class ReportsService {
         .sort({ createdAt: -1 })
         .lean();
 
-      // Generate summary statistics
+            // Generate summary statistics
       const totalUsers = users.length;
       const activeUsers = users.filter(user => user.status === 'active').length;
+
       const inactiveUsers = totalUsers - activeUsers;
 
       // Group by role
