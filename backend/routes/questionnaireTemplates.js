@@ -41,7 +41,7 @@ router.get("/by-type/:claimType/:claimOption",
 // Main CRUD routes
 router.route("/")
   .get(authenticate, getAllTemplates)
-  .post(authenticate, authorize("admin", "hr_officer"), createTemplate);
+  .post(authenticate, authorize("admin", "agent"), createTemplate);
 
 router.route("/:id")
   .get(authenticate, getTemplateById)
