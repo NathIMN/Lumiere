@@ -498,7 +498,7 @@ class ReportsService {
       }
 
       const claims = await Claim.find(query)
-        .populate('policy', 'policyNumber')
+        .populate('policy', 'policyId')
         .populate('employeeId', 'profile.firstName profile.lastName email')
         .populate('decision.decidedBy', 'profile.firstName profile.lastName')
         .sort({ createdAt: -1 })

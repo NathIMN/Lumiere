@@ -20,13 +20,13 @@
         }
         
         body {
-            font-family: 'Arial', 'Helvetica', sans-serif;
+            font-family: 'Arial', 'Helvetica', sans-serif !important;
             margin: 0;
             padding: 20px;
             color: var(--text-color);
             line-height: 1.4;
             background-color: var(--bg-color);
-            font-size: 11px;
+            font-size: 11px !important;
         }
         
         .header {
@@ -37,6 +37,8 @@
             background: var(--header-bg);
             margin: -20px -20px 25px -20px;
             padding: 20px 20px 15px 20px;
+            min-height: 120px;
+            box-sizing: border-box;
         }
         
         .company-logo {
@@ -44,10 +46,11 @@
         }
         
         .logo-img {
-            height: 50px;
-            width: auto;
+            height: 50px !important;
+            width: auto !important;
             margin-bottom: 10px;
-            max-width: 200px;
+            max-width: 200px !important;
+            max-height: 50px !important;
             object-fit: contain;
             display: block;
             margin-left: auto;
@@ -55,14 +58,14 @@
         }
         
         .company-name {
-            font-size: 24px;
+            font-size: 24px !important;
             font-weight: bold;
             color: var(--primary-color);
             margin-bottom: 10px;
         }
         
         .report-title {
-            font-size: 22px;
+            font-size: 22px !important;
             font-weight: bold;
             color: var(--primary-dark);
             margin: 8px 0;
@@ -70,7 +73,7 @@
         }
         
         .report-subtitle {
-            font-size: 13px;
+            font-size: 13px !important;
             color: var(--secondary-color);
             margin-bottom: 8px;
             font-style: italic;
@@ -83,7 +86,7 @@
             padding: 12px;
             border-radius: 6px;
             margin-bottom: 20px;
-            font-size: 10px;
+            font-size: 10px !important;
             border: 1px solid var(--border-color);
         }
         
@@ -137,7 +140,7 @@
             padding: 6px 10px;
             text-align: left;
             font-weight: 600;
-            font-size: 11px;
+            font-size: 11px !important;
             white-space: nowrap;
             vertical-align: middle;
             border-right: 1px solid var(--table-header-border);
@@ -151,7 +154,7 @@
             padding: 6px 10px;
             border-bottom: 1px solid var(--border-color);
             border-right: 1px solid var(--border-color);
-            font-size: 10px;
+            font-size: 10px !important;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -179,7 +182,7 @@
         .status {
             padding: 2px 6px;
             border-radius: 3px;
-            font-size: 9px;
+            font-size: 9px !important;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
