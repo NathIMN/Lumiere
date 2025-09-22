@@ -29,7 +29,8 @@ import {
   FileText,
   Printer,
   Heart,
-  Car
+  Car,
+  FileBarChart
 } from 'lucide-react';
 
 import insuranceApiService from '../../services/insurance-api';
@@ -254,6 +255,252 @@ const PolicyStats = ({ stats, loading, policies }) => {
           </div>
         );
       })}
+    </div>
+  );
+};
+
+// Reports Panel Component
+const ReportsPanel = ({ filters, onClose, showNotification }) => {
+  const [reportLoading, setReportLoading] = useState(null);
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+
+  const reportTypes = [
+    {
+      id: 'policies',
+      title: 'Policies Report',
+      description: 'Comprehensive report of all policies with details, coverage, premiums, beneficiaries, and status information',
+      icon: Shield,
+      color: 'blue'
+    }
+  ];
+
+  const handleGenerateReport = async (reportType) => {
+    try {
+      setReportLoading(reportType);
+      
+      // Prepare report filters including current filters and date range
+      const reportFilters = {
+        ...filters,
+        ...(dateRange.startDate && { startDate: dateRange.startDate }),
+        ...(dateRange.endDate && { endDate: dateRange.endDate })
+      };
+
+      // Remove empty filters
+      Object.keys(reportFilters).forEach(key => {
+        if (reportFilters[key] === '' || reportFilters[key] === null || reportFilters[key] === undefined) {
+          delete reportFilters[key];
+        }
+      });
+
+      // Generate policies report
+      const blob = await reportsApiService.generatePoliciesReport(reportFilters);
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showNotification(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generated successfully`);
+
+    } catch (error) {
+      console.error(`Error generating ${reportType} report:`, error);
+      showNotification(`Failed to generate ${reportType} report: ${error.message}`, 'error');
+    } finally {
+      setReportLoading(null);
+    }
+  };
+
+  const getColorClasses = (color) => {
+    const colors = {
+      blue: {
+        bg: 'bg-blue-50 dark:bg-blue-900/20',
+        border: 'border-blue-200 dark:border-blue-800',
+        icon: 'text-blue-600 dark:text-blue-400',
+        button: 'bg-blue-600 hover:bg-blue-700 text-white'
+      },
+      green: {
+        bg: 'bg-green-50 dark:bg-green-900/20',
+        border: 'border-green-200 dark:border-green-800',
+        icon: 'text-green-600 dark:text-green-400',
+        button: 'bg-green-600 hover:bg-green-700 text-white'
+      },
+      orange: {
+        bg: 'bg-orange-50 dark:bg-orange-900/20',
+        border: 'border-orange-200 dark:border-orange-800',
+        icon: 'text-orange-600 dark:text-orange-400',
+        button: 'bg-orange-600 hover:bg-orange-700 text-white'
+      },
+      purple: {
+        bg: 'bg-purple-50 dark:bg-purple-900/20',
+        border: 'border-purple-200 dark:border-purple-800',
+        icon: 'text-purple-600 dark:text-purple-400',
+        button: 'bg-purple-600 hover:bg-purple-700 text-white'
+      }
+    };
+    return colors[color] || colors.blue;
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <FileBarChart className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
+        </div>
+        {onClose && (
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        )}
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Date Range (Optional)
+          </label>
+          <button
+            onClick={() => setShowDateRange(!showDateRange)}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700"
+          >
+            {showDateRange ? 'Hide' : 'Show'} Date Filter
+          </button>
+        </div>
+        
+        {showDateRange && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Active Filters Display */}
+      {(filters.policyType || filters.policyCategory || filters.status || dateRange.startDate || dateRange.endDate) && (
+        <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Active Filters:</h4>
+          <div className="flex flex-wrap gap-2 text-sm">
+            {filters.policyType && (
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
+                Type: {filters.policyType === 'life' ? 'Life' : 'Vehicle'}
+              </span>
+            )}
+            {filters.policyCategory && (
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
+                Category: {filters.policyCategory === 'individual' ? 'Individual' : 'Group'}
+              </span>
+            )}
+            {filters.status && (
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
+                Status: {filters.status.charAt(0).toUpperCase() + filters.status.slice(1)}
+              </span>
+            )}
+            {dateRange.startDate && (
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
+                From: {formatDate(dateRange.startDate)}
+              </span>
+            )}
+            {dateRange.endDate && (
+              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
+                To: {formatDate(dateRange.endDate)}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Report Types Grid */}
+      <div className="grid grid-cols-1 gap-4">
+        {reportTypes.map((report) => {
+          const IconComponent = report.icon;
+          const colors = getColorClasses(report.color);
+          const isLoading = reportLoading === report.id;
+
+          return (
+            <div
+              key={report.id}
+              className={`${colors.bg} border ${colors.border} rounded-lg p-6 transition-all hover:shadow-md`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-lg ${colors.bg.replace('50', '100').replace('900/20', '800/30')}`}>
+                    <IconComponent className={`h-8 w-8 ${colors.icon}`} />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-semibold text-gray-900 dark:text-white">{report.title}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {report.description}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleGenerateReport(report.id)}
+                  disabled={isLoading}
+                  className={`flex items-center justify-center gap-2 px-6 py-3 ${colors.button} rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]`}
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      Generate Report
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Report Info */}
+      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <div className="flex items-start gap-2">
+          <FileText className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="font-medium mb-1">Report Information:</p>
+            <ul className="space-y-1 text-xs">
+              <li>• Reports are generated in PDF format and will be downloaded automatically</li>
+              <li>• Current filters and search terms will be applied to the reports</li>
+              <li>• Date range filter applies to policy creation/update dates</li>
+              <li>• Large reports may take a few moments to generate</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
@@ -546,6 +793,7 @@ export const HRPolicyUser = () => {
   // States
   const [viewMode, setViewMode] = useState('table');
   const [showFilters, setShowFilters] = useState(true);
+  const [showReports, setShowReports] = useState(false);
   const [policies, setPolicies] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
@@ -802,6 +1050,19 @@ export const HRPolicyUser = () => {
 
           {/* Controls */}
           <div className="flex items-center gap-3">
+            {/* Reports Button */}
+            <button
+              onClick={() => setShowReports(!showReports)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                showReports
+                  ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
+              }`}
+            >
+              <FileBarChart className="h-4 w-4" />
+              Reports
+            </button>
+
             {/* Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -843,6 +1104,17 @@ export const HRPolicyUser = () => {
             </div>
           </div>
         </div>
+
+        {/* Reports Panel */}
+        {showReports && (
+          <div className="mt-4">
+            <ReportsPanel
+              filters={filters}
+              onClose={() => setShowReports(false)}
+              showNotification={showNotification}
+            />
+          </div>
+        )}
 
         {/* Filters */}
         {showFilters && (
