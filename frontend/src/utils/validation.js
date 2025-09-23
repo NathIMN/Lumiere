@@ -33,14 +33,27 @@ export const validateForm = (formData) => {
   
   if (!formData.profile.nic) {
     errors.nic = 'NIC is required';
-  } else if (!/^\d+$/.test(formData.profile.nic)) {
-    errors.nic = 'NIC must contain only numbers';
+  } else {
+    // Updated NIC validation to handle both old and new formats
+    const nic = formData.profile.nic.toUpperCase();
+    
+    if (nic.includes('V')) {
+      // Old NIC format validation (9 digits + V)
+      if (!/^\d{9}V$/.test(nic)) {
+        errors.nic = 'Invalid old NIC format. Must be 9 digits followed by V (e.g., 123456789V)';
+      }
+    } else {
+      // New NIC format validation (12 digits)
+      if (!/^\d{12}$/.test(nic)) {
+        errors.nic = 'Invalid new NIC format. Must be exactly 12 digits (e.g., 123456789012)';
+      }
+    }
   }
   
   if (!formData.profile.phoneNumber) {
     errors.phoneNumber = 'Phone number is required';
-  } else if (!/^\d+$/.test(formData.profile.phoneNumber)) {
-    errors.phoneNumber = 'Phone number must contain only numbers';
+  } else if (!/^\d{10}$/.test(formData.profile.phoneNumber)) {
+    errors.phoneNumber = 'Phone number must be exactly 10 digits';
   }
   
   if (!formData.profile.address) {
@@ -109,23 +122,58 @@ export const validateForm = (formData) => {
     
     if (!formData.insuranceProvider.contactPhone) {
       errors.contactPhone = 'Contact phone is required';
-    } else if (!/^\d+$/.test(formData.insuranceProvider.contactPhone)) {
-      errors.contactPhone = 'Contact phone must contain only numbers';
+    } else if (!/^\d{10}$/.test(formData.insuranceProvider.contactPhone)) {
+      errors.contactPhone = 'Contact phone must be exactly 10 digits';
     }
   }
   
   return errors;
 };
 
+// Helper function to validate NIC format (can be used elsewhere in your app)
+export const validateNIC = (nic) => {
+  if (!nic) return { isValid: false, message: 'NIC is required' };
+  
+  const nicUpper = nic.toUpperCase();
+  
+  if (nicUpper.includes('V')) {
+    // Old NIC format validation (9 digits + V)
+    if (/^\d{9}V$/.test(nicUpper)) {
+      return { isValid: true, message: 'Valid old NIC format' };
+    } else {
+      return { isValid: false, message: 'Invalid old NIC format. Must be 9 digits followed by V' };
+    }
+  } else {
+    // New NIC format validation (12 digits)
+    if (/^\d{12}$/.test(nicUpper)) {
+      return { isValid: true, message: 'Valid new NIC format' };
+    } else {
+      return { isValid: false, message: 'Invalid new NIC format. Must be exactly 12 digits' };
+    }
+  }
+};
+
 export const handleKeyPress = (e, type) => {
+  const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
+  
+  // Always allow control keys
+  if (isControlKey) {
+    return;
+  }
+
   if (type === 'name') {
-    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
-    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    // Allow letters and space only
+    if (!/[a-zA-Z\s]/.test(e.key)) {
       e.preventDefault();
     }
-  } else if (type === 'phone' || type === 'nic' || type === 'accountNumber') {
-    // Allow numbers, backspace, delete, tab, escape, enter, arrow keys
-    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+  } else if (type === 'phone' || type === 'accountNumber') {
+    // Allow numbers only
+    if (!/[0-9]/.test(e.key)) {
+      e.preventDefault();
+    }
+  } else if (type === 'nic') {
+    // Allow numbers and V only for NIC
+    if (!/[0-9V]/.test(e.key.toUpperCase())) {
       e.preventDefault();
     }
   }

@@ -24,11 +24,13 @@ export const HRDashboard = () => {
 const hrLinks = [
   { path: "overview", label: "Overview", icon: SquareKanban },
   { path: "messaging", label: "Messaging", icon: MessageCircle },
-  { path: "reg", label: "Registration", icon: UsersRound },
+  { path: "registration", label: "Registration", icon: UsersRound },
   { path: "claims", label: "Claim Review", icon: MountainSnow },
   { path: "policies", label: "Policy Users", icon: UserRoundCheck },
   { path: "document", label: "Document Pool", icon: FolderOpen },
 ];
+
+  const color = "#37d449";
 
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);
@@ -47,7 +49,7 @@ const hrLinks = [
   <div className="hr-dashboard flex bg-neutral-300 dark:bg-neutral-800 h-screen">
 
     {/* Sidebar */}
-    <SideBar links={hrLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed}/> 
+  <SideBar links={hrLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed} color={color}/> 
 
     {/* Main Content */}
     <div className="flex-1 flex flex-col ">
