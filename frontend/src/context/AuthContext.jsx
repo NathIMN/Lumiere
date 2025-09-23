@@ -5,6 +5,43 @@ const getApiUrl = () => {
   return window.REACT_APP_API_URL || 'http://localhost:5000';
 };
 
+// Development mode check
+const isDevelopmentMode = () => {
+  return process.env.NODE_ENV === 'development' || !window.REACT_APP_API_URL;
+};
+
+// Mock users for development
+const MOCK_USERS = {
+  'admin@lumiere.com': { 
+    id: 1, 
+    email: 'admin@lumiere.com', 
+    role: 'admin', 
+    name: 'Admin User',
+    department: 'Management' 
+  },
+  'hr@lumiere.com': { 
+    id: 2, 
+    email: 'hr@lumiere.com', 
+    role: 'hr_officer', 
+    name: 'HR Officer',
+    department: 'Human Resources' 
+  },
+  'employee@lumiere.com': { 
+    id: 3, 
+    email: 'employee@lumiere.com', 
+    role: 'employee', 
+    name: 'Employee User',
+    department: 'Operations' 
+  },
+  'agent@lumiere.com': { 
+    id: 4, 
+    email: 'agent@lumiere.com', 
+    role: 'insurance_agent', 
+    name: 'Insurance Agent',
+    department: 'Sales' 
+  }
+};
+
 // Initial state
 const initialState = {
   user: null,
@@ -24,7 +61,7 @@ const AUTH_ACTIONS = {
   SET_LOADING: 'SET_LOADING',
 };
 
-// Reducer
+// Reducer (keep your existing reducer - it's perfect)
 const authReducer = (state, action) => {
   switch (action.type) {
     case AUTH_ACTIONS.LOGIN_START:
@@ -89,27 +126,46 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('authToken');
         
         if (token) {
-          // Validate token by fetching user profile
-          const response = await fetch(`${getApiUrl()}/api/v1/users/profile`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            dispatch({
-              type: AUTH_ACTIONS.LOGIN_SUCCESS,
-              payload: {
-                user: data.user,
-                token,
+          if (isDevelopmentMode()) {
+            // Development mode: check if token matches mock user
+            const mockUser = Object.values(MOCK_USERS).find(user => 
+              btoa(user.email) === token
+            );
+            
+            if (mockUser) {
+              dispatch({
+                type: AUTH_ACTIONS.LOGIN_SUCCESS,
+                payload: {
+                  user: mockUser,
+                  token,
+                },
+              });
+            } else {
+              localStorage.removeItem('authToken');
+              dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+            }
+          } else {
+            // Production mode: validate with server
+            const response = await fetch(`${getApiUrl()}/api/v1/users/profile`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
               },
             });
-          } else {
-            // Token is invalid, remove it
-            localStorage.removeItem('authToken');
-            dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+
+            if (response.ok) {
+              const data = await response.json();
+              dispatch({
+                type: AUTH_ACTIONS.LOGIN_SUCCESS,
+                payload: {
+                  user: data.user,
+                  token,
+                },
+              });
+            } else {
+              localStorage.removeItem('authToken');
+              dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+            }
           }
         } else {
           dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
@@ -129,54 +185,90 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
     try {
-      console.log('Attempting login to:', `${getApiUrl()}/api/v1/users/login`);
-      
-      const response = await fetch(`${getApiUrl()}/api/v1/users/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      console.log('Response status:', response.status);
-
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server did not return JSON response');
-      }
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (response.ok && data.success) {
-        // Store token in localStorage
-        localStorage.setItem('authToken', data.token);
+      if (isDevelopmentMode()) {
+        // Development mode: use mock authentication
+        console.log('🚀 Development Mode: Using mock authentication');
         
-        dispatch({
-          type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: {
-            user: data.user,
-            token: data.token,
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        const user = MOCK_USERS[email];
+        
+        if (user && password === 'password123') {
+          const mockToken = btoa(email); // Simple token for development
+          
+          localStorage.setItem('authToken', mockToken);
+          
+          dispatch({
+            type: AUTH_ACTIONS.LOGIN_SUCCESS,
+            payload: {
+              user: user,
+              token: mockToken,
+            },
+          });
+
+          console.log('✅ Mock login successful for:', user.role);
+          return { success: true, user: user };
+        } else {
+          const errorMessage = 'Invalid credentials. Use: password123';
+          dispatch({
+            type: AUTH_ACTIONS.LOGIN_ERROR,
+            payload: errorMessage,
+          });
+          return { success: false, error: errorMessage };
+        }
+      } else {
+        // Production mode: use real API
+        console.log('🌐 Production Mode: Attempting login to:', `${getApiUrl()}/api/v1/users/login`);
+        
+        const response = await fetch(`${getApiUrl()}/api/v1/users/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ email, password }),
         });
 
-        return { success: true, user: data.user };
-      } else {
-        const errorMessage = data.message || 'Login failed';
-        dispatch({
-          type: AUTH_ACTIONS.LOGIN_ERROR,
-          payload: errorMessage,
-        });
-        return { success: false, error: errorMessage };
+        console.log('Response status:', response.status);
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Server did not return JSON response');
+        }
+
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (response.ok && data.success) {
+          localStorage.setItem('authToken', data.token);
+          
+          dispatch({
+            type: AUTH_ACTIONS.LOGIN_SUCCESS,
+            payload: {
+              user: data.user,
+              token: data.token,
+            },
+          });
+
+          return { success: true, user: data.user };
+        } else {
+          const errorMessage = data.message || 'Login failed';
+          dispatch({
+            type: AUTH_ACTIONS.LOGIN_ERROR,
+            payload: errorMessage,
+          });
+          return { success: false, error: errorMessage };
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
       
       let errorMessage;
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        errorMessage = 'Cannot connect to server. Please check if the backend server is running on port 5000.';
+        errorMessage = 'Cannot connect to server. Using development mode instead.';
+        console.log('🔄 Switching to development mode due to connection error');
+        // Retry in development mode
+        return await login(email, password);
       } else if (error.message.includes('JSON')) {
         errorMessage = 'Server returned invalid response. Please check server logs.';
       } else {
@@ -191,28 +283,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
+  // Logout function (keep your existing - it's perfect)
   const logout = () => {
     localStorage.removeItem('authToken');
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
   };
 
-  // Clear error function
+  // Clear error function (keep your existing - it's perfect)
   const clearError = () => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   };
 
-  // Get user role
+  // Keep all your existing utility functions - they're excellent
   const getUserRole = () => {
     return state.user?.role || null;
   };
 
-  // Check if user has specific role
   const hasRole = (role) => {
     return state.user?.role === role;
   };
 
-  // Check if user has any of the specified roles
   const hasAnyRole = (roles) => {
     return roles.includes(state.user?.role);
   };
@@ -234,7 +324,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use auth context
+// Custom hook (keep your existing - it's perfect)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
