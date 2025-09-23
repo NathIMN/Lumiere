@@ -2,7 +2,8 @@ import { Particles } from '../../components/landing/Particles';
 import { HeaderLanding } from '../../components/landing/HeaderLanding';
 import { CardsFeatures } from '../../components/landing/CardsFeatures';
 import { HeroLanding } from '../../components/landing/HeroLanding';
-import ScrollStack, { ScrollStackItem } from '../../components/landing/ScrollStack';
+import { RevealBento } from "../../components/RevealBento"; 
+
 
 
 
@@ -44,6 +45,7 @@ export const LumiereLanding = () => {
       </ScrollStack>
 */}
       <CardsFeatures />
+      <RevealBento />
 
     </div>
   )
