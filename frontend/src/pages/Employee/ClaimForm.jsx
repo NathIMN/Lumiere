@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FileText, Car, Heart, Upload, Calendar, AlertCircle, Check, X } from 'lucide-react';
 import InsuranceApiService from "../../services/insurance-api";

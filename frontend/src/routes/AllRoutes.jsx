@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./ProtectedRoute";
@@ -102,17 +103,20 @@ export const AllRoutes = () => {
                   <ProtectedRoute allowedRoles={["hr_officer"]}>
                      <HRDashboard />
 
-                  </ProtectedRoute>
-               }
-            >
-               <Route index element={<Navigate to="overview" replace />} />
-               <Route path="overview" element={<HROverview />} />
-               <Route path="reg" element={<Registration />} />
-               <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
-               <Route path="policies" element={<HRPolicyUser />} />
-               <Route path="claims" element={<HRClaimReview />} />
-               <Route path="document" element={<DocumentPool />} />
-            </Route>
+
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<HROverview />} />
+          <Route path="registration" element={<Registration/>} />
+          <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
+          <Route path="policies" element={<HRPolicyUser/>} />
+          <Route path="claims" element={<HRClaimReview/>} />
+          <Route path="document" element={<DocumentPool/>} />
+        </Route>
+               
+            
 
             {/* ================== EMPLOYEE DASHBOARD ================== */}
             <Route

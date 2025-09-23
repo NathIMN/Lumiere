@@ -17,7 +17,6 @@ const handleKeyPress = (e, type) => {
   }
 };
 
-
 const EmploymentDetails = ({ formData, errors, onChange }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -36,7 +35,7 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'employment', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.department ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter department "
+            placeholder="Enter department"
           />
           {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department}</p>}
         </div>
@@ -50,7 +49,7 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'employment', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.designation ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter designation "
+            placeholder="Enter designation"
           />
           {errors.designation && <p className="text-red-500 text-sm mt-1">{errors.designation}</p>}
         </div>
@@ -77,7 +76,6 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
             disabled
             className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
           />
-          
         </div>
 
         <div className="md:col-span-2">
