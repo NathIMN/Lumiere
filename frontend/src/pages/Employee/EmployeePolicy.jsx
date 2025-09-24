@@ -335,7 +335,7 @@ export const EmployeePolicy = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6 bg-[url('/card-bg01.png')] bg-cover bg-center bg-no-repeat relative">
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6 bg-[url('/card-bg04.jpg')] bg-cover bg-center bg-no-repeat relative">
     <div className="flex items-center relative z-10">
       <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
       <div className="ml-4">
