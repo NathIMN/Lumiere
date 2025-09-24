@@ -3,6 +3,7 @@ import { HeaderLanding } from '../../components/landing/HeaderLanding';
 import { CardsFeatures } from '../../components/landing/CardsFeatures';
 import { HeroLanding } from '../../components/landing/HeroLanding';
 import { RevealBento } from "../../components/RevealBento"; 
+import { DrawCircleText } from '../../components/DrawCircleText';
 
 
 
@@ -13,6 +14,7 @@ export const LumiereLanding = () => {
 
       {/* Header Section */}
       <HeaderLanding />
+     
 
       <Particles
         particleColors={['#ff8372', '#e092b5', '#0ac8e8']}
@@ -25,7 +27,7 @@ export const LumiereLanding = () => {
         disableRotation={false}
         className="absolute inset-0 z-0 h-[800px]"
       />
-
+ <DrawCircleText />
       <HeroLanding />
 
 {/* 
