@@ -1,0 +1,114 @@
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Claim Number</th>
+            <th>Policy Number</th>
+            <th>Claimant</th>
+            <th>Claim Type</th>
+            <th>Claim Amount</th>
+            <th>Date Filed</th>
+            <th>Status</th>
+            <th>Assigned Agent</th>
+            <th>Settlement Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each claims}}
+        <tr>
+            <td>{{claimNumber}}</td>
+            <td>{{policyNumber}}</td>
+            <td>{{claimantName}}</td>
+            <td>{{claimType}}</td>
+            <td>${{formatCurrency claimAmount}}</td>
+            <td>{{formatDate dateFiled}}</td>
+            <td><span class="status {{status}}">{{status}}</span></td>
+            <td>{{agentName}}</td>
+            <td>{{formatDate settlementDate}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+{{#if claimStats}}
+<div class="page-break"></div>
+<h3>Claims Statistics</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Claim Type</th>
+            <th>Total Claims</th>
+            <th>Approved Claims</th>
+            <th>Total Amount</th>
+            <th>Average Settlement</th>
+            <th>Approval Rate</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each claimStats}}
+        <tr>
+            <td>{{claimType}}</td>
+            <td>{{totalClaims}}</td>
+            <td>{{approvedClaims}}</td>
+            <td>${{formatCurrency totalAmount}}</td>
+            <td>${{formatCurrency averageSettlement}}</td>
+            <td>{{approvalRate}}%</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if monthlyClaimTrends}}
+<h3>Monthly Claims Trends</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>Claims Filed</th>
+            <th>Claims Settled</th>
+            <th>Amount Settled</th>
+            <th>Average Processing Time (Days)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each monthlyClaimTrends}}
+        <tr>
+            <td>{{month}}</td>
+            <td>{{claimsFiled}}</td>
+            <td>{{claimsSettled}}</td>
+            <td>${{formatCurrency amountSettled}}</td>
+            <td>{{averageProcessingTime}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if pendingClaims}}
+<div class="page-break"></div>
+<h3>Pending Claims (Requiring Attention)</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Claim Number</th>
+            <th>Claimant</th>
+            <th>Days Pending</th>
+            <th>Claim Amount</th>
+            <th>Priority</th>
+            <th>Assigned Agent</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each pendingClaims}}
+        <tr>
+            <td>{{claimNumber}}</td>
+            <td>{{claimantName}}</td>
+            <td>{{daysPending}}</td>
+            <td>${{formatCurrency claimAmount}}</td>
+            <td><span class="status {{priority}}">{{priority}}</span></td>
+            <td>{{agentName}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}

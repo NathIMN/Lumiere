@@ -1,793 +1,673 @@
-import { useState, useEffect, useMemo } from 'react';
-import { 
-  ClipboardCheck, 
-  FileText, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  TrendingUp,
-  TrendingDown,
-  RefreshCw,
-  Filter,
-  Search,
-  Calendar,
-  Users,
-  DollarSign,
-  Eye,
-  ChevronRight,
-  Info,
-  Bell,
-  Target,
-  Plus,
-  Send,
-  MessageSquare,
-  ArrowRight,
-  Activity
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import insuranceApiService from '../../services/insurance-api';
+import {
+  BarChart3, TrendingUp, Clock, AlertTriangle, CheckCircle, XCircle, FileText,
+  Users, PieChart, Activity, Calendar, DollarSign, Eye, RefreshCw, Filter,
+  Search, Download, Bell, Settings, Home, Grid3X3, List, ChevronRight,
+  AlertCircle, Info, Target, Star, Flag, Bookmark, MessageSquare, Plus,
+  ArrowUp, ArrowDown, Minus, MoreHorizontal, ExternalLink, Zap,
+  Sun, Moon, Maximize2, Minimize2, ToggleLeft, ToggleRight, Layers,
+  Building2, User, Shield, Award, Briefcase, CreditCard, Phone, Mail,
+  MapPin, Globe, Edit3, Save, Upload, Image as ImageIcon, Hash,
+  ThumbsUp, ThumbsDown, Send, Archive, Trash2, Copy, Share2
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 const AgentOverview = () => {
-  const navigate = useNavigate();
-  const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterPriority, setFilterPriority] = useState('All');
-  const [dateRange, setDateRange] = useState('Today');
-  const [showNotifications, setShowNotifications] = useState(true);
-
-  // Enhanced mock data with questionnaire features
-  const [dashboardData] = useState({
-    statistics: {
-      pendingClaims: { value: 23, trend: +2, target: 20, status: 'warning' },
-      approvedToday: { value: 12, trend: +5, target: 10, status: 'success' },
-      totalEmployees: { value: 156, trend: -1, target: 160, status: 'info' },
-      questionnaires: { value: 8, trend: +1, target: 5, status: 'success' },
-      pendingResponses: { value: 12, trend: +3, target: 10, status: 'warning' },
-      completedResponses: { value: 8, trend: +2, target: 15, status: 'info' },
-      activeTemplates: { value: 5, trend: 0, target: 8, status: 'success' }
-    },
-    recentClaims: [
-      {
-        id: "CLM-001",
-        employee: "John Doe",
-        department: "Engineering",
-        amount: "$5,000",
-        status: "Pending",
-        priority: "High",
-        submitted: "2024-01-15",
-        daysWaiting: 3,
-        insuranceType: "Life Insurance",
-        progress: 25,
-        nextAction: "Medical Review Required"
-      },
-      {
-        id: "CLM-002",
-        employee: "Jane Smith",
-        department: "Marketing",
-        amount: "$2,500",
-        status: "Under Review",
-        priority: "Medium",
-        submitted: "2024-01-14",
-        daysWaiting: 4,
-        insuranceType: "Vehicle Insurance",
-        progress: 60,
-        nextAction: "Awaiting Documentation"
-      }
-    ],
-    notifications: [
-      { id: 1, type: 'urgent', message: 'CLM-001 requires immediate attention - 3 days overdue', time: '2 min ago' },
-      { id: 2, type: 'info', message: 'New questionnaire response from John Doe (CLM-001)', time: '30 min ago' },
-      { id: 3, type: 'success', message: 'Health Insurance questionnaire template updated', time: '2 hours ago' }
-    ],
-    questionnaireActivity: [
-      {
-        employee: "John Doe",
-        questionnaire: "Life Insurance Assessment",
-        status: "completed",
-        submittedAt: "2 hours ago",
-        claimId: "CLM-001"
-      },
-      {
-        employee: "Sarah Wilson", 
-        questionnaire: "Vehicle Damage Assessment",
-        status: "pending",
-        sentAt: "1 day ago",
-        claimId: "CLM-003"
-      },
-      {
-        employee: "Mike Johnson",
-        questionnaire: "Health Insurance Pre-approval",
-        status: "completed",
-        submittedAt: "3 hours ago", 
-        claimId: "CLM-002"
-      }
-    ]
+  // ==================== STATE MANAGEMENT ====================
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  
+  // Dashboard Data
+  const [dashboardStats, setDashboardStats] = useState({
+    claimsStats: null,
+    policiesStats: null,
+    agentPolicies: null,
+    expiringPolicies: null,
+    recentActivity: []
+  });
+  
+  // Quick Actions
+  const [pendingClaims, setPendingClaims] = useState([]);
+  const [urgentTasks, setUrgentTasks] = useState([]);
+  
+  // Filters and Views
+  const [selectedTimeRange, setSelectedTimeRange] = useState('30days');
+  const [selectedView, setSelectedView] = useState('overview'); // overview, claims, policies, activity
+  const [compactMode, setCompactMode] = useState(false);
+  
+  // Notifications
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Performance Metrics
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    approvalRate: 0,
+    avgProcessingTime: 0,
+    claimsProcessedThisMonth: 0,
+    customerSatisfactionScore: 0
   });
 
-  // Filtered claims with validation
-  const filteredClaims = useMemo(() => {
-    let filtered = dashboardData.recentClaims;
+  // ==================== UTILITY FUNCTIONS ====================
+  const showToast = (message, type = 'info') => {
+    // Simple toast notification (you can replace with your toast library)
+    console.log(`${type.toUpperCase()}: ${message}`);
+  };
 
-    if (searchTerm.trim()) {
-      filtered = filtered.filter(claim =>
-        claim.employee.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        claim.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        claim.department.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
 
-    if (filterPriority !== 'All') {
-      filtered = filtered.filter(claim => claim.priority === filterPriority);
-    }
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
-    return filtered;
-  }, [searchTerm, filterPriority, dashboardData.recentClaims]);
-
-  // Auto refresh with validation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isRefreshing) {
-        setLastUpdated(new Date());
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [isRefreshing]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setLastUpdated(new Date());
-    } catch (error) {
-      console.error('Failed to refresh data:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
+  const formatRelativeTime = (date) => {
+    const now = new Date();
+    const diffTime = Math.abs(now - new Date(date));
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
+    return `${Math.ceil(diffDays / 30)} months ago`;
   };
 
   const getStatusColor = (status) => {
-    const statusColors = {
-      'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-      'Under Review': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-      'Approved': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-      'Rejected': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    const colors = {
+      approved: 'bg-green-100 text-green-800 border-green-200',
+      rejected: 'bg-red-100 text-red-800 border-red-200',
+      pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      insurer: 'bg-blue-100 text-blue-800 border-blue-200',
+      draft: 'bg-gray-100 text-gray-800 border-gray-200',
+      active: 'bg-green-100 text-green-800 border-green-200',
+      inactive: 'bg-gray-100 text-gray-800 border-gray-200',
+      expired: 'bg-red-100 text-red-800 border-red-200'
     };
-    return statusColors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
+    return colors[status?.toLowerCase()] || colors.pending;
   };
 
   const getPriorityColor = (priority) => {
-    const priorityColors = {
-      'High': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-      'Medium': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-      'Low': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+    const colors = {
+      high: 'text-red-600 bg-red-50',
+      medium: 'text-yellow-600 bg-yellow-50',
+      low: 'text-green-600 bg-green-50',
+      critical: 'text-purple-600 bg-purple-50'
     };
-    return priorityColors[priority] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
+    return colors[priority?.toLowerCase()] || colors.medium;
   };
 
-  const handleClaimClick = (claimId) => {
-    if (claimId && claimId.trim()) {
-      navigate(`/agent/claims-review/${claimId}`);
+  // ==================== API CALLS ====================
+  const loadDashboardData = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError(null);
+
+    try {
+      console.log('Loading agent dashboard data...');
+
+      // Check authentication
+      if (!insuranceApiService.isAuthenticated()) {
+        throw new Error('User not authenticated');
+      }
+
+      // Load all dashboard data in parallel
+      const [
+        claimsStatsResponse,
+        policiesStatsResponse,
+        agentPoliciesResponse,
+        expiringPoliciesResponse,
+        pendingClaimsResponse
+      ] = await Promise.allSettled([
+        insuranceApiService.getClaimStatistics(),
+        insuranceApiService.getPolicyStatistics(),
+        insuranceApiService.getAgentPolicies({ limit: 10 }),
+        insuranceApiService.getExpiringPolicies(30),
+        insuranceApiService.getClaims({ claimStatus: 'insurer', limit: 5 })
+      ]);
+
+      console.log('Dashboard API responses:', {
+        claimsStats: claimsStatsResponse,
+        policiesStats: policiesStatsResponse,
+        agentPolicies: agentPoliciesResponse,
+        expiringPolicies: expiringPoliciesResponse,
+        pendingClaims: pendingClaimsResponse
+      });
+
+      // Process responses
+      const dashboardData = {
+        claimsStats: claimsStatsResponse.status === 'fulfilled' ? claimsStatsResponse.value : null,
+        policiesStats: policiesStatsResponse.status === 'fulfilled' ? policiesStatsResponse.value : null,
+        agentPolicies: agentPoliciesResponse.status === 'fulfilled' ? agentPoliciesResponse.value : null,
+        expiringPolicies: expiringPoliciesResponse.status === 'fulfilled' ? expiringPoliciesResponse.value : null,
+        recentActivity: []
+      };
+
+      setDashboardStats(dashboardData);
+
+      // Set pending claims
+      if (pendingClaimsResponse.status === 'fulfilled') {
+        const claimsData = pendingClaimsResponse.value?.data || pendingClaimsResponse.value?.claims || [];
+        setPendingClaims(Array.isArray(claimsData) ? claimsData.slice(0, 5) : []);
+      }
+
+      // Generate performance metrics
+      setPerformanceMetrics({
+        approvalRate: Math.floor(Math.random() * 20) + 75, // Mock data
+        avgProcessingTime: Math.floor(Math.random() * 5) + 2,
+        claimsProcessedThisMonth: Math.floor(Math.random() * 50) + 25,
+        customerSatisfactionScore: Math.floor(Math.random() * 10) + 85
+      });
+
+      // Generate notifications
+      setNotifications([
+        { id: 1, type: 'urgent', message: '3 claims require immediate attention', time: '5 mins ago' },
+        { id: 2, type: 'info', message: 'Monthly report is ready for download', time: '1 hour ago' },
+        { id: 3, type: 'warning', message: '2 policies expiring this week', time: '2 hours ago' }
+      ]);
+
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      setError(error.message);
+      
+      // Set empty state
+      setDashboardStats({
+        claimsStats: null,
+        policiesStats: null,
+        agentPolicies: null,
+        expiringPolicies: null,
+        recentActivity: []
+      });
+    } finally {
+      if (showLoading) setLoading(false);
     }
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDashboardData(false);
+    setRefreshing(false);
+    showToast('Dashboard refreshed successfully', 'success');
   };
 
-  const handleQuickAction = (action) => {
-    switch (action) {
-      case 'review-claims':
-      case 'pendingclaims':
-        navigate('/agent/claims-review');
-        break;
-      case 'questionnaires':
-        navigate('/agent/questionnaires');
-        break;
-      case 'view-all-claims':
-        navigate('/agent/claims-review');
-        break;
-      default:
-        console.log(`Action ${action} not implemented`);
-    }
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode;
+    setDarkMode(newDarkMode);
+    localStorage.setItem('darkMode', newDarkMode.toString());
   };
 
-  return (
-    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Enhanced Header with Actions */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Dashboard Overview
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Welcome back! Here's what's happening with your claims and policies.
-          </p>
-          <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              {dateRange}
-            </div>
+  // ==================== EFFECTS ====================
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        handleRefresh();
+      }
+    }, 5 * 60 * 1000); // Auto refresh every 5 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // ==================== QUICK STATS COMPONENTS ====================
+  const StatCard = ({ title, value, change, icon: Icon, color = 'blue', trend = 'up' }) => (
+    <div className={`${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-900'} rounded-2xl p-6 border shadow-sm hover:shadow-md transition-all duration-300`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className={`p-3 rounded-xl bg-${color}-100`}>
+            <Icon className={`w-6 h-6 text-${color}-600`} />
+          </div>
+          <div>
+            <p className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{title}</p>
+            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{value}</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Today">Today</option>
-            <option value="This Week">This Week</option>
-            <option value="This Month">This Month</option>
-            <option value="Last 30 Days">Last 30 Days</option>
-          </select>
+        {change && (
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+            trend === 'up' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+          }`}>
+            {trend === 'up' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+            {change}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-          <button 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white px-6 py-2 rounded-lg transition-colors duration-200 font-medium"
+  // ==================== RENDER QUICK STATS ====================
+  const renderQuickStats = () => {
+    if (loading) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl p-6 border animate-pulse`}>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-6 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    const stats = [
+      {
+        title: 'Total Claims',
+        value: dashboardStats.claimsStats?.totalClaims || 0,
+        change: '+12%',
+        icon: FileText,
+        color: 'blue',
+        trend: 'up'
+      },
+      {
+        title: 'Pending Review',
+        value: pendingClaims.length || 0,
+        change: '-8%',
+        icon: Clock,
+        color: 'orange',
+        trend: 'down'
+      },
+      {
+        title: 'Active Policies',
+        value: dashboardStats.agentPolicies?.data?.length || 0,
+        change: '+5%',
+        icon: Shield,
+        color: 'green',
+        trend: 'up'
+      },
+      {
+        title: 'Approval Rate',
+        value: `${performanceMetrics.approvalRate}%`,
+        change: '+2%',
+        icon: CheckCircle,
+        color: 'purple',
+        trend: 'up'
+      }
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {stats.map((stat, index) => (
+          <StatCard key={index} {...stat} />
+        ))}
+      </div>
+    );
+  };
+
+  // ==================== RENDER RECENT CLAIMS ====================
+  const renderRecentClaims = () => (
+    <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm`}>
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Recent Claims Requiring Review
+          </h3>
+          <button
+            onClick={() => window.location.href = '/agent/claims-review'}
+            className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors text-sm font-medium"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            View All
+            <ExternalLink className="w-4 h-4" />
           </button>
         </div>
       </div>
-
-      {/* Notifications Bar */}
-      {showNotifications && dashboardData.notifications.length > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
-            </div>
-            <button
-              onClick={() => setShowNotifications(false)}
-              className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white text-xl"
-            >
-              ×
-            </button>
-          </div>
-          <div className="space-y-2">
-            {dashboardData.notifications.slice(0, 2).map((notification) => (
-              <div key={notification.id} className="flex items-center gap-3 text-sm">
-                <div className={`w-2 h-2 rounded-full ${
-                  notification.type === 'urgent' ? 'bg-red-400' :
-                  notification.type === 'success' ? 'bg-green-400' : 'bg-blue-400'
-                }`} />
-                <span className="text-gray-700 dark:text-gray-300 flex-1">{notification.message}</span>
-                <span className="text-gray-500 dark:text-gray-400">{notification.time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {Object.entries(dashboardData.statistics).slice(0, 4).map(([key, stat]) => {
-          const icons = {
-            pendingClaims: { icon: Clock, color: 'yellow', bgLight: 'bg-yellow-50', bgDark: 'dark:bg-yellow-900/20' },
-            approvedToday: { icon: CheckCircle, color: 'green', bgLight: 'bg-green-50', bgDark: 'dark:bg-green-900/20' },
-            totalEmployees: { icon: Users, color: 'blue', bgLight: 'bg-blue-50', bgDark: 'dark:bg-blue-900/20' },
-            questionnaires: { icon: ClipboardCheck, color: 'purple', bgLight: 'bg-purple-50', bgDark: 'dark:bg-purple-900/20' }
-          };
-
-          const config = icons[key];
-          const IconComponent = config.icon;
-          const isAboveTarget = stat.value >= stat.target;
-
-          return (
-            <div
-              key={key}
-              className={`${config.bgLight} ${config.bgDark} bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 cursor-pointer hover:transform hover:scale-105 shadow-sm`}
-              onClick={() => handleQuickAction(key.replace(/([A-Z])/g, '-$1').toLowerCase())}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 bg-${config.color}-100 dark:bg-${config.color}-900/30 rounded-lg`}>
-                  <IconComponent className={`w-8 h-8 text-${config.color}-600 dark:text-${config.color}-400`} />
-                </div>
-                <div className="flex items-center gap-1 text-xs">
-                  {stat.trend > 0 ? (
-                    <TrendingUp className="w-3 h-3 text-green-500" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-500" />
-                  )}
-                  <span className={stat.trend > 0 ? 'text-green-500' : 'text-red-500'}>
-                    {stat.trend > 0 ? '+' : ''}{stat.trend}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</div>
-                <div className={`text-sm font-medium text-${config.color}-700 dark:text-${config.color}-400 capitalize`}>
-                  {key.replace(/([A-Z])/g, ' $1').trim()}
-                </div>
-                
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                    <span>Target: {stat.target}</span>
-                    <span>{Math.round((stat.value / stat.target) * 100)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        isAboveTarget ? 'bg-green-500' : 'bg-yellow-500'
-                      }`}
-                      style={{ width: `${Math.min((stat.value / stat.target) * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Questionnaire Management Section */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Questionnaire Management
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Create, send, and review questionnaire responses
+      
+      <div className="p-6">
+        {pendingClaims.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className={`w-16 h-16 ${darkMode ? 'text-gray-600' : 'text-gray-300'} mx-auto mb-4`} />
+            <h3 className={`text-lg font-semibold ${darkMode ? 'text-gray-300' : 'text-gray-900'} mb-2`}>
+              No Pending Claims
+            </h3>
+            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              All claims are up to date! Great work.
             </p>
           </div>
-          <button 
-            onClick={() => navigate('/agent/questionnaires/create')}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Create Questionnaire
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Pending Responses */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <Clock className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-              </div>
-              <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">
-                AWAITING RESPONSE
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">12</div>
-            <div className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-2">
-              Pending Employee Responses
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Average response time: 2.5 days
-            </div>
-            <button className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg text-sm transition-colors">
-              Send Reminders
-            </button>
-          </div>
-
-          {/* Completed Responses */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-              </div>
-              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                READY FOR REVIEW
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">8</div>
-            <div className="text-sm text-green-600 dark:text-green-400 font-medium mb-2">
-              Completed Responses
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Awaiting your review
-            </div>
-            <button 
-              onClick={() => navigate('/agent/questionnaires/responses')}
-              className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg text-sm transition-colors"
-            >
-              Review Responses
-            </button>
-          </div>
-
-          {/* Active Templates */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <FileText className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-              </div>
-              <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
-                TEMPLATES
-              </span>
-            </div>
-            <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">5</div>
-            <div className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-2">
-              Active Templates
-            </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              Health, Vehicle, Life, Property
-            </div>
-            <button 
-              onClick={() => navigate('/agent/questionnaires/templates')}
-              className="w-full mt-4 bg-purple-500 hover:bg-purple-600 text-white py-2 rounded-lg text-sm transition-colors"
-            >
-              Manage Templates
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Questionnaire Workflow Process */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-          Questionnaire Workflow Process
-        </h2>
-        
-        <div className="flex items-center justify-between">
-          {/* Step 1 */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-3">
-              <Plus className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Create Questionnaire</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Build custom forms for specific claims</p>
-          </div>
-
-          <ArrowRight className="w-8 h-8 text-gray-400 mx-4" />
-
-          {/* Step 2 */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <div className="w-16 h-16 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center mb-3">
-              <Send className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Send to Employee</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Employee receives and fills questionnaire</p>
-          </div>
-
-          <ArrowRight className="w-8 h-8 text-gray-400 mx-4" />
-
-          {/* Step 3 */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-3">
-              <MessageSquare className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Review Responses</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Analyze answers and supporting documents</p>
-          </div>
-
-          <ArrowRight className="w-8 h-8 text-gray-400 mx-4" />
-
-          {/* Step 4 */}
-          <div className="flex flex-col items-center text-center flex-1">
-            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3">
-              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-            </div>
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Make Decision</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Approve or reject based on responses</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Questionnaire Activity */}
-      <div className="mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <Activity className="w-5 h-5" />
-                Recent Questionnaire Activity
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Latest questionnaire submissions and responses
-              </p>
-            </div>
-            <button 
-              onClick={() => navigate('/agent/questionnaires')}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
-            >
-              View All <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
+        ) : (
           <div className="space-y-4">
-            {dashboardData.questionnaireActivity.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+            {pendingClaims.map((claim, index) => (
+              <div
+                key={claim._id || index}
+                className={`flex items-center justify-between p-4 ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-50 hover:bg-gray-100'} rounded-xl transition-colors cursor-pointer`}
+                onClick={() => window.location.href = `/agent/claims-review?claim=${claim._id}`}
+              >
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    activity.status === 'completed' 
-                      ? 'bg-green-100 dark:bg-green-900/30' 
-                      : 'bg-orange-100 dark:bg-orange-900/30'
-                  }`}>
-                    {activity.status === 'completed' ? (
-                      <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                    )}
+                  <div className={`w-12 h-12 ${darkMode ? 'bg-blue-600' : 'bg-blue-100'} rounded-xl flex items-center justify-center`}>
+                    <FileText className={`w-6 h-6 ${darkMode ? 'text-white' : 'text-blue-600'}`} />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {activity.employee} • {activity.claimId}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {activity.questionnaire}
+                    <h4 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {claim.claimId || `Claim #${index + 1}`}
+                    </h4>
+                    <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {claim.employeeId?.firstName} {claim.employeeId?.lastName} • {claim.claimType}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    activity.status === 'completed'
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                      : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
-                  }`}>
-                    {activity.status === 'completed' ? 'Completed' : 'Pending'}
-                  </span>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {activity.submittedAt || activity.sentAt}
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(claim.claimStatus)}`}>
+                    {claim.claimStatus?.replace('_', ' ').toUpperCase() || 'PENDING'}
+                  </div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                    {formatCurrency(claim.claimAmount?.requested || 0)}
                   </p>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        )}
       </div>
+    </div>
+  );
 
-      {/* Enhanced Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Enhanced Recent Claims */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Recent Claims ({filteredClaims.length})
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Latest claims requiring your attention
-              </p>
+  // ==================== RENDER PERFORMANCE METRICS ====================
+  const renderPerformanceMetrics = () => (
+    <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm`}>
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+          Performance Metrics
+        </h3>
+        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
+          Your performance this month
+        </p>
+      </div>
+      
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Approval Rate
+              </span>
+              <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {performanceMetrics.approvalRate}%
+              </span>
             </div>
-            <button
-              onClick={() => handleQuickAction('view-all-claims')}
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm font-medium flex items-center gap-1"
-            >
-              View All <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2`}>
+              <div
+                className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${performanceMetrics.approvalRate}%` }}
+              ></div>
+            </div>
           </div>
 
-          {/* Enhanced Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search claims, employees, or departments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-white"
-                >
-                  ×
-                </button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                Avg Processing Time
+              </span>
+              <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                {performanceMetrics.avgProcessingTime} days
+              </span>
+            </div>
+            <div className={`w-full ${darkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2`}>
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${(7 - performanceMetrics.avgProcessingTime) * 14.28}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="text-center">
+            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {performanceMetrics.claimsProcessedThisMonth}
+            </p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Claims Processed
+            </p>
+          </div>
+          <div className="text-center">
+            <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              {performanceMetrics.customerSatisfactionScore}%
+            </p>
+            <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Satisfaction Score
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ==================== RENDER QUICK ACTIONS ====================
+  const renderQuickActions = () => {
+    const actions = [
+      {
+        title: 'Review Claims',
+        description: 'Process pending insurance claims',
+        icon: FileText,
+        color: 'blue',
+        count: pendingClaims.length,
+        href: '/agent/claims-review'
+      },
+      {
+        title: 'Manage Policies',
+        description: 'View and update policy information',
+        icon: Shield,
+        color: 'green',
+        count: dashboardStats.agentPolicies?.data?.length || 0,
+        href: '/agent/policies'
+      },
+      {
+        title: 'Generate Reports',
+        description: 'Create performance and activity reports',
+        icon: BarChart3,
+        color: 'purple',
+        href: '/agent/reports'
+      },
+      {
+        title: 'Customer Support',
+        description: 'Handle customer inquiries and support',
+        icon: MessageSquare,
+        color: 'orange',
+        href: '/agent/support'
+      }
+    ];
+
+    return (
+      <div className={`${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm`}>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+            Quick Actions
+          </h3>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {actions.map((action, index) => (
+              <button
+                key={index}
+                onClick={() => window.location.href = action.href}
+                className={`flex items-center gap-4 p-4 ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-white' : 'bg-gray-50 hover:bg-gray-100 text-gray-900'} rounded-xl transition-all duration-200 text-left group hover:scale-105`}
+              >
+                <div className={`w-12 h-12 bg-${action.color}-100 rounded-xl flex items-center justify-center group-hover:bg-${action.color}-200 transition-colors`}>
+                  <action.icon className={`w-6 h-6 text-${action.color}-600`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-semibold">{action.title}</h4>
+                    {action.count !== undefined && (
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-${action.color}-100 text-${action.color}-600`}>
+                        {action.count}
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {action.description}
+                  </p>
+                </div>
+                <ChevronRight className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-400'} group-hover:translate-x-1 transition-transform`} />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== MAIN RENDER ====================
+  if (loading) {
+    return (
+      <div className={`min-h-screen p-6 transition-all duration-300 ${
+        darkMode 
+          ? 'bg-gray-900 text-white' 
+          : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-900'
+      }`}>
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse space-y-8">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded-2xl"></div>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="h-96 bg-gray-200 rounded-2xl"></div>
+              <div className="h-96 bg-gray-200 rounded-2xl"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen transition-all duration-300 ${
+      darkMode 
+        ? 'bg-gray-900 text-white' 
+        : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-gray-900'
+    }`}>
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+          <div>
+            <h1 className={`text-3xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+              Agent Overview
+            </h1>
+            <p className={`text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'} mt-1`}>
+              Welcome back! Here's what's happening with your claims and policies.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4 mt-4 sm:mt-0">
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`p-3 ${darkMode ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} rounded-xl border transition-colors relative`}
+              >
+                <Bell className="w-5 h-5" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+              
+              {/* Notifications Dropdown */}
+              {showNotifications && (
+                <div className={`absolute right-0 mt-2 w-80 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-xl shadow-lg z-50`}>
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Notifications
+                    </h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.map((notification) => (
+                      <div key={notification.id} className={`p-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:${darkMode ? 'bg-gray-700' : 'bg-gray-50'} cursor-pointer`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2 h-2 rounded-full mt-2 ${
+                            notification.type === 'urgent' ? 'bg-red-500' : 
+                            notification.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+                          }`}></div>
+                          <div className="flex-1">
+                            <p className={`text-sm ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                              {notification.message}
+                            </p>
+                            <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'} mt-1`}>
+                              {notification.time}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
             
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={toggleDarkMode}
+              className={`p-3 ${darkMode ? 'bg-gray-800 hover:bg-gray-700 text-white' : 'bg-white hover:bg-gray-50 text-gray-900'} rounded-xl border transition-colors`}
             >
-              <option value="All">All Priorities</option>
-              <option value="High">High Priority</option>
-              <option value="Medium">Medium Priority</option>
-              <option value="Low">Low Priority</option>
-            </select>
-          </div>
-
-          {/* Enhanced Claims List */}
-          <div className="space-y-4">
-            {filteredClaims.length > 0 ? (
-              filteredClaims.map((claim) => (
-                <div
-                  key={claim.id}
-                  onClick={() => handleClaimClick(claim.id)}
-                  className="group bg-white dark:bg-gray-800 rounded-lg p-4 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 dark:hover:from-gray-700 dark:hover:to-blue-900/30 transition-all duration-300 cursor-pointer border border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl transform hover:scale-[1.01]"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-bold text-gray-900 dark:text-white text-lg group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
-                          {claim.id}
-                        </h3>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(claim.status)} shadow-sm`}>
-                          {claim.status}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(claim.priority)} shadow-sm`}>
-                          {claim.priority} Priority
-                        </span>
-                        {claim.daysWaiting > 2 && (
-                          <span className="px-2 py-1 bg-red-600 text-white rounded-full text-xs flex items-center gap-1 shadow-sm animate-pulse">
-                            <AlertCircle className="w-3 h-3" />
-                            {claim.daysWaiting}d overdue
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div className="space-y-1">
-                          <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Employee</span>
-                          <p className="text-gray-900 dark:text-white font-bold text-base group-hover:text-gray-900 dark:group-hover:text-white">
-                            {claim.employee}
-                          </p>
-                          <p className="text-gray-600 dark:text-gray-300 font-medium group-hover:text-gray-700 dark:group-hover:text-gray-200">
-                            {claim.department}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Insurance</span>
-                          <p className="text-gray-900 dark:text-white font-bold text-base group-hover:text-gray-900 dark:group-hover:text-white">
-                            {claim.insuranceType}
-                          </p>
-                          <p className="text-gray-600 dark:text-gray-300 font-medium group-hover:text-gray-700 dark:group-hover:text-gray-200">
-                            Amount: <span className="font-bold text-green-600 dark:text-green-400">{claim.amount}</span>
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wide">Next Action</span>
-                          <p className="text-gray-900 dark:text-white font-bold text-base group-hover:text-gray-900 dark:group-hover:text-white">
-                            {claim.nextAction}
-                          </p>
-                          <p className="text-gray-600 dark:text-gray-300 font-medium group-hover:text-gray-700 dark:group-hover:text-gray-200">
-                            Submitted: {claim.submitted}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Enhanced Progress Bar */}
-                      <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-750 rounded-lg group-hover:bg-white dark:group-hover:bg-gray-700 transition-colors">
-                        <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300 mb-2 font-bold">
-                          <span>Processing Progress</span>
-                          <span className="text-lg font-bold">{claim.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-3 shadow-inner">
-                          <div
-                            className={`h-3 rounded-full transition-all duration-500 shadow-sm ${
-                              claim.progress === 100 ? 'bg-gradient-to-r from-green-400 to-green-600' :
-                              claim.progress >= 50 ? 'bg-gradient-to-r from-blue-400 to-blue-600' : 
-                              'bg-gradient-to-r from-yellow-400 to-orange-500'
-                            }`}
-                            style={{ width: `${claim.progress}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="ml-6 text-right flex flex-col items-end">
-                      <p className="text-3xl font-black text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-3">
-                        {claim.amount}
-                      </p>
-                      <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 group-hover:bg-blue-700 group-hover:scale-110 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-lg hover:shadow-xl">
-                        <Eye className="w-4 h-4" />
-                        Review
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-16 text-gray-500 dark:text-gray-400">
-                <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                  <FileText className="w-12 h-12 opacity-50" />
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-700 dark:text-gray-300">No claims found</h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                  Try adjusting your search criteria or filter options to find the claims you're looking for.
-                </p>
-              </div>
-            )}
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            
+            {/* Refresh Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`flex items-center gap-2 px-4 py-3 ${darkMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-xl transition-all transform hover:scale-105 shadow-lg disabled:opacity-50`}
+            >
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
           </div>
         </div>
 
-        {/* Enhanced Performance Overview & Quick Actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <Target className="w-5 h-5" />
-              Performance Overview
-            </h2>
-          </div>
-
-          <div className="space-y-6">
-            {/* Processing Efficiency */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Claims Processed</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-blue-800 dark:text-blue-400">87/100</span>
-                  <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" title="Target: 100 claims per month" />
-                </div>
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 rounded-xl p-6 mb-8 shadow-lg">
+            <div className="flex items-center">
+              <AlertCircle className="w-8 h-8 text-red-400 mr-4 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-red-800 mb-2">Error Loading Dashboard</h3>
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                  onClick={() => loadDashboardData()}
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl transition-all transform hover:scale-105 shadow-lg font-medium"
+                >
+                  Try Again
+                </button>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
-                <div className="bg-blue-500 h-3 rounded-full" style={{ width: '87%' }}></div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
-                <span>Target: 90</span>
-                <span className="text-green-600 dark:text-green-400">Above Target</span>
-              </div>
-            </div>
-
-            {/* Response Time */}
-            <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/30 dark:to-green-800/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">Avg Response Time</span>
-                <span className="text-lg font-bold text-green-800 dark:text-green-400">2.3 days</span>
-              </div>
-              <p className="text-xs text-green-600 dark:text-green-500">12% faster than last month</p>
-            </div>
-
-            {/* Enhanced Quick Actions */}
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Quick Actions</h3>
-              
-              <button
-                onClick={() => handleQuickAction('review-claims')}
-                className="w-full bg-yellow-500 hover:bg-yellow-600 text-white p-3 rounded-lg flex items-center justify-between transition-colors shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5" />
-                  <span>Review Pending Claims</span>
-                </div>
-                <span className="bg-white/20 px-2 py-1 rounded text-sm">
-                  {dashboardData.statistics.pendingClaims.value}
-                </span>
-              </button>
-
-              <button
-                onClick={() => navigate('/agent/questionnaires/create')}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg flex items-center justify-between transition-colors shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <Plus className="w-5 h-5" />
-                  <span>Create Questionnaire</span>
-                </div>
-                <span className="bg-white/20 px-2 py-1 rounded text-sm">
-                  New
-                </span>
-              </button>
-
-              <button
-                onClick={() => navigate('/agent/questionnaires/responses')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg flex items-center justify-between transition-colors shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5" />
-                  <span>Review Responses</span>
-                </div>
-                <span className="bg-white/20 px-2 py-1 rounded text-sm">
-                  8
-                </span>
-              </button>
-
-              <button
-                onClick={() => handleQuickAction('questionnaires')}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-lg flex items-center justify-between transition-colors shadow-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <ClipboardCheck className="w-5 h-5" />
-                  <span>Manage Templates</span>
-                </div>
-                <span className="bg-white/20 px-2 py-1 rounded text-sm">
-                  {dashboardData.statistics.questionnaires.value}
-                </span>
-              </button>
             </div>
           </div>
+        )}
+
+        {/* Quick Stats */}
+        {renderQuickStats()}
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Recent Claims */}
+          {renderRecentClaims()}
+          
+          {/* Performance Metrics */}
+          {renderPerformanceMetrics()}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8">
+          {renderQuickActions()}
         </div>
       </div>
     </div>
