@@ -83,7 +83,38 @@ const streamMessage = asyncWrapper(async (req, res) => {
     }
 });
 
+// Formalize a message to make it professional
+const formalizeMessage = asyncWrapper(async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    try {
+        // Generate formalized version
+        const formalizedMessage = await geminiService.formalizeMessage(message);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                originalMessage: message,
+                formalizedMessage: formalizedMessage.trim(),
+                timestamp: new Date()
+            }
+        });
+
+    } catch (error) {
+        console.error('Formalize error:', error);
+        res.status(500).json({ 
+            error: 'Failed to formalize message',
+            details: error.message 
+        });
+    }
+});
+
 export {
     sendMessage,
-    streamMessage
+    streamMessage,
+    formalizeMessage
 };
