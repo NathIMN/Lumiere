@@ -18,6 +18,7 @@ import messages from "./routes/messages.js";
 import notifications from "./routes/notifications.js";
 import reports from "./routes/reports.js";
 import vapi from "./routes/vapi.js"
+import chatbot from "./routes/chatbot.js";
 
 dotenv.config();
 
@@ -50,7 +51,8 @@ app.use("/api/v1/claims", claims);
 app.use("/api/v1/messages", messages);
 app.use("/api/v1/notifications", notifications);
 app.use("/api/v1/reports", reports);
-app.use("/api/v1/vapi", vapi)
+app.use("/api/v1/vapi", vapi);
+app.use("/api/v1/chatbot", chatbot);
 
 app.use(notFound);
 app.use(errorHandlerMiddleware);
