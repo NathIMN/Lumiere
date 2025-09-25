@@ -6,28 +6,56 @@ export const DrawCircleText = () => {
     <div className="grid place-content-center bg-emerald-950 px-4 py-24 text-yellow-50">
       <h1 className="max-w-3xl text-center text-5xl leading-snug">
         Level up your{" "}
-        <span className="relative inline-block px-3">
+        <span className="relative inline-block px-2">
           claim management
           <svg
-            viewBox="0 0 360 100"
+            viewBox="0 0 420 80"
             fill="none"
-            className="absolute inset-0 -left-4 -right-4 -top-4 -bottom-0"
+            className="absolute inset-0 -top-2 -bottom-12 -left-8 -right-8"
           >
+            {/* Main stroke */}
             <motion.path
               initial={{ pathLength: 0 }}
               whileInView={{ pathLength: 1 }}
               transition={{
-                duration: 1.6,
+                duration: 1.8,
                 ease: "easeInOut",
               }}
-              d="M30 50
-                 C70 15, 290 15, 330 50
-                 C335 75, 270 85, 180 80
-                 C90 78, 50 70, 30 50 Z"
+              d="M15 40 
+                 Q50 8, 120 10
+                 Q200 12, 280 10
+                 Q350 8, 405 40
+                 Q410 50, 390 58
+                 Q330 70, 260 68
+                 Q160 70, 90 68
+                 Q10 58, 15 40 Z"
               stroke="#FACC15"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
+            />
+            {/* Second wobbly stroke */}
+            <motion.path
+              initial={{ pathLength: 0 }}
+              whileInView={{ pathLength: 1 }}
+              transition={{
+                duration: 2,
+                ease: "easeInOut",
+                delay: 0.2,
+              }}
+              d="M20 42
+                 Q55 5, 125 7
+                 Q205 9, 285 7
+                 Q365 5, 400 42
+                 Q405 52, 385 60
+                 Q325 72, 255 70
+                 Q155 72, 85 70
+                 Q15 60, 20 42 Z"
+              stroke="#FACC15"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.8"
             />
           </svg>
         </span>{" "}
