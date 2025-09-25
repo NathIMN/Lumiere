@@ -61,7 +61,7 @@ const ClaimsReview = () => {
     processingTime: 0, completionRate: 0
   });
 
-  // ==================== WORKFLOW STATUS CONSTANTS (NOT HARDCODED) ====================
+  // ==================== WORKFLOW STATUS CONSTANTS ====================
   const WORKFLOW_STATUSES = {
     EMPLOYEE_SUBMITTED: 'employee_submitted',
     HR_REVIEW: 'hr_review', 
@@ -80,7 +80,7 @@ const ClaimsReview = () => {
     RETURNED: 'returned'
   };
 
-  // ==================== SOFT COLOR CONFIGURATION ====================
+  // ==================== COLOR CONFIGURATION ====================
   const PRIORITY_CONFIG = {
     critical: {
       label: 'Critical',
@@ -140,9 +140,28 @@ const ClaimsReview = () => {
     }
   };
 
-  // ==================== HELPER FUNCTIONS ====================
+  // ==================== **FIXED** HELPER FUNCTIONS ====================
   const getNestedValue = (obj, path) => {
     return path.split('.').reduce((current, key) => current?.[key], obj) || '';
+  };
+
+  // **FIX: Unique ID Generator**
+  const getUniqueClaimId = (claim) => {
+    return claim._id || claim.id || claim.claimId || `claim-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // **FIX: Remove Duplicates Function**
+  const removeDuplicateClaims = (claims) => {
+    const seen = new Set();
+    return claims.filter(claim => {
+      const uniqueId = getUniqueClaimId(claim);
+      if (seen.has(uniqueId)) {
+        console.log(`Removing duplicate claim: ${claim.claimId} (${uniqueId})`);
+        return false;
+      }
+      seen.add(uniqueId);
+      return true;
+    });
   };
 
   const calculatePriority = (claim) => {
@@ -207,181 +226,168 @@ const ClaimsReview = () => {
     }, 4000);
   };
 
-  // ==================== DYNAMIC ACTION HANDLERS (NO HARDCODING) ====================
-// ==================== CORRECTED ACTION HANDLERS ====================
-const handleApprove = async () => {
-  if (!selectedClaim || !approveForm.approvedAmount) {
-    showToast('Please enter approved amount', 'error');
-    return;
-  }
-
-  const approvedAmount = parseFloat(approveForm.approvedAmount);
-  if (isNaN(approvedAmount) || approvedAmount <= 0) {
-    showToast('Please enter a valid approved amount', 'error');
-    return;
-  }
-
-  setActionLoading(true);
-  try {
-    // CORRECTED: Use the correct API method from your service
-    const decisionData = {
-      status: CLAIM_DECISIONS.APPROVED, // Use 'status' instead of 'decision'
-      approvedAmount: approvedAmount
-    };
-
-    if (approveForm.insurerNotes && approveForm.insurerNotes.trim()) {
-      decisionData.insurerNotes = approveForm.insurerNotes.trim();
+  // ==================== ACTION HANDLERS ====================
+  const handleApprove = async () => {
+    if (!selectedClaim || !approveForm.approvedAmount) {
+      showToast('Please enter approved amount', 'error');
+      return;
     }
 
-    const claimId = selectedClaim._id || selectedClaim.id;
-    
-    console.log('Approving claim with data:', { claimId, decisionData });
-    
-    // This uses your existing makeClaimDecision API method
-    await insuranceApiService.makeClaimDecision(claimId, decisionData);
-    
-    // Update local state
-    setPendingClaims(prev => prev.filter(claim => 
-      (claim._id || claim.id) !== claimId
-    ));
-    
-    const updatedClaim = {
-      ...selectedClaim,
-      claimStatus: CLAIM_DECISIONS.APPROVED,
-      approvedAmount: approvedAmount,
-      insurerNotes: decisionData.insurerNotes,
-      updatedAt: new Date().toISOString()
-    };
-    setProcessedClaims(prev => [updatedClaim, ...prev]);
-    
-    showToast('Claim approved successfully! 🎉', 'success');
-    resetForms();
-    setShowModal(false);
-
-  } catch (error) {
-    console.error('Error approving claim:', error);
-    
-    let errorMessage = 'Failed to approve claim';
-    if (error.response?.status === 400 && error.response.data) {
-      errorMessage = error.response.data.message || error.response.data.error || 'Invalid request data';
-    } else if (error.response?.status === 401) {
-      errorMessage = 'Authentication failed. Please login again.';
-    } else if (error.response?.status === 403) {
-      errorMessage = 'Permission denied. You must be an insurance agent to approve claims.';
-    } else if (error.message) {
-      errorMessage = error.message;
+    const approvedAmount = parseFloat(approveForm.approvedAmount);
+    if (isNaN(approvedAmount) || approvedAmount <= 0) {
+      showToast('Please enter a valid approved amount', 'error');
+      return;
     }
 
-    showToast(errorMessage, 'error');
-  } finally {
-    setActionLoading(false);
-  }
-};
+    setActionLoading(true);
+    try {
+      const decisionData = {
+        status: CLAIM_DECISIONS.APPROVED,
+        approvedAmount: approvedAmount
+      };
 
-const handleReject = async () => {
-  if (!selectedClaim || !rejectForm.rejectionReason.trim()) {
-    showToast('Please enter rejection reason', 'error');
-    return;
-  }
+      if (approveForm.insurerNotes && approveForm.insurerNotes.trim()) {
+        decisionData.insurerNotes = approveForm.insurerNotes.trim();
+      }
 
-  setActionLoading(true);
-  try {
-    // CORRECTED: Use the correct API method
-    const decisionData = {
-      status: CLAIM_DECISIONS.REJECTED, // Use 'status' instead of 'decision'
-      rejectionReason: rejectForm.rejectionReason.trim()
-    };
+      const claimId = selectedClaim._id || selectedClaim.id;
+      
+      await insuranceApiService.makeClaimDecision(claimId, decisionData);
+      
+      setPendingClaims(prev => prev.filter(claim => 
+        (claim._id || claim.id) !== claimId
+      ));
+      
+      const updatedClaim = {
+        ...selectedClaim,
+        claimStatus: CLAIM_DECISIONS.APPROVED,
+        approvedAmount: approvedAmount,
+        insurerNotes: decisionData.insurerNotes,
+        updatedAt: new Date().toISOString()
+      };
+      setProcessedClaims(prev => [updatedClaim, ...prev]);
+      
+      showToast('Claim approved successfully! 🎉', 'success');
+      resetForms();
+      setShowModal(false);
 
-    if (rejectForm.insurerNotes && rejectForm.insurerNotes.trim()) {
-      decisionData.insurerNotes = rejectForm.insurerNotes.trim();
+    } catch (error) {
+      console.error('Error approving claim:', error);
+      
+      let errorMessage = 'Failed to approve claim';
+      if (error.response?.status === 400 && error.response.data) {
+        errorMessage = error.response.data.message || error.response.data.error || 'Invalid request data';
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please login again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Permission denied. You must be an insurance agent to approve claims.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showToast(errorMessage, 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!selectedClaim || !rejectForm.rejectionReason.trim()) {
+      showToast('Please enter rejection reason', 'error');
+      return;
     }
 
-    const claimId = selectedClaim._id || selectedClaim.id;
-    
-    console.log('Rejecting claim with data:', { claimId, decisionData });
-    
-    await insuranceApiService.makeClaimDecision(claimId, decisionData);
+    setActionLoading(true);
+    try {
+      const decisionData = {
+        status: CLAIM_DECISIONS.REJECTED,
+        rejectionReason: rejectForm.rejectionReason.trim()
+      };
 
-    setPendingClaims(prev => prev.filter(claim => 
-      (claim._id || claim.id) !== claimId
-    ));
-    
-    const updatedClaim = {
-      ...selectedClaim,
-      claimStatus: CLAIM_DECISIONS.REJECTED,
-      rejectionReason: decisionData.rejectionReason,
-      insurerNotes: decisionData.insurerNotes,
-      updatedAt: new Date().toISOString()
-    };
-    setProcessedClaims(prev => [updatedClaim, ...prev]);
+      if (rejectForm.insurerNotes && rejectForm.insurerNotes.trim()) {
+        decisionData.insurerNotes = rejectForm.insurerNotes.trim();
+      }
 
-    showToast('Claim rejected successfully', 'success');
-    resetForms();
-    setShowModal(false);
+      const claimId = selectedClaim._id || selectedClaim.id;
+      
+      await insuranceApiService.makeClaimDecision(claimId, decisionData);
 
-  } catch (error) {
-    console.error('Error rejecting claim:', error);
-    let errorMessage = 'Failed to reject claim';
+      setPendingClaims(prev => prev.filter(claim => 
+        (claim._id || claim.id) !== claimId
+      ));
+      
+      const updatedClaim = {
+        ...selectedClaim,
+        claimStatus: CLAIM_DECISIONS.REJECTED,
+        rejectionReason: decisionData.rejectionReason,
+        insurerNotes: decisionData.insurerNotes,
+        updatedAt: new Date().toISOString()
+      };
+      setProcessedClaims(prev => [updatedClaim, ...prev]);
 
-    if (error.response?.status === 400 && error.response.data) {
-      errorMessage = error.response.data.message || error.response.data.error || 'Invalid rejection data';
-    } else if (error.message) {
-      errorMessage = error.message;
+      showToast('Claim rejected successfully', 'success');
+      resetForms();
+      setShowModal(false);
+
+    } catch (error) {
+      console.error('Error rejecting claim:', error);
+      let errorMessage = 'Failed to reject claim';
+
+      if (error.response?.status === 400 && error.response.data) {
+        errorMessage = error.response.data.message || error.response.data.error || 'Invalid rejection data';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      showToast(errorMessage, 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReturn = async () => {
+    if (!selectedClaim || !returnForm.returnReason.trim()) {
+      showToast('Please enter return reason', 'error');
+      return;
     }
 
-    showToast(errorMessage, 'error');
-  } finally {
-    setActionLoading(false);
-  }
-};
+    setActionLoading(true);
+    try {
+      const claimId = selectedClaim._id || selectedClaim.id;
+      
+      await insuranceApiService.returnClaim(claimId, returnForm.returnReason.trim());
 
-const handleReturn = async () => {
-  if (!selectedClaim || !returnForm.returnReason.trim()) {
-    showToast('Please enter return reason', 'error');
-    return;
-  }
+      setPendingClaims(prev => prev.filter(claim => 
+        (claim._id || claim.id) !== claimId
+      ));
+      
+      const updatedClaim = {
+        ...selectedClaim,
+        claimStatus: CLAIM_DECISIONS.RETURNED,
+        returnReason: returnForm.returnReason.trim(),
+        updatedAt: new Date().toISOString()
+      };
+      setProcessedClaims(prev => [updatedClaim, ...prev]);
 
-  setActionLoading(true);
-  try {
-    const claimId = selectedClaim._id || selectedClaim.id;
-    
-    console.log('Returning claim with reason:', returnForm.returnReason.trim());
-    
-    // CORRECTED: Use your existing returnClaim API method
-    await insuranceApiService.returnClaim(claimId, returnForm.returnReason.trim());
+      showToast('Claim returned successfully', 'success');
+      resetForms();
+      setShowModal(false);
 
-    setPendingClaims(prev => prev.filter(claim => 
-      (claim._id || claim.id) !== claimId
-    ));
-    
-    const updatedClaim = {
-      ...selectedClaim,
-      claimStatus: CLAIM_DECISIONS.RETURNED,
-      returnReason: returnForm.returnReason.trim(),
-      updatedAt: new Date().toISOString()
-    };
-    setProcessedClaims(prev => [updatedClaim, ...prev]);
+    } catch (error) {
+      console.error('Error returning claim:', error);
+      let errorMessage = 'Failed to return claim';
 
-    showToast('Claim returned successfully', 'success');
-    resetForms();
-    setShowModal(false);
+      if (error.response?.status === 400 && error.response.data) {
+        errorMessage = error.response.data.message || error.response.data.error || 'Invalid return data';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
 
-  } catch (error) {
-    console.error('Error returning claim:', error);
-    let errorMessage = 'Failed to return claim';
-
-    if (error.response?.status === 400 && error.response.data) {
-      errorMessage = error.response.data.message || error.response.data.error || 'Invalid return data';
-    } else if (error.message) {
-      errorMessage = error.message;
+      showToast(errorMessage, 'error');
+    } finally {
+      setActionLoading(false);
     }
-
-    showToast(errorMessage, 'error');
-  } finally {
-    setActionLoading(false);
-  }
-};
-
+  };
 
   // ==================== MODAL HANDLER ====================
   const openModal = (type, claim = null) => {
@@ -446,166 +452,167 @@ const handleReturn = async () => {
     }
   };
 
-  // ==================== DYNAMIC LOAD FUNCTIONS (NO HARDCODING) ====================
-  // ==================== CORRECTED LOAD FUNCTIONS ====================
-const loadPendingClaims = useCallback(async (showLoading = true) => {
-  if (showLoading) setLoading(true);
-  setError(null);
+  // ==================== **FIXED** LOAD FUNCTIONS ====================
+  
+  const loadPendingClaims = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    setError(null);
 
-  try {
-    // CORRECTED: Use existing getClaims method with proper parameters
-    let response;
-    
     try {
-      // Primary approach: Try to get claims sent to agent (if endpoint exists)
-      response = await insuranceApiService.getClaims({
-        workflowStatus: WORKFLOW_STATUSES.AGENT_REVIEW,
-        sentToAgent: true,
-        hrApproved: true,
-        limit: 100
-      });
-    } catch (primaryError) {
-      console.log('Agent-specific endpoint not available, using general approach...');
+      let response;
       
-      // Fallback approach: Get claims using forwardClaimToInsurer workflow
-      response = await insuranceApiService.getClaims({
-        claimStatus: 'insurer', // Claims forwarded to insurer (agent)
-        limit: 100
-      });
-    }
-
-    let claimsData = [];
-    if (response.success && response.data) {
-      claimsData = response.data;
-    } else if (response.claims) {
-      claimsData = response.claims;
-    } else if (Array.isArray(response)) {
-      claimsData = response;
-    }
-
-    console.log('Raw claims data:', claimsData);
-
-    // CRITICAL: Filter to only show claims that HR has forwarded to agent
-    const validPendingClaims = claimsData.filter(claim => {
-      console.log('Checking claim:', claim.claimId, {
-        claimStatus: claim.claimStatus,
-        workflowStatus: claim.workflowStatus,
-        hrStatus: claim.hrStatus,
-        sentToAgent: claim.sentToAgent
-      });
-
-      // Check if claim was properly forwarded by HR using forwardClaimToInsurer
-      return (
-        claim.claimStatus === 'insurer' || // Claims forwarded to insurer/agent
-        claim.workflowStatus === WORKFLOW_STATUSES.AGENT_REVIEW ||
-        claim.workflowStatus === WORKFLOW_STATUSES.SENT_TO_AGENT ||
-        isClaimSentByHR(claim)
-      );
-    });
-
-    console.log('Valid pending claims after filtering:', validPendingClaims);
-
-    const enhancedClaims = validPendingClaims.map(claim => ({
-      ...claim,
-      priority: calculatePriority(claim),
-      isOverdue: isClaimOverdue(claim),
-      daysOverdue: calculateDaysOverdue(claim),
-      completionScore: calculateCompletionScore(claim)
-    }));
-
-    setPendingClaims(enhancedClaims);
-    setLastUpdated(new Date());
-
-  } catch (error) {
-    console.error('Error loading pending claims:', error);
-    setError(`Failed to load pending claims: ${error.message}`);
-  } finally {
-    if (showLoading) setLoading(false);
-  }
-}, []);
-
-const loadProcessedClaims = useCallback(async () => {
-  try {
-    // CORRECTED: Get processed claims using existing API methods
-    const [approvedResponse, rejectedResponse] = await Promise.all([
-      insuranceApiService.getClaims({ 
-        claimStatus: 'approved',
-        processedByAgent: true, // If your backend supports this field
-        limit: 50 
-      }).catch(() => insuranceApiService.getClaims({ claimStatus: 'approved', limit: 50 })),
-      
-      insuranceApiService.getClaims({ 
-        claimStatus: 'rejected',
-        processedByAgent: true, // If your backend supports this field
-        limit: 50 
-      }).catch(() => insuranceApiService.getClaims({ claimStatus: 'rejected', limit: 50 }))
-    ]);
-
-    let allProcessedClaims = [];
-
-    // Process approved claims
-    if (approvedResponse.success && approvedResponse.data) {
-      allProcessedClaims.push(...approvedResponse.data);
-    } else if (approvedResponse.claims) {
-      allProcessedClaims.push(...approvedResponse.claims);
-    } else if (Array.isArray(approvedResponse)) {
-      allProcessedClaims.push(...approvedResponse);
-    }
-
-    // Process rejected claims
-    if (rejectedResponse.success && rejectedResponse.data) {
-      allProcessedClaims.push(...rejectedResponse.data);
-    } else if (rejectedResponse.claims) {
-      allProcessedClaims.push(...rejectedResponse.claims);
-    } else if (Array.isArray(rejectedResponse)) {
-      allProcessedClaims.push(...rejectedResponse);
-    }
-
-    // Try to load returned claims (if supported)
-    try {
-      const returnedResponse = await insuranceApiService.getClaims({ 
-        claimStatus: 'returned', 
-        limit: 50 
-      });
-      
-      if (returnedResponse.success && returnedResponse.data) {
-        allProcessedClaims.push(...returnedResponse.data);
-      } else if (returnedResponse.claims) {
-        allProcessedClaims.push(...returnedResponse.claims);
-      } else if (Array.isArray(returnedResponse)) {
-        allProcessedClaims.push(...returnedResponse);
+      try {
+        response = await insuranceApiService.getClaims({
+          workflowStatus: WORKFLOW_STATUSES.AGENT_REVIEW,
+          sentToAgent: true,
+          hrApproved: true,
+          limit: 100
+        });
+      } catch (primaryError) {
+        console.log('Primary endpoint failed, using fallback...');
+        response = await insuranceApiService.getClaims({
+          claimStatus: 'insurer',
+          limit: 100
+        });
       }
-    } catch (error) {
-      console.log('Returned claims not supported or no returned claims found');
-    }
 
-    console.log('All processed claims before filtering:', allProcessedClaims);
+      let claimsData = [];
+      if (response.success && response.data) {
+        claimsData = response.data;
+      } else if (response.claims) {
+        claimsData = response.claims;
+      } else if (Array.isArray(response)) {
+        claimsData = response;
+      }
 
-    // Filter to only show claims that were processed by agent AND originally sent by HR
-    const validProcessedClaims = allProcessedClaims.filter(claim => {
-      const wasProcessedByAgent = isClaimProcessedByAgent(claim);
-      const wasSentByHR = isClaimSentByHR(claim) || claim.claimStatus !== 'draft';
-      
-      console.log('Checking processed claim:', claim.claimId, {
-        wasProcessedByAgent,
-        wasSentByHR,
-        claimStatus: claim.claimStatus,
-        agentDecision: claim.agentDecision
+      console.log('Raw pending claims data:', claimsData.length);
+
+      // **FIX 1: Remove duplicates first**
+      const uniqueClaimsData = removeDuplicateClaims(claimsData);
+      console.log('Unique pending claims after dedup:', uniqueClaimsData.length);
+
+      const validPendingClaims = uniqueClaimsData.filter(claim => {
+        console.log(`Checking pending claim: ${claim.claimId}`, {
+          claimStatus: claim.claimStatus,
+          workflowStatus: claim.workflowStatus,
+          sentToAgent: claim.sentToAgent
+        });
+
+        return (
+          claim.claimStatus === 'insurer' ||
+          claim.workflowStatus === WORKFLOW_STATUSES.AGENT_REVIEW ||
+          claim.workflowStatus === WORKFLOW_STATUSES.SENT_TO_AGENT ||
+          isClaimSentByHR(claim)
+        );
       });
 
-      return wasProcessedByAgent && wasSentByHR;
-    });
+      console.log('Valid pending claims after filtering:', validPendingClaims.length);
 
-    console.log('Valid processed claims after filtering:', validProcessedClaims);
+      const enhancedClaims = validPendingClaims.map(claim => ({
+        ...claim,
+        priority: calculatePriority(claim),
+        isOverdue: isClaimOverdue(claim),
+        daysOverdue: calculateDaysOverdue(claim),
+        completionScore: calculateCompletionScore(claim)
+      }));
 
-    validProcessedClaims.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    setProcessedClaims(validProcessedClaims);
+      setPendingClaims(enhancedClaims);
+      setLastUpdated(new Date());
 
-  } catch (error) {
-    console.error('Error loading processed claims:', error);
-  }
-}, []);
+    } catch (error) {
+      console.error('Error loading pending claims:', error);
+      setError(`Failed to load pending claims: ${error.message}`);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, []);
 
+  const loadProcessedClaims = useCallback(async () => {
+    try {
+      console.log('Loading processed claims...');
+
+      const [approvedResponse, rejectedResponse] = await Promise.all([
+        insuranceApiService.getClaims({ 
+          claimStatus: 'approved',
+          processedByAgent: true,
+          limit: 50 
+        }).catch(() => insuranceApiService.getClaims({ claimStatus: 'approved', limit: 50 })),
+        
+        insuranceApiService.getClaims({ 
+          claimStatus: 'rejected',
+          processedByAgent: true,
+          limit: 50 
+        }).catch(() => insuranceApiService.getClaims({ claimStatus: 'rejected', limit: 50 }))
+      ]);
+
+      let allProcessedClaims = [];
+
+      // Process approved claims
+      if (approvedResponse.success && approvedResponse.data) {
+        allProcessedClaims.push(...approvedResponse.data);
+      } else if (approvedResponse.claims) {
+        allProcessedClaims.push(...approvedResponse.claims);
+      } else if (Array.isArray(approvedResponse)) {
+        allProcessedClaims.push(...approvedResponse);
+      }
+
+      // Process rejected claims
+      if (rejectedResponse.success && rejectedResponse.data) {
+        allProcessedClaims.push(...rejectedResponse.data);
+      } else if (rejectedResponse.claims) {
+        allProcessedClaims.push(...rejectedResponse.claims);
+      } else if (Array.isArray(rejectedResponse)) {
+        allProcessedClaims.push(...rejectedResponse);
+      }
+
+      // Try to load returned claims (if supported)
+      try {
+        const returnedResponse = await insuranceApiService.getClaims({ 
+          claimStatus: 'returned', 
+          limit: 50 
+        });
+        
+        if (returnedResponse.success && returnedResponse.data) {
+          allProcessedClaims.push(...returnedResponse.data);
+        } else if (returnedResponse.claims) {
+          allProcessedClaims.push(...returnedResponse.claims);
+        } else if (Array.isArray(returnedResponse)) {
+          allProcessedClaims.push(...returnedResponse);
+        }
+      } catch (error) {
+        console.log('Returned claims not supported or no returned claims found');
+      }
+
+      console.log('All processed claims before deduplication:', allProcessedClaims.length);
+
+      // **FIX 2: Remove duplicates FIRST before filtering**
+      const uniqueProcessedClaims = removeDuplicateClaims(allProcessedClaims);
+      console.log('Unique processed claims after dedup:', uniqueProcessedClaims.length);
+
+      const validProcessedClaims = uniqueProcessedClaims.filter(claim => {
+        const wasProcessedByAgent = isClaimProcessedByAgent(claim);
+        const wasSentByHR = isClaimSentByHR(claim) || claim.claimStatus !== 'draft';
+        
+        console.log(`Checking processed claim: ${claim.claimId}`, {
+          wasProcessedByAgent,
+          wasSentByHR,
+          claimStatus: claim.claimStatus,
+          agentDecision: claim.agentDecision
+        });
+
+        return wasProcessedByAgent && wasSentByHR;
+      });
+
+      console.log('Valid processed claims after filtering:', validProcessedClaims.length);
+
+      // Sort by most recent
+      validProcessedClaims.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setProcessedClaims(validProcessedClaims);
+
+    } catch (error) {
+      console.error('Error loading processed claims:', error);
+    }
+  }, []);
 
   const loadAllClaims = useCallback(async (showLoading = true) => {
     await Promise.all([
@@ -613,6 +620,43 @@ const loadProcessedClaims = useCallback(async () => {
       loadProcessedClaims()
     ]);
   }, [loadPendingClaims, loadProcessedClaims]);
+
+  // ==================== **FIXED** COMPUTED VALUES ====================
+  
+  // **FIX 3:** Filter processed claims properly without duplicates
+  const filteredProcessedClaims = useMemo(() => {
+    return processedClaims.filter(claim => {
+      // Search filter
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = searchTerm === '' || 
+        claim.claimId?.toLowerCase().includes(searchLower) ||
+        `${claim.employeeId?.firstName || ''} ${claim.employeeId?.lastName || ''}`.toLowerCase().includes(searchLower) ||
+        claim.claimType?.toLowerCase().includes(searchLower);
+
+      // Status filter
+      const claimStatus = claim.claimStatus || claim.agentDecision;
+      const matchesStatus = statusFilter === 'all' || claimStatus === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [processedClaims, searchTerm, statusFilter]);
+
+  // **FIX 4:** Correct currentClaims logic
+  const currentClaims = useMemo(() => {
+    console.log('Active view:', activeView);
+    console.log('Pending claims count:', pendingClaims.length);
+    console.log('Filtered processed claims count:', filteredProcessedClaims.length);
+    
+    if (activeView === 'pending') {
+      return pendingClaims;
+    } else {
+      return filteredProcessedClaims;
+    }
+  }, [activeView, pendingClaims, filteredProcessedClaims]);
+
+  const paginatedClaims = useMemo(() => {
+    return currentClaims.slice(0, itemsPerPage);
+  }, [currentClaims, itemsPerPage]);
 
   // ==================== USER-FRIENDLY CLAIM CARD COMPONENT ====================
   const EnhancedClaimCard = ({ claim }) => {
@@ -623,10 +667,15 @@ const loadProcessedClaims = useCallback(async () => {
       ? PROCESSED_CLAIM_STATUS[claim.claimStatus || claim.agentDecision] || PROCESSED_CLAIM_STATUS[CLAIM_DECISIONS.APPROVED]
       : null;
 
+    // **FIX 5: Use unique claim ID for React keys**
+    const uniqueClaimId = getUniqueClaimId(claim);
+
     return (
-      <div className={`bg-white rounded-3xl shadow-sm border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-        selectedClaims.has(claim._id || claim.id) ? 'border-sky-300 bg-sky-50' : 'border-gray-100'
-      }`}>
+      <div 
+        className={`bg-white rounded-3xl shadow-sm border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+          selectedClaims.has(uniqueClaimId) ? 'border-sky-300 bg-sky-50' : 'border-gray-100'
+        }`}
+      >
         
         {/* HEADER SECTION */}
         <div className="p-6 pb-4 border-b border-gray-100">
@@ -636,14 +685,13 @@ const loadProcessedClaims = useCallback(async () => {
               {activeView === 'pending' && (
                 <input
                   type="checkbox"
-                  checked={selectedClaims.has(claim._id || claim.id)}
+                  checked={selectedClaims.has(uniqueClaimId)}
                   onChange={(e) => {
                     const newSelected = new Set(selectedClaims);
-                    const claimId = claim._id || claim.id;
                     if (e.target.checked) {
-                      newSelected.add(claimId);
+                      newSelected.add(uniqueClaimId);
                     } else {
-                      newSelected.delete(claimId);
+                      newSelected.delete(uniqueClaimId);
                     }
                     setSelectedClaims(newSelected);
                   }}
@@ -852,13 +900,6 @@ const loadProcessedClaims = useCallback(async () => {
     );
   };
 
-  // ==================== COMPUTED VALUES ====================
-  const currentClaims = activeView === 'pending' ? pendingClaims : processedClaims;
-
-  const paginatedClaims = useMemo(() => {
-    return currentClaims.slice(0, itemsPerPage);
-  }, [currentClaims, itemsPerPage]);
-
   // ==================== EFFECTS ====================
   useEffect(() => {
     loadAllClaims();
@@ -887,7 +928,7 @@ const loadProcessedClaims = useCallback(async () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-indigo-50">
       
-      {/* Enhanced Header WITH SOFT COLORS */}
+      {/* **FIXED** Enhanced Header */}
       <div className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -909,36 +950,6 @@ const loadProcessedClaims = useCallback(async () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* View Toggle WITH SOFT COLORS */}
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button
-                  onClick={() => setActiveView('pending')}
-                  className={`px-6 py-3 rounded-lg transition-all font-medium ${
-                    activeView === 'pending' 
-                      ? 'bg-sky-400 text-white shadow-md' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Pending ({pendingClaims.length})
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveView('processed')}
-                  className={`px-6 py-3 rounded-lg transition-all font-medium ${
-                    activeView === 'processed' 
-                      ? 'bg-sky-400 text-white shadow-md' 
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Processed ({processedClaims.length})
-                  </div>
-                </button>
-              </div>
-
               <button
                 onClick={() => loadAllClaims()}
                 disabled={loading}
@@ -950,8 +961,49 @@ const loadProcessedClaims = useCallback(async () => {
             </div>
           </div>
 
-          {/* Last updated info */}
-          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+          {/* **FIXED** View Toggle Buttons with Correct Counts */}
+          <div className="mt-6 flex items-center justify-between">
+            <div className="inline-flex bg-gray-100 rounded-xl p-1 shadow-sm">
+              <button
+                onClick={() => setActiveView('pending')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium text-sm ${
+                  activeView === 'pending' 
+                    ? 'bg-white text-sky-600 shadow-sm border border-sky-200' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <Clock className="w-4 h-4" />
+                <span>Pending</span>
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  activeView === 'pending' 
+                    ? 'bg-sky-100 text-sky-700' 
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {pendingClaims.length}
+                </span>
+              </button>
+              
+              <button
+                onClick={() => setActiveView('processed')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium text-sm ${
+                  activeView === 'processed' 
+                    ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200' 
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span>Processed</span>
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                  activeView === 'processed' 
+                    ? 'bg-emerald-100 text-emerald-700' 
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {filteredProcessedClaims.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Last updated info */}
             <div className="flex items-center gap-4 text-sm text-gray-500">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -962,8 +1014,9 @@ const loadProcessedClaims = useCallback(async () => {
         </div>
       </div>
 
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">
-        {/* Claims Display - USER-FRIENDLY CARDS */}
+        {/* Claims Display */}
         <div className="space-y-6">
           {paginatedClaims.length === 0 ? (
             /* No Claims State */
@@ -982,10 +1035,13 @@ const loadProcessedClaims = useCallback(async () => {
               </p>
             </div>
           ) : (
-            /* USER-FRIENDLY CLAIMS CARDS */
+            /* **FIXED** Claims Cards with Unique Keys */
             <div className="space-y-6">
               {paginatedClaims.map((claim) => (
-                <EnhancedClaimCard key={claim._id || claim.id} claim={claim} />
+                <EnhancedClaimCard 
+                  key={getUniqueClaimId(claim)} // **FIXED: Unique keys**
+                  claim={claim} 
+                />
               ))}
             </div>
           )}
