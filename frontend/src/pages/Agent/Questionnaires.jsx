@@ -45,17 +45,16 @@ const Questionnaires = () => {
     vehicle: ["accident", "theft", "fire", "naturalDisaster"]
   };
 
-  // Complete mock data with all 8 templates
+  // Mock data that matches your API structure
   const [mockData] = useState({
     templates: [
-      // Existing templates
       {
         _id: "66f1234567890abcdef12345",
         templateId: "LIFE_HOSP",
         claimType: "life",
         claimOption: "hospitalization",
         title: "Life Insurance - Hospitalization Claims",
-        description: "Comprehensive questionnaire for hospitalization-related life insurance claims",
+        description: "Questionnaire for hospitalization-related life insurance claims",
         questions: [
           {
             questionId: "hosp_001",
@@ -84,9 +83,6 @@ const Questionnaires = () => {
         ],
         isActive: true,
         version: 1,
-        usageCount: 45,
-        averageCompletionTime: "14 minutes",
-        completionRate: 92,
         lastModified: "2025-01-15T10:30:00Z",
         modifiedBy: {
           firstName: "John",
@@ -100,7 +96,7 @@ const Questionnaires = () => {
         claimType: "vehicle",
         claimOption: "accident",
         title: "Vehicle Insurance - Accident Claims",
-        description: "Detailed questionnaire for vehicle accident insurance claims",
+        description: "Questionnaire for vehicle accident insurance claims",
         questions: [
           {
             questionId: "acc_001",
@@ -119,9 +115,6 @@ const Questionnaires = () => {
         ],
         isActive: true,
         version: 2,
-        usageCount: 38,
-        averageCompletionTime: "19 minutes",
-        completionRate: 88,
         lastModified: "2025-01-14T15:45:00Z",
         modifiedBy: {
           firstName: "Sarah",
@@ -135,7 +128,7 @@ const Questionnaires = () => {
         claimType: "life",
         claimOption: "death",
         title: "Life Insurance - Death Claims",
-        description: "Comprehensive questionnaire for death benefit claims",
+        description: "Questionnaire for death benefit claims",
         questions: [
           {
             questionId: "death_001",
@@ -145,429 +138,20 @@ const Questionnaires = () => {
             order: 1
           }
         ],
-        isActive: true,
+        isActive: false,
         version: 1,
-        usageCount: 12,
-        averageCompletionTime: "8 minutes",
-        completionRate: 95,
         lastModified: "2025-01-12T09:20:00Z",
         modifiedBy: {
           firstName: "Mike",
           lastName: "Johnson",
           email: "mike.johnson@company.com"
         }
-      },
-      // New templates (5 additional)
-      {
-        _id: "66f1234567890abcdef12348",
-        templateId: "LIFE_CHANNEL",
-        claimType: "life",
-        claimOption: "channelling",
-        title: "Life Insurance - Channelling Claims",
-        description: "Comprehensive questionnaire for medical channelling and consultation claims",
-        questions: [
-          {
-            questionId: "channel_001",
-            questionText: "Date of medical consultation/channelling",
-            questionType: "date",
-            isRequired: true,
-            order: 1,
-            helpText: "Please provide the exact date of your medical consultation"
-          },
-          {
-            questionId: "channel_002",
-            questionText: "Type of medical consultation",
-            questionType: "select",
-            options: ["Specialist Consultation", "General Practitioner", "Emergency Consultation", "Follow-up Visit"],
-            isRequired: true,
-            order: 2
-          },
-          {
-            questionId: "channel_003",
-            questionText: "Name of the medical facility/hospital",
-            questionType: "text",
-            isRequired: true,
-            order: 3,
-            helpText: "Enter the full name of the medical facility where consultation took place"
-          },
-          {
-            questionId: "channel_004",
-            questionText: "Doctor's name and specialization",
-            questionType: "text",
-            isRequired: true,
-            order: 4
-          },
-          {
-            questionId: "channel_005",
-            questionText: "Total consultation fee charged",
-            questionType: "number",
-            isRequired: true,
-            order: 5,
-            helpText: "Enter the total amount charged for the consultation"
-          },
-          {
-            questionId: "channel_006",
-            questionText: "Upload consultation receipts and medical reports",
-            questionType: "file",
-            isRequired: true,
-            order: 6,
-            helpText: "Upload all relevant receipts, prescriptions, and medical reports"
-          }
-        ],
-        isActive: true,
-        version: 1,
-        usageCount: 28,
-        averageCompletionTime: "8 minutes",
-        completionRate: 94,
-        lastModified: "2025-09-22T09:15:00Z",
-        modifiedBy: {
-          firstName: "Dr. Sarah",
-          lastName: "Johnson",
-          email: "sarah.johnson@company.com"
-        }
-      },
-      {
-        _id: "66f1234567890abcdef12349",
-        templateId: "LIFE_MEDIC",
-        claimType: "life",
-        claimOption: "medication",
-        title: "Life Insurance - Medication Claims",
-        description: "Detailed questionnaire for prescription and medication reimbursement claims",
-        questions: [
-          {
-            questionId: "medic_001",
-            questionText: "Date of medication purchase",
-            questionType: "date",
-            isRequired: true,
-            order: 1,
-            helpText: "Date when the medication was purchased from pharmacy"
-          },
-          {
-            questionId: "medic_002",
-            questionText: "Type of medication claim",
-            questionType: "select",
-            options: ["Prescription Medication", "Over-the-counter Medicine", "Emergency Medication", "Chronic Condition Medication"],
-            isRequired: true,
-            order: 2
-          },
-          {
-            questionId: "medic_003",
-            questionText: "Name of prescribed medication(s)",
-            questionType: "text",
-            isRequired: true,
-            order: 3,
-            helpText: "List all medications purchased (separate with commas)"
-          },
-          {
-            questionId: "medic_004",
-            questionText: "Prescribing doctor's name and qualification",
-            questionType: "text",
-            isRequired: true,
-            order: 4
-          },
-          {
-            questionId: "medic_005",
-            questionText: "Medical condition requiring medication",
-            questionType: "text",
-            isRequired: true,
-            order: 5,
-            helpText: "Describe the medical condition that required this medication"
-          },
-          {
-            questionId: "medic_006",
-            questionText: "Total amount spent on medication",
-            questionType: "number",
-            isRequired: true,
-            order: 6
-          },
-          {
-            questionId: "medic_007",
-            questionText: "Upload prescription and pharmacy receipts",
-            questionType: "file",
-            isRequired: true,
-            order: 7,
-            helpText: "Upload original prescription, pharmacy receipts, and medication labels"
-          }
-        ],
-        isActive: true,
-        version: 2,
-        usageCount: 35,
-        averageCompletionTime: "12 minutes",
-        completionRate: 91,
-        lastModified: "2025-09-21T14:30:00Z",
-        modifiedBy: {
-          firstName: "Emily",
-          lastName: "Chen",
-          email: "emily.chen@company.com"
-        }
-      },
-      {
-        _id: "66f1234567890abcdef12350",
-        templateId: "VEHICLE_THEFT",
-        claimType: "vehicle",
-        claimOption: "theft",
-        title: "Vehicle Insurance - Theft Claims",
-        description: "Comprehensive questionnaire for vehicle theft insurance claims",
-        questions: [
-          {
-            questionId: "theft_001",
-            questionText: "Date and time when theft was discovered",
-            questionType: "date",
-            isRequired: true,
-            order: 1,
-            helpText: "When did you first notice your vehicle was stolen?"
-          },
-          {
-            questionId: "theft_002",
-            questionText: "Location where vehicle was stolen from",
-            questionType: "text",
-            isRequired: true,
-            order: 2,
-            helpText: "Provide detailed address where the vehicle was parked when stolen"
-          },
-          {
-            questionId: "theft_003",
-            questionText: "Was the vehicle locked when stolen?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 3
-          },
-          {
-            questionId: "theft_004",
-            questionText: "Were keys left in the vehicle?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 4
-          },
-          {
-            questionId: "theft_005",
-            questionText: "Police report filed?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 5
-          },
-          {
-            questionId: "theft_006",
-            questionText: "Police report number and station",
-            questionType: "text",
-            isRequired: true,
-            order: 6,
-            helpText: "Provide the FIR number and police station details"
-          },
-          {
-            questionId: "theft_007",
-            questionText: "List of items stolen with the vehicle",
-            questionType: "text",
-            isRequired: false,
-            order: 7,
-            helpText: "List any personal belongings, accessories, or modifications stolen with the vehicle"
-          },
-          {
-            questionId: "theft_008",
-            questionText: "Upload police report and vehicle documents",
-            questionType: "file",
-            isRequired: true,
-            order: 8,
-            helpText: "Upload FIR copy, vehicle registration, insurance policy, and any other relevant documents"
-          }
-        ],
-        isActive: true,
-        version: 1,
-        usageCount: 15,
-        averageCompletionTime: "18 minutes",
-        completionRate: 89,
-        lastModified: "2025-09-20T11:45:00Z",
-        modifiedBy: {
-          firstName: "Michael",
-          lastName: "Rodriguez",
-          email: "michael.rodriguez@company.com"
-        }
-      },
-      {
-        _id: "66f1234567890abcdef12351",
-        templateId: "VEHICLE_FIRE",
-        claimType: "vehicle",
-        claimOption: "fire",
-        title: "Vehicle Insurance - Fire Claims",
-        description: "Detailed questionnaire for vehicle fire damage insurance claims",
-        questions: [
-          {
-            questionId: "fire_001",
-            questionText: "Date and time of fire incident",
-            questionType: "date",
-            isRequired: true,
-            order: 1,
-            helpText: "When did the fire incident occur?"
-          },
-          {
-            questionId: "fire_002",
-            questionText: "Location of fire incident",
-            questionType: "text",
-            isRequired: true,
-            order: 2,
-            helpText: "Provide detailed address where the fire occurred"
-          },
-          {
-            questionId: "fire_003",
-            questionText: "Cause of fire",
-            questionType: "select",
-            options: ["Engine Fire", "Electrical Fire", "Fuel System Fire", "External Fire", "Arson", "Unknown"],
-            isRequired: true,
-            order: 3
-          },
-          {
-            questionId: "fire_004",
-            questionText: "Was vehicle being driven when fire started?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 4
-          },
-          {
-            questionId: "fire_005",
-            questionText: "Fire brigade called?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 5
-          },
-          {
-            questionId: "fire_006",
-            questionText: "Police report filed?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 6
-          },
-          {
-            questionId: "fire_007",
-            questionText: "Extent of fire damage",
-            questionType: "select",
-            options: ["Total Loss", "Major Damage", "Moderate Damage", "Minor Damage"],
-            isRequired: true,
-            order: 7
-          },
-          {
-            questionId: "fire_008",
-            questionText: "Any injuries caused by the fire?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 8
-          },
-          {
-            questionId: "fire_009",
-            questionText: "Upload fire brigade report, police report, and photos",
-            questionType: "file",
-            isRequired: true,
-            order: 9,
-            helpText: "Upload all relevant reports, photos of damage, and supporting documents"
-          }
-        ],
-        isActive: true,
-        version: 1,
-        usageCount: 8,
-        averageCompletionTime: "22 minutes",
-        completionRate: 85,
-        lastModified: "2025-09-19T16:20:00Z",
-        modifiedBy: {
-          firstName: "David",
-          lastName: "Kim",
-          email: "david.kim@company.com"
-        }
-      },
-      {
-        _id: "66f1234567890abcdef12352",
-        templateId: "VEHICLE_NATURAL",
-        claimType: "vehicle",
-        claimOption: "naturalDisaster",
-        title: "Vehicle Insurance - Natural Disaster Claims",
-        description: "Comprehensive questionnaire for natural disaster vehicle damage claims",
-        questions: [
-          {
-            questionId: "natural_001",
-            questionText: "Date of natural disaster occurrence",
-            questionType: "date",
-            isRequired: true,
-            order: 1,
-            helpText: "Date when the natural disaster occurred"
-          },
-          {
-            questionId: "natural_002",
-            questionText: "Type of natural disaster",
-            questionType: "select",
-            options: ["Flood", "Earthquake", "Hurricane/Cyclone", "Hail Storm", "Landslide", "Tsunami", "Other"],
-            isRequired: true,
-            order: 2
-          },
-          {
-            questionId: "natural_003",
-            questionText: "Location where vehicle was damaged",
-            questionType: "text",
-            isRequired: true,
-            order: 3,
-            helpText: "Provide detailed address where the vehicle was when disaster struck"
-          },
-          {
-            questionId: "natural_004",
-            questionText: "Was vehicle parked or being driven during incident?",
-            questionType: "select",
-            options: ["Parked", "Being Driven", "In Transit"],
-            isRequired: true,
-            order: 4
-          },
-          {
-            questionId: "natural_005",
-            questionText: "Type of damage caused to vehicle",
-            questionType: "multiselect",
-            options: ["Water Damage", "Impact Damage", "Glass Breakage", "Paint Damage", "Engine Damage", "Interior Damage", "Total Loss"],
-            isRequired: true,
-            order: 5
-          },
-          {
-            questionId: "natural_006",
-            questionText: "Was official disaster warning issued by authorities?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 6
-          },
-          {
-            questionId: "natural_007",
-            questionText: "Any other vehicles in area affected?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 7
-          },
-          {
-            questionId: "natural_008",
-            questionText: "Emergency services contacted?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 8
-          },
-          {
-            questionId: "natural_009",
-            questionText: "Upload photos of damage and weather reports",
-            questionType: "file",
-            isRequired: true,
-            order: 9,
-            helpText: "Upload damage photos, official weather reports, and any emergency service reports"
-          }
-        ],
-        isActive: true,
-        version: 1,
-        usageCount: 5,
-        averageCompletionTime: "25 minutes",
-        completionRate: 88,
-        lastModified: "2025-09-18T13:10:00Z",
-        modifiedBy: {
-          firstName: "Lisa",
-          lastName: "Wang",
-          email: "lisa.wang@company.com"
-        }
       }
     ],
-    // Updated coverage stats - now 100% coverage!
     coverageStats: {
       total: 8,
-      covered: 8, // All 8 combinations now have templates
-      missing: 0  // No missing templates
+      covered: 3,
+      missing: 5
     }
   });
 
@@ -579,6 +163,10 @@ const Questionnaires = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      // In real app, fetch from API
+      // const response = await fetch('/api/questionnaire-templates');
+      // const data = await response.json();
+      
       setTemplates(mockData.templates);
       setCoverageStats(mockData.coverageStats);
       generateCoverageData();
@@ -634,6 +222,7 @@ const Questionnaires = () => {
 
   const handleToggleStatus = async (templateId) => {
     try {
+      // In real app: await toggleTemplateStatus(templateId)
       setTemplates(prev => prev.map(t => 
         t._id === templateId ? { ...t, isActive: !t.isActive } : t
       ));
@@ -646,6 +235,7 @@ const Questionnaires = () => {
     if (!confirm('Are you sure you want to delete this template?')) return;
     
     try {
+      // In real app: await deleteTemplate(templateId)
       setTemplates(prev => prev.filter(t => t._id !== templateId));
     } catch (error) {
       console.error('Failed to delete template:', error);
@@ -654,6 +244,7 @@ const Questionnaires = () => {
 
   const handleCloneTemplate = async (templateId) => {
     try {
+      // In real app: await cloneTemplate(templateId)
       const original = templates.find(t => t._id === templateId);
       const cloned = {
         ...original,
@@ -724,7 +315,7 @@ const Questionnaires = () => {
         </div>
       </div>
 
-      {/* Stats Cards - Now showing 100% coverage! */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-4">
@@ -754,13 +345,13 @@ const Questionnaires = () => {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <Target className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <Target className="w-8 h-8 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Coverage Rate</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {Math.round((coverageStats.covered / coverageStats.total) * 100)}% ✅
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {Math.round((coverageStats.covered / coverageStats.total) * 100)}%
               </p>
             </div>
           </div>
@@ -768,12 +359,12 @@ const Questionnaires = () => {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
             </div>
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Missing</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{coverageStats.missing} ✅</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{coverageStats.missing}</p>
             </div>
           </div>
         </div>
@@ -978,12 +569,6 @@ const Questionnaires = () => {
                 <p className="text-gray-600 dark:text-gray-400">
                   Overview of questionnaire template coverage across all claim type and option combinations
                 </p>
-                <div className="mt-4 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                    🎉 100% Coverage Achieved! All templates are now available.
-                  </span>
-                </div>
               </div>
 
               <div className="grid gap-6">
@@ -1002,31 +587,43 @@ const Questionnaires = () => {
                         return (
                           <div
                             key={option}
-                            className="p-4 rounded-lg border-2 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20 transition-all"
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              hasTemplate
+                                ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+                                : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+                            }`}
                           >
                             <div className="flex items-center justify-between mb-2">
                               <h5 className="font-medium text-gray-900 dark:text-white">
                                 {formatOption(option)}
                               </h5>
-                              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                              {hasTemplate ? (
+                                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                              )}
                             </div>
-                            <p className="text-xs text-green-700 dark:text-green-300 mb-2">
-                              Template Available
+                            <p className={`text-xs ${
+                              hasTemplate 
+                                ? 'text-green-700 dark:text-green-300'
+                                : 'text-red-700 dark:text-red-300'
+                            }`}>
+                              {hasTemplate ? 'Template Available' : 'No Template'}
                             </p>
                             {hasTemplate && coverageItem.template && (
                               <div className="mt-2">
                                 <p className="text-xs text-gray-600 dark:text-gray-400">
                                   {coverageItem.template.templateId}
                                 </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <span className="text-xs bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 px-2 py-1 rounded">
-                                    {coverageItem.template.questions.length} questions
-                                  </span>
-                                  <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-1 rounded">
-                                    v{coverageItem.template.version}
-                                  </span>
-                                </div>
                               </div>
+                            )}
+                            {!hasTemplate && (
+                              <button
+                                onClick={handleCreateTemplate}
+                                className="mt-2 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors"
+                              >
+                                Create Template
+                              </button>
                             )}
                           </div>
                         );
@@ -1067,10 +664,10 @@ const Questionnaires = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {template.usageCount} uses
+                            {Math.floor(Math.random() * 50) + 1} uses
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {template.averageCompletionTime}
+                            Last 30 days
                           </p>
                         </div>
                       </div>
@@ -1080,28 +677,20 @@ const Questionnaires = () => {
 
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Performance Summary
+                    Response Rates
                   </h4>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">Total Templates</span>
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">{templates.length}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
                       <span className="text-gray-600 dark:text-gray-300">Average Completion Rate</span>
-                      <span className="font-semibold text-green-600 dark:text-green-400">
-                        {Math.round(templates.reduce((sum, t) => sum + t.completionRate, 0) / templates.length)}%
-                      </span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">87%</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">Total Usage</span>
-                      <span className="font-semibold text-purple-600 dark:text-purple-400">
-                        {templates.reduce((sum, t) => sum + t.usageCount, 0)}
-                      </span>
+                      <span className="text-gray-600 dark:text-gray-300">Average Response Time</span>
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">2.5 days</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">Coverage Rate</span>
-                      <span className="font-semibold text-green-600 dark:text-green-400">100% ✅</span>
+                      <span className="text-gray-600 dark:text-gray-300">Most Used Template</span>
+                      <span className="font-semibold text-purple-600 dark:text-purple-400">LIFE_HOSP</span>
                     </div>
                   </div>
                 </div>

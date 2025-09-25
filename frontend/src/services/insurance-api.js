@@ -24,49 +24,48 @@ class InsuranceApiService {
    * @returns {Promise<Object>} API response
    */
   async request(endpoint, options = {}) {
-  const url = `${this.baseURL}${endpoint}`;
-  const config = {
-    headers: this.getAuthHeaders(),
-    ...options,
-  };
+    const url = `${this.baseURL}${endpoint}`;
+    const config = {
+      headers: this.getAuthHeaders(),
+      ...options,
+    };
 
-  try {
-    console.log('Making request to:', url);
-    console.log('With config:', config);
-    console.log('Request body:', options.body);
-    
-    const response = await fetch(url, config);
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
-    
-    if (!response.ok) {
-      let errorMessage = 'API request failed';
-      let errorData = null;
+    try {
+      console.log('Making request to:', url);
+      console.log('With config:', config);
+      console.log('Request body:', options.body);
       
-      try {
-        errorData = await response.json();
-        console.log('Error response data:', errorData);
-        errorMessage = errorData.message || errorData.error || errorMessage;
-      } catch (jsonError) {
-        console.log('Could not parse error response as JSON');
-        errorMessage = response.statusText || errorMessage;
+      const response = await fetch(url, config);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      if (!response.ok) {
+        let errorMessage = 'API request failed';
+        let errorData = null;
+        
+        try {
+          errorData = await response.json();
+          console.log('Error response data:', errorData);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch (jsonError) {
+          console.log('Could not parse error response as JSON');
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        const error = new Error(errorMessage);
+        error.status = response.status;
+        error.data = errorData;
+        throw error;
       }
-      
-      const error = new Error(errorMessage);
-      error.status = response.status;
-      error.data = errorData;
+
+      const responseData = await response.json();
+      console.log('Success response:', responseData);
+      return responseData;
+    } catch (error) {
+      console.error('API request error:', error);
       throw error;
     }
-
-    const responseData = await response.json();
-    console.log('Success response:', responseData);
-    return responseData;
-  } catch (error) {
-    console.error('API request error:', error);
-    throw error;
   }
-}
-
 
   // ==================== CLAIMS METHODS ====================
 
@@ -442,7 +441,6 @@ class InsuranceApiService {
     
     const endpoint = queryString ? `/policies/my-policies?${queryString}` : '/policies/my-policies';
     return this.request(endpoint);
-
   }
 
   /**
@@ -879,25 +877,23 @@ class InsuranceApiService {
   }
 
   /**
- * Update claim status
- * @param {string} claimId - Claim ID
- * @param {string} status - New status ('draft', 'employee', 'hr', 'insurer', 'approved', 'rejected')
- * @returns {Promise<Object>} Updated claim
- */
-async updateClaimStatus(claimId, status) {
-  if (!claimId) {
-    throw new Error('Claim ID is required');
+   * Update claim status
+   * @param {string} claimId - Claim ID
+   * @param {string} status - New status ('draft', 'employee', 'hr', 'insurer', 'approved', 'rejected')
+   * @returns {Promise<Object>} Updated claim
+   */
+  async updateClaimStatus(claimId, status) {
+    if (!claimId) {
+      throw new Error('Claim ID is required');
+    }
+    if (!status) {
+      throw new Error('Status is required');
+    }
+    return this.request(`/claims/${claimId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
   }
-  if (!status) {
-    throw new Error('Status is required');
-  }
-  return this.request(`/claims/${claimId}/status`, {
-    method: 'PATCH',
-    body: JSON.stringify({ status }),
-  });
-}
-
-
 }
 
 // Create and export singleton instance
