@@ -142,7 +142,7 @@ export const EmployeeClaims = () => {
   const stats = {
     total: claims.length,
     approved: claims.filter(c => c.claimStatus === 'approved').length,
-    processing: claims.filter(c => ['employee', 'hr', 'insurer'].includes(c.claimStatus)).length,
+    processing: claims.filter(c => ['hr', 'insurer'].includes(c.claimStatus)).length,
     draft: claims.filter(c => c.claimStatus === 'draft').length,
     rejected: claims.filter(c => c.claimStatus === 'rejected').length
   };
