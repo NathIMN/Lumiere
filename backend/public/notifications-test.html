@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification System Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            color: #4c1d95;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .test-section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s ease;
+        }
+        
+        .test-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .test-section h2 {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        
+        .success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .response-area {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            min-height: 100px;
+            margin-top: 15px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        
+        .notification-display {
+            background: #ecfdf5;
+            border: 1px solid #10b981;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .notification-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .connected { background: #10b981; }
+        .disconnected { background: #ef4444; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Notification System Test</h1>
+        
+        <!-- Authentication -->
+        <div class="test-section">
+            <h2>🔐 Authentication & User Setup</h2>
+            <div class="form-group">
+                <label>JWT Token (REQUIRED for Socket.IO):</label>
+                <input type="text" id="jwtToken" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family: monospace;">
+                <small style="color: #ef4444;">⚠️ Socket.IO requires valid JWT token for connection</small>
+            </div>
+            <div class="form-group">
+                <label>Test User ID (for API calls):</label>
+                <input type="text" id="testUserId" placeholder="64f7b1234567890abcdef123" value="64f7b1234567890abcdef123">
+                <small style="color: #6b7280;">This will be used for sending notifications via API</small>
+            </div>
+            <button onclick="connectWithAuth()" class="success">🔌 Connect with Auth</button>
+            <button onclick="syncUserIds()" class="warning">Sync User IDs</button>
+            <button onclick="testAuth()">Test API Auth</button>
+            <button onclick="clearAuth()" class="danger">Clear Auth</button>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="test-section">
+            <h2>
+                <span class="status-indicator" id="connectionStatus"></span>
+                Socket Connection Status
+                <span id="notificationBadge" class="notification-badge" style="display: none;">0</span>
+            </h2>
+            <p id="connectionText">Not connected - JWT token required</p>
+            <p style="color: #6b7280; font-size: 14px;">Your SocketHandler requires JWT authentication. Get a token by logging in first.</p>
+            <button onclick="toggleConnection()">Reconnect</button>
+        </div>
+
+        <div class="grid">
+            <!-- In-App Notification Test -->
+            <div class="test-section">
+                <h2>📱 In-App Notification</h2>
+                <div class="form-group">
+                    <label>User ID:</label>
+                    <input type="text" id="inAppUserId" placeholder="64f7b1234567890abcdef123">
+                </div>
+                <div class="form-group">
+                    <label>Title:</label>
+                    <input type="text" id="inAppTitle" placeholder="Test Notification">
+                </div>
+                <div class="form-group">
+                    <label>Message:</label>
+                    <textarea id="inAppMessage" placeholder="This is a test notification message"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Type:</label>
+                    <select id="inAppType">
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="success">Success</option>
+                        <option value="error">Error</option>
+                        <option value="system">System</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Priority:</label>
+                    <select id="inAppPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <button onclick="sendInAppNotification()">Send In-App</button>
+            </div>
+
+            <!-- Email Notification Test -->
+            <div class="test-section">
+                <h2>📧 Email Notification</h2>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" id="emailAddress" placeholder="test@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Subject:</label>
+                    <input type="text" id="emailSubject" placeholder="Test Email Subject">
+                </div>
+                <div class="form-group">
+                    <label>Message:</label>
+                    <textarea id="emailMessage" placeholder="This is a test email message"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priority:</label>
+                    <select id="emailPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+                <button onclick="sendEmailNotification()">Send Email</button>
+            </div>
+        </div>
+
+        <!-- Combined Notification Test -->
+        <div class="test-section">
+            <h2>🔔 Combined Notification (In-App + Email)</h2>
+            <div class="grid">
+                <div>
+                    <div class="form-group">
+                        <label>User ID:</label>
+                        <input type="text" id="combinedUserId" placeholder="64f7b1234567890abcdef123">
+                    </div>
+                    <div class="form-group">
+                        <label>Title (In-App):</label>
+                        <input type="text" id="combinedTitle" placeholder="Important Update">
+                    </div>
+                    <div class="form-group">
+                        <label>Subject (Email):</label>
+                        <input type="text" id="combinedSubject" placeholder="Important Update - Action Required">
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>Message:</label>
+                        <textarea id="combinedMessage" placeholder="This message will appear in both in-app and email notifications"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority:</label>
+                        <select id="combinedPriority">
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <button onclick="sendCombinedNotification()">Send Combined</button>
+        </div>
+
+        <!-- Bulk Notification Test -->
+        <div class="test-section">
+            <h2>📢 Bulk Notification</h2>
+            <div class="form-group">
+                <label>User IDs (comma-separated):</label>
+                <input type="text" id="bulkUserIds" placeholder="64f7b1234567890abcdef123,64f7b1234567890abcdef124">
+            </div>
+            <div class="form-group">
+                <label>Title:</label>
+                <input type="text" id="bulkTitle" placeholder="System Announcement">
+            </div>
+            <div class="form-group">
+                <label>Message:</label>
+                <textarea id="bulkMessage" placeholder="This message will be sent to all specified users"></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="bulkSendEmail"> Also send email
+                </label>
+                <input type="text" id="bulkEmailSubject" placeholder="Email subject (if sending email)" style="margin-top: 10px;">
+            </div>
+            <button onclick="sendBulkNotification()">Send Bulk</button>
+        </div>
+
+        <!-- Protected Endpoints Test -->
+        <div class="test-section">
+            <h2>🔒 Protected Endpoints (Require Auth)</h2>
+            <p>These endpoints require a valid JWT token in the Authorization header:</p>
+            <button onclick="getUserNotifications()">Get My Notifications</button>
+            <button onclick="getUnreadCount()" class="warning">Get Unread Count</button>
+            <button onclick="markAllAsRead()" class="success">Mark All Read</button>
+        </div>
+
+        <!-- Real-time Notifications Display -->
+        <div class="test-section">
+            <h2>📡 Real-time Notifications</h2>
+            <p>Live notifications will appear here when received:</p>
+            <div id="liveNotifications"></div>
+        </div>
+
+        <!-- API Response Display -->
+        <div class="test-section">
+            <h2>📊 API Responses</h2>
+            <div id="responseDisplay" class="response-area">Ready to test notifications...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1/notifications';
+        let socket;
+        let notificationCount = 0;
+
+        // Initialize Socket.IO connection
+        function initSocket() {
+            const token = document.getElementById('jwtToken').value;
+            
+            if (!token) {
+                updateConnectionStatus(false);
+                displayResponse('No JWT token provided. Socket.IO connection requires authentication.');
+                return;
+            }
+
+            // Initialize with auth token
+            socket = io({
+                auth: {
+                    token: token
+                }
+            });
+            
+            socket.on('connect', () => {
+                updateConnectionStatus(true);
+                displayResponse('Socket.IO connected with auth: ' + socket.id);
+                // User is automatically joined to their room by the server
+            });
+            
+            socket.on('connect_error', (error) => {
+                updateConnectionStatus(false);
+                displayResponse('Socket.IO connection failed: ' + error.message);
+            });
+            
+            socket.on('disconnect', () => {
+                updateConnectionStatus(false);
+                displayResponse('Socket.IO disconnected');
+            });
+            
+            socket.on('new_notification', (notification) => {
+                displayLiveNotification(notification);
+                updateNotificationBadge();
+                displayResponse('Real-time notification received: ' + JSON.stringify(notification, null, 2));
+            });
+            
+            socket.on('error', (error) => {
+                displayResponse('Socket error: ' + error.message);
+            });
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const textEl = document.getElementById('connectionText');
+            
+            if (connected) {
+                statusEl.className = 'status-indicator connected';
+                textEl.textContent = 'Connected to real-time notifications';
+            } else {
+                statusEl.className = 'status-indicator disconnected';
+                textEl.textContent = 'Disconnected from real-time notifications';
+            }
+        }
+
+        function toggleConnection() {
+            if (socket && socket.connected) {
+                socket.disconnect();
+            } else {
+                initSocket();
+            }
+        }
+
+        // Connect with JWT token
+        function connectWithAuth() {
+            const token = document.getElementById('jwtToken').value;
+            if (!token) {
+                displayResponse('Error: Please enter a JWT token first');
+                return;
+            }
+            
+            if (socket && socket.connected) {
+                socket.disconnect();
+            }
+            
+            initSocket();
+        }
+
+        function displayLiveNotification(notification) {
+            const container = document.getElementById('liveNotifications');
+            const notifEl = document.createElement('div');
+            notifEl.className = 'notification-display';
+            notifEl.innerHTML = `
+                <strong>${notification.title}</strong><br>
+                ${notification.message}<br>
+                <small>Type: ${notification.type} | Priority: ${notification.priority} | ${new Date(notification.createdAt).toLocaleString()}</small>
+            `;
+            container.appendChild(notifEl);
+            
+            // Remove old notifications (keep only last 5)
+            while (container.children.length > 5) {
+                container.removeChild(container.firstChild);
+            }
+        }
+
+        function updateNotificationBadge() {
+            notificationCount++;
+            const badge = document.getElementById('notificationBadge');
+            badge.textContent = notificationCount;
+            badge.style.display = 'inline-block';
+        }
+
+        function displayResponse(response) {
+            const responseEl = document.getElementById('responseDisplay');
+            const timestamp = new Date().toLocaleTimeString();
+            responseEl.textContent = `[${timestamp}] ${typeof response === 'object' ? JSON.stringify(response, null, 2) : response}`;
+        }
+
+        // Auth testing functions
+        async function testAuth() {
+            await makeRequest(`${API_BASE}/unread-count`, 'GET', null, true);
+        }
+
+        function clearAuth() {
+            document.getElementById('jwtToken').value = '';
+            displayResponse('JWT token cleared');
+        }
+
+        // Manual room joining for testing
+        function joinUserRoom() {
+            const testUserId = document.getElementById('testUserId').value;
+            if (!testUserId) {
+                displayResponse('Error: Please enter a test user ID');
+                return;
+            }
+            
+            if (!socket || !socket.connected) {
+                displayResponse('Error: Socket not connected. Please wait for connection.');
+                return;
+            }
+            
+            // Join the user-specific room
+            socket.emit('join_user_room', { userId: testUserId });
+            displayResponse(`Joining room for user: ${testUserId}`);
+        }
+
+        // Update all form user IDs to match the test user ID
+        function syncUserIds() {
+            const testUserId = document.getElementById('testUserId').value;
+            document.getElementById('inAppUserId').value = testUserId;
+            document.getElementById('combinedUserId').value = testUserId;
+            
+            const bulkIds = document.getElementById('bulkUserIds').value;
+            if (!bulkIds.includes(testUserId)) {
+                document.getElementById('bulkUserIds').value = testUserId + ',64f7b1234567890abcdef124';
+            }
+        }
+
+        // Protected endpoint functions
+        async function getUserNotifications() {
+            await makeRequest(`${API_BASE}?limit=10&page=1`, 'GET', null, true);
+        }
+
+        async function getUnreadCount() {
+            await makeRequest(`${API_BASE}/unread-count`, 'GET', null, true);
+        }
+
+        async function markAllAsRead() {
+            await makeRequest(`${API_BASE}/mark-all-read`, 'PATCH', null, true);
+        }
+
+        async function makeRequest(url, method = 'GET', body = null, requiresAuth = false) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                };
+                
+                // Add JWT token if available and required
+                const token = document.getElementById('jwtToken').value;
+                if (requiresAuth && token) {
+                    options.headers['Authorization'] = `Bearer ${token}`;
+                } else if (requiresAuth && !token) {
+                    displayResponse('Error: JWT token required for this endpoint');
+                    return;
+                }
+                
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+                
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                displayResponse(data);
+                return data;
+            } catch (error) {
+                displayResponse('Error: ' + error.message);
+                console.error('Request failed:', error);
+            }
+        }
+
+        async function sendInAppNotification() {
+            const payload = {
+                userId: document.getElementById('inAppUserId').value,
+                title: document.getElementById('inAppTitle').value,
+                message: document.getElementById('inAppMessage').value,
+                type: document.getElementById('inAppType').value,
+                priority: document.getElementById('inAppPriority').value,
+                category: 'general',
+                actionButton: {
+                    text: 'View Details',
+                    url: 'https://example.com/details'
+                }
+            };
+
+            await makeRequest(`${API_BASE}/send/in-app`, 'POST', payload);
+        }
+
+        async function sendEmailNotification() {
+            const payload = {
+                email: document.getElementById('emailAddress').value,
+                subject: document.getElementById('emailSubject').value,
+                message: document.getElementById('emailMessage').value,
+                priority: document.getElementById('emailPriority').value,
+                actionButton: {
+                    text: 'View Details',
+                    url: 'https://example.com/details'
+                }
+            };
+
+            await makeRequest(`${API_BASE}/send/email`, 'POST', payload);
+        }
+
+        async function sendCombinedNotification() {
+            const payload = {
+                userId: document.getElementById('combinedUserId').value,
+                title: document.getElementById('combinedTitle').value,
+                subject: document.getElementById('combinedSubject').value,
+                message: document.getElementById('combinedMessage').value,
+                priority: document.getElementById('combinedPriority').value,
+                type: 'info',
+                category: 'general',
+                actionButton: {
+                    text: 'Take Action',
+                    url: 'https://example.com/action'
+                }
+            };
+
+            await makeRequest(`${API_BASE}/send/combined`, 'POST', payload);
+        }
+
+        async function sendBulkNotification() {
+            const userIdsText = document.getElementById('bulkUserIds').value;
+            const userIds = userIdsText.split(',').map(id => id.trim()).filter(id => id);
+            
+            const payload = {
+                userIds: userIds,
+                title: document.getElementById('bulkTitle').value,
+                message: document.getElementById('bulkMessage').value,
+                type: 'system',
+                priority: 'medium',
+                category: 'system'
+            };
+
+            if (document.getElementById('bulkSendEmail').checked) {
+                payload.sendEmail = true;
+                payload.emailSubject = document.getElementById('bulkEmailSubject').value;
+            }
+
+            await makeRequest(`${API_BASE}/send/bulk`, 'POST', payload);
+        }
+
+        // Quick test functions
+        async function quickTestAll() {
+            const testUserId = '64f7b1234567890abcdef123';
+            
+            // Test in-app
+            await makeRequest(`${API_BASE}/send/in-app`, 'POST', {
+                userId: testUserId,
+                title: 'Quick Test - In-App',
+                message: 'This is a quick test of the in-app notification system.',
+                priority: 'medium'
+            });
+            
+            setTimeout(async () => {
+                // Test email
+                await makeRequest(`${API_BASE}/send/email`, 'POST', {
+                    email: 'test@example.com',
+                    subject: 'Quick Test - Email',
+                    message: 'This is a quick test of the email notification system.',
+                    priority: 'high'
+                });
+            }, 1000);
+            
+            setTimeout(async () => {
+                // Test combined
+                await makeRequest(`${API_BASE}/send/combined`, 'POST', {
+                    userId: testUserId,
+                    title: 'Quick Test - Combined',
+                    subject: 'Quick Test - Combined Email',
+                    message: 'This is a quick test of the combined notification system.',
+                    priority: 'urgent'
+                });
+            }, 2000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Don't auto-initialize socket - requires manual auth
+            updateConnectionStatus(false);
+            
+            // Pre-fill some test data with the same user ID
+            const testUserId = '64f7b1234567890abcdef123';
+            
+            document.getElementById('testUserId').value = testUserId;
+            document.getElementById('inAppUserId').value = testUserId;
+            document.getElementById('inAppTitle').value = 'Test Notification';
+            document.getElementById('inAppMessage').value = 'This is a test notification message from the web interface.';
+            
+            document.getElementById('emailAddress').value = 'test@example.com';
+            document.getElementById('emailSubject').value = 'Test Email Notification';
+            document.getElementById('emailMessage').value = 'This is a test email notification sent from the web interface.';
+            
+            document.getElementById('combinedUserId').value = testUserId;
+            document.getElementById('combinedTitle').value = 'Combined Test';
+            document.getElementById('combinedSubject').value = 'Combined Test - Email Subject';
+            document.getElementById('combinedMessage').value = 'This combined notification will appear both in-app and via email.';
+            
+            document.getElementById('bulkUserIds').value = `${testUserId},64f7b1234567890abcdef124`;
+            document.getElementById('bulkTitle').value = 'Bulk Notification Test';
+            document.getElementById('bulkMessage').value = 'This is a bulk notification sent to multiple users.';
+            document.getElementById('bulkEmailSubject').value = 'Bulk Email Notification';
+        });
+    </script>
+
+    <!-- Quick Test Buttons -->
+    <div style="position: fixed; bottom: 20px; right: 20px;">
+        <button onclick="quickTestAll()" class="success">🚀 Quick Test All</button>
+        <button onclick="location.reload()" class="warning">🔄 Reset Page</button>
+    </div>
+</body>
+</html>

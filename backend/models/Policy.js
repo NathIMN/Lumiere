@@ -1,0 +1,192 @@
+import mongoose from "mongoose";
+
+const PolicySchema = new mongoose.Schema(
+  {
+    policyId: {
+      type: String,
+      unique: true,
+      trim: true,
+      uppercase: true,
+      // Will be auto-generated based on policy type and category
+    },
+    policyType: {
+      type: String,
+      required: [true, "Policy type is required"],
+      enum: {
+        values: ["life", "vehicle"],
+        message: "Invalid policy type. Must be either 'life' or 'vehicle'",
+      },
+    },
+    policyCategory: {
+      type: String,
+      required: [true, "Policy category is required"],
+      enum: ["individual", "group"],
+    },
+    insuranceAgent: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Insurance agent is required"],
+    },
+    coverage: {
+      coverageAmount: {
+        type: Number,
+        required: [true, "Coverage amount is required"],
+        min: [0, "Coverage amount cannot be negative"],
+      },
+      deductible: {
+        type: Number,
+        default: 0,
+        min: [0, "Deductible cannot be negative"],
+      },
+      // Life policy coverage types
+      typeLife: [
+        {
+          type: String,
+          enum: ["life_cover", "hospitalization", "surgical_benefits", "outpatient", "prescription_drugs"],
+        }
+      ],
+      // Vehicle policy coverage types
+      typeVehicle: [
+        {
+          type: String,
+          enum: ["collision", "liability", "comprehensive", "personal_accident"],
+        }
+      ],
+      coverageDetails: [
+        {
+          type: {
+            type: String,
+            required: true,
+          },
+          description: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          limit: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+        },
+      ],
+    },
+    validity: {
+      startDate: {
+        type: Date,
+        required: [true, "Policy start date is required"],
+      },
+      endDate: {
+        type: Date,
+        required: [true, "Policy end date is required"],
+        validate: {
+          validator: function (v) {
+            return v > this.validity.startDate;
+          },
+          message: "End date must be after start date",
+        },
+      },
+    },
+    premium: {
+      amount: {
+        type: Number,
+        required: [true, "Premium amount is required"],
+        min: [0, "Premium amount cannot be negative"],
+      },
+      frequency: {
+        type: String,
+        required: [true, "Premium frequency is required"],
+        enum: ["monthly", "quarterly", "semi-annual", "annual"],
+      },
+    },
+    beneficiaries: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        //required: true,
+      },
+    ],
+    status: {
+      type: String,
+      default: "active",
+      enum: ["active", "expired", "cancelled", "suspended", "pending"],
+    },
+    documents: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Document",
+      },
+    ],
+    notes: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Notes cannot exceed 500 characters"],
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Validation middleware to ensure correct coverage types based on policy type
+PolicySchema.pre("save", function (next) {
+  if (this.policyType === "life") {
+    // For life policies, typeLife is required and typeVehicle should be empty
+    if (!this.coverage.typeLife || this.coverage.typeLife.length === 0) {
+      return next(new Error("Life policy must have at least one life coverage type"));
+    }
+    if (this.coverage.typeVehicle && this.coverage.typeVehicle.length > 0) {
+      return next(new Error("Life policy cannot have vehicle coverage types"));
+    }
+  } else if (this.policyType === "vehicle") {
+    // For vehicle policies, typeVehicle is required and typeLife should be empty
+    if (!this.coverage.typeVehicle || this.coverage.typeVehicle.length === 0) {
+      return next(new Error("Vehicle policy must have at least one vehicle coverage type"));
+    }
+    if (this.coverage.typeLife && this.coverage.typeLife.length > 0) {
+      return next(new Error("Vehicle policy cannot have life coverage types"));
+    }
+  }
+  next();
+});
+
+// Auto-generate policyId based on policy type and category
+PolicySchema.pre("save", async function (next) {
+  if (this.isNew && !this.policyId) {
+    try {
+      // Determine prefix based on policy type and category
+      const typePrefix = this.policyType === "life" ? "L" : "V";
+      const categoryPrefix = this.policyCategory === "individual" ? "I" : "G";
+      const prefix = typePrefix + categoryPrefix;
+
+      // Find the highest existing policyId for this prefix
+      const lastPolicy = await this.constructor
+        .findOne({ policyId: new RegExp(`^${prefix}`) })
+        .sort({ policyId: -1 })
+        .select("policyId");
+
+      let nextNumber = 1;
+      if (lastPolicy && lastPolicy.policyId) {
+        const currentNumber = parseInt(lastPolicy.policyId.substring(2));
+        nextNumber = currentNumber + 1;
+      }
+
+      this.policyId = `${prefix}${nextNumber.toString().padStart(4, "0")}`;
+    } catch (error) {
+      return next(error);
+    }
+  }
+  next();
+});
+
+// Indexes
+//PolicySchema.index({ policyId: 1 });
+PolicySchema.index({ policyType: 1 });
+PolicySchema.index({ policyCategory: 1 });
+PolicySchema.index({ beneficiaries: 1 });
+PolicySchema.index({ status: 1 });
+PolicySchema.index({ "validity.endDate": 1 });
+PolicySchema.index({ insuranceAgent: 1 });
+
+const Policy = mongoose.model("Policy", PolicySchema);
+export default Policy;

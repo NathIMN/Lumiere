@@ -1,0 +1,171 @@
+{
+  "register_employee": {
+    "method": "POST",
+    "url": "http://localhost:5000/api/v1/users/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "email": "john.doe@janashakthi.lk",
+      "password": "SecurePass123!",
+      "role": "employee",
+      "profile": {
+        "firstName": "John",
+        "lastName": "Doe",
+        "dateOfBirth": "1990-05-15",
+        "nic": "901351234V",
+        "phoneNumber": "0771234567",
+        "address": "123 Main Street, Colombo 03"
+      },
+      "employment": {
+        "department": "Information Technology",
+        "designation": "Software Developer",
+        "employmentType": "permanent",
+        "joinDate": "2023-01-15",
+        "salary": 75000
+      },
+      "dependents": [
+        {
+          "name": "Jane Doe",
+          "relationship": "spouse",
+          "dateOfBirth": "1992-08-20",
+          "nic": "921234567V"
+        },
+        {
+          "name": "Mike Doe",
+          "relationship": "child",
+          "dateOfBirth": "2020-03-10"
+        }
+      ],
+      "bankDetails": {
+        "accountHolderName": "John Doe",
+        "bankName": "Commercial Bank",
+        "branchName": "Colombo Main",
+        "accountNumber": "12345678901"
+      }
+    }
+  },
+  "register_hr_officer": {
+    "method": "POST",
+    "url": "http://localhost:5000/api/v1/users/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "email": "hr.manager@janashakthi.lk",
+      "password": "HRPass123!",
+      "role": "hr_officer",
+      "profile": {
+        "firstName": "Sarah",
+        "lastName": "Silva",
+        "dateOfBirth": "1985-12-10",
+        "nic": "851234567V",
+        "phoneNumber": "+94712345678",
+        "address": "456 HR Avenue, Colombo 07"
+      }
+    }
+  },
+  "register_insurance_agent": {
+    "method": "POST",
+    "url": "http://localhost:5000/api/v1/users/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "email": "agent@slic.lk",
+      "password": "AgentPass123!",
+      "role": "insurance_agent",
+      "profile": {
+        "firstName": "Priya",
+        "lastName": "Fernando",
+        "dateOfBirth": "1988-07-22",
+        "nic": "881234567V",
+        "phoneNumber": "0701234567",
+        "address": "789 Insurance Street, Colombo 04"
+      },
+      "insuranceProvider": {
+        "companyName": "Sri Lanka Insurance Corporation",
+        "agentId": "SLIC001",
+        "licenseNumber": "LIC123456",
+        "contactEmail": "priya.fernando@slic.lk",
+        "contactPhone": "0112345678"
+      }
+    }
+  },
+  "register_admin": {
+    "method": "POST",
+    "url": "http://localhost:5000/api/v1/users/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "email": "admin@janashakthi.lk",
+      "password": "AdminPass123!",
+      "role": "admin",
+      "profile": {
+        "firstName": "Admin",
+        "lastName": "User",
+        "dateOfBirth": "1980-01-01",
+        "nic": "800123456V",
+        "phoneNumber": "+94701234567",
+        "address": "Admin Office, Colombo 01"
+      }
+    }
+  },
+  "login_examples": {
+    "method": "POST",
+    "url": "http://localhost:5000/api/v1/users/login",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "employee_login": {
+      "email": "john.doe@janashakthi.lk",
+      "password": "SecurePass123!"
+    },
+    "hr_login": {
+      "email": "hr.manager@janashakthi.lk",
+      "password": "HRPass123!"
+    },
+    "agent_login": {
+      "email": "agent@slic.lk",
+      "password": "AgentPass123!"
+    },
+    "admin_login": {
+      "email": "admin@janashakthi.lk",
+      "password": "AdminPass123!"
+    }
+  },
+  "minimal_employee_register": {
+    "method": "POST",
+    "url": "http://localhost:5000/api/v1/users/register",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "email": "simple@janashakthi.lk",
+      "password": "SimplePass123!",
+      "role": "employee",
+      "profile": {
+        "firstName": "Simple",
+        "lastName": "User",
+        "dateOfBirth": "1995-06-15",
+        "nic": "951234567V",
+        "phoneNumber": "0771111111",
+        "address": "Simple Address, Colombo"
+      },
+      "employment": {
+        "department": "Finance",
+        "designation": "Accountant",
+        "employmentType": "contract",
+        "joinDate": "2024-01-01",
+        "salary": 50000
+      },
+      "bankDetails": {
+        "accountHolderName": "Simple User",
+        "bankName": "People's Bank",
+        "branchName": "Colombo",
+        "accountNumber": "987654321"
+      }
+    }
+  }
+}

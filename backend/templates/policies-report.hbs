@@ -1,0 +1,108 @@
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Policy Number</th>
+            <th>Policyholder</th>
+            <th>Policy Type</th>
+            <th>Premium Amount</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Agent</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each policies}}
+        <tr>
+            <td>{{policyNumber}}</td>
+            <td>{{policyholderName}}</td>
+            <td>{{policyType}}</td>
+            <td>${{formatCurrency premiumAmount}}</td>
+            <td>{{formatDate startDate}}</td>
+            <td>{{formatDate endDate}}</td>
+            <td><span class="status {{status}}">{{status}}</span></td>
+            <td>{{agentName}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+
+{{#if policyStats}}
+<div class="page-break"></div>
+<h3>Policy Statistics</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Policy Type</th>
+            <th>Active Policies</th>
+            <th>Total Premium</th>
+            <th>Average Premium</th>
+            <th>Renewal Rate</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each policyStats}}
+        <tr>
+            <td>{{policyType}}</td>
+            <td>{{activePolicies}}</td>
+            <td>${{formatCurrency totalPremium}}</td>
+            <td>${{formatCurrency averagePremium}}</td>
+            <td>{{renewalRate}}%</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if monthlyTrends}}
+<h3>Monthly Premium Trends</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Month</th>
+            <th>New Policies</th>
+            <th>Premium Collected</th>
+            <th>Renewals</th>
+            <th>Cancellations</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each monthlyTrends}}
+        <tr>
+            <td>{{month}}</td>
+            <td>{{newPolicies}}</td>
+            <td>${{formatCurrency premiumCollected}}</td>
+            <td>{{renewals}}</td>
+            <td>{{cancellations}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
+
+{{#if expiringPolicies}}
+<div class="page-break"></div>
+<h3>Policies Expiring Soon (Next 30 Days)</h3>
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Policy Number</th>
+            <th>Policyholder</th>
+            <th>Expiry Date</th>
+            <th>Premium Amount</th>
+            <th>Days Until Expiry</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{#each expiringPolicies}}
+        <tr>
+            <td>{{policyNumber}}</td>
+            <td>{{policyholderName}}</td>
+            <td>{{formatDate expiryDate}}</td>
+            <td>${{formatCurrency premiumAmount}}</td>
+            <td>{{daysUntilExpiry}}</td>
+        </tr>
+        {{/each}}
+    </tbody>
+</table>
+{{/if}}
