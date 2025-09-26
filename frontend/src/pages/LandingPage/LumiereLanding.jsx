@@ -27,8 +27,8 @@ export const LumiereLanding = () => {
         disableRotation={false}
         className="absolute inset-0 z-0 h-[800px]"
       />
- <DrawCircleText />
       <HeroLanding />
+      <DrawCircleText />
 
 {/* 
       <ScrollStack>

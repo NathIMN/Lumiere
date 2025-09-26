@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 export const DrawCircleText = () => {
   return (
-    <div className="grid place-content-center bg-emerald-950 px-4 py-24 text-yellow-50">
+    <div className="grid place-content-center bg-red-900 px-4 py-24 text-yellow-50">
       <h1 className="max-w-3xl text-center text-5xl leading-snug">
         Level up your{" "}
         <span className="relative inline-block px-2">
@@ -29,7 +29,7 @@ export const DrawCircleText = () => {
                  Q330 70, 260 68
                  Q160 70, 90 68
                  Q10 58, 15 40 Z"
-              stroke="#FACC15"
+              stroke="#f2a116ff"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -51,7 +51,7 @@ export const DrawCircleText = () => {
                  Q325 72, 255 70
                  Q155 72, 85 70
                  Q15 60, 20 42 Z"
-              stroke="#FACC15"
+              stroke="#ba741fff"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
