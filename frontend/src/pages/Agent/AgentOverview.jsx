@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import insuranceApiService from '../../services/insurance-api';
 import {
-  BarChart3, TrendingUp, Clock, Users, DollarSign, AlertTriangle, CheckCircle, 
-  XCircle, Target, Activity, Zap, Brain, Bell, Search, Filter, Eye, 
+  BarChart3, TrendingUp, Clock, Users, DollarSign, AlertTriangle, CheckCircle,
+  XCircle, Target, Activity, Zap, Brain, Bell, Search, Filter, Eye,
   MessageSquare, ThumbsUp, ThumbsDown, Star, Award, Calendar, Globe,
-  Smartphone, Shield, Settings, RefreshCw, Download, Upload, Mic, 
+  Smartphone, Shield, Settings, RefreshCw, Download, Upload, Mic,
   Moon, Sun, Layout, Grid3X3, List, MoreHorizontal, ChevronRight,
   PlayCircle, PauseCircle, Volume2, VolumeX, Maximize2, Minimize2,
   Flag, Info, FileText, Home, ArrowUp, ArrowDown
@@ -31,7 +32,7 @@ const AgentOverview = () => {
   const [timeRange, setTimeRange] = useState('24h');
 
   // ==================== BACKEND API CALLS USING EXISTING ENDPOINTS ====================
-  
+
   const loadAllClaimsData = useCallback(async () => {
     try {
       // Get all claims with different statuses
@@ -41,6 +42,8 @@ const AgentOverview = () => {
         insuranceApiService.getClaimsRequiringAction()
       ]);
 
+      console.log("BLAAAAAAA: ", allClaims);
+
       return { allClaims, claimsStats, claimsRequiringAction };
     } catch (error) {
       console.error('Error loading claims data:', error);
@@ -49,27 +52,27 @@ const AgentOverview = () => {
   }, []);
 
   const processRealTimeStats = useCallback((allClaims, claimsStats) => {
-    const claimsArray = Array.isArray(allClaims) ? allClaims : 
-                      allClaims?.claims || allClaims?.data || [];
-    
+    const claimsArray = Array.isArray(allClaims) ? allClaims :
+      allClaims?.claims || allClaims?.data || [];
+
     const today = new Date().toDateString();
-    
+
     // Filter claims by today's activity
-    const todaysClaims = claimsArray.filter(claim => 
+    const todaysClaims = claimsArray.filter(claim =>
       new Date(claim.updatedAt || claim.createdAt).toDateString() === today
     );
 
-    const approvedToday = claimsArray.filter(claim => 
-      claim.claimStatus === 'approved' && 
+    const approvedToday = claimsArray.filter(claim =>
+      claim.claimStatus === 'approved' &&
       new Date(claim.finalizedAt || claim.updatedAt).toDateString() === today
     );
 
-    const rejectedToday = claimsArray.filter(claim => 
-      claim.claimStatus === 'rejected' && 
+    const rejectedToday = claimsArray.filter(claim =>
+      claim.claimStatus === 'rejected' &&
       new Date(claim.finalizedAt || claim.updatedAt).toDateString() === today
     );
 
-    const pendingClaims = claimsArray.filter(claim => 
+    const pendingClaims = claimsArray.filter(claim =>
       ['employee', 'hr', 'insurer'].includes(claim.claimStatus)
     );
 
@@ -108,20 +111,20 @@ const AgentOverview = () => {
   }, []);
 
   const processPerformanceMetrics = useCallback((allClaims) => {
-    const claimsArray = Array.isArray(allClaims) ? allClaims : 
-                      allClaims?.claims || allClaims?.data || [];
-    
+    const claimsArray = Array.isArray(allClaims) ? allClaims :
+      allClaims?.claims || allClaims?.data || [];
+
     // Get processed claims only
-    const processedClaims = claimsArray.filter(claim => 
+    const processedClaims = claimsArray.filter(claim =>
       ['approved', 'rejected'].includes(claim.claimStatus)
     );
 
     const totalClaims = claimsArray.length;
-    const processingRate = totalClaims > 0 ? 
+    const processingRate = totalClaims > 0 ?
       Math.round((processedClaims.length / totalClaims) * 100) : 0;
 
     // Calculate average processing time (simplified)
-    const avgProcessingTime = processedClaims.length > 0 ? 
+    const avgProcessingTime = processedClaims.length > 0 ?
       processedClaims.reduce((acc, claim) => {
         const created = new Date(claim.createdAt);
         const updated = new Date(claim.updatedAt);
@@ -143,11 +146,11 @@ const AgentOverview = () => {
   }, []);
 
   const processUrgentClaims = useCallback((allClaims) => {
-    const claimsArray = Array.isArray(allClaims) ? allClaims : 
-                      allClaims?.claims || allClaims?.data || [];
+    const claimsArray = Array.isArray(allClaims) ? allClaims :
+      allClaims?.claims || allClaims?.data || [];
 
     // Filter for claims requiring agent attention
-    const agentClaims = claimsArray.filter(claim => 
+    const agentClaims = claimsArray.filter(claim =>
       claim.claimStatus === 'insurer'
     );
 
@@ -157,20 +160,20 @@ const AgentOverview = () => {
         const daysSinceCreated = Math.floor(
           (new Date() - new Date(claim.createdAt)) / (1000 * 60 * 60 * 24)
         );
-        
+
         const amount = claim.claimAmount?.requested || 0;
         const isUrgent = amount > 25000 || daysSinceCreated > 3;
-        
+
         return {
           ...claim,
           daysOverdue: Math.max(0, daysSinceCreated - 3),
           isUrgent,
-          employeeName: claim.employeeId ? 
-            `${claim.employeeId.profile?.firstName || claim.employeeId.firstName || 'Unknown'} ${claim.employeeId.profile?.lastName || claim.employeeId.lastName || 'Employee'}` : 
+          employeeName: claim.employeeId ?
+            `${claim.employeeId.profile?.firstName || claim.employeeId.firstName || 'Unknown'} ${claim.employeeId.profile?.lastName || claim.employeeId.lastName || 'Employee'}` :
             'Unknown Employee',
-          priority: amount > 100000 ? 'critical' : 
-                   amount > 50000 ? 'high' : 
-                   daysSinceCreated > 7 ? 'high' : 'medium'
+          priority: amount > 100000 ? 'critical' :
+            amount > 50000 ? 'high' :
+              daysSinceCreated > 7 ? 'high' : 'medium'
         };
       })
       .filter(claim => claim.isUrgent)
@@ -188,30 +191,38 @@ const AgentOverview = () => {
   }, []);
 
   const processWorkloadData = useCallback((allClaims) => {
-    const claimsArray = Array.isArray(allClaims) ? allClaims : 
-                      allClaims?.claims || allClaims?.data || [];
+    const claimsArray = Array.isArray(allClaims) ? allClaims :
+      allClaims?.claims || allClaims?.data || [];
 
-    const pendingClaims = claimsArray.filter(claim => 
+    const pendingClaims = claimsArray.filter(claim =>
       ['employee', 'hr', 'insurer'].includes(claim.claimStatus)
     );
-    
+
     const totalClaims = claimsArray.length;
-    const currentLoad = totalClaims > 0 ? 
+    const currentLoad = totalClaims > 0 ?
       Math.min(100, Math.round((pendingClaims.length / totalClaims) * 100)) : 0;
 
     // Analyze submission patterns for peak hours
+    console.log(claimsArray)
     const hourCounts = {};
     claimsArray.forEach(claim => {
+      //console.log("blaaaa: ",hour);
       const hour = new Date(claim.createdAt).getHours();
+      
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
     });
 
-    const peakHour = Object.keys(hourCounts).reduce((a, b) => 
+    console.log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    console.log(hourCounts);
+    if(hourCounts.length == null)
+    hourCounts[0] = 1;
+
+    const peakHour = Object.keys(hourCounts)?.reduce((a, b) =>
       hourCounts[a] > hourCounts[b] ? a : b
     );
-    
+
     const peakHours = peakHour ? `${peakHour}:00 - ${parseInt(peakHour) + 1}:00` : 'N/A';
-    const optimalTime = peakHour ? 
+    const optimalTime = peakHour ?
       `${(parseInt(peakHour) + 12) % 24}:00 - ${(parseInt(peakHour) + 13) % 24}:00` : 'N/A';
 
     return {
@@ -224,13 +235,13 @@ const AgentOverview = () => {
   }, []);
 
   const generateAIRecommendations = useCallback((allClaims, urgentClaims) => {
-    const claimsArray = Array.isArray(allClaims) ? allClaims : 
-                      allClaims?.claims || allClaims?.data || [];
+    const claimsArray = Array.isArray(allClaims) ? allClaims :
+      allClaims?.claims || allClaims?.data || [];
 
     const recommendations = [];
 
     // High-value claims recommendation
-    const highValueClaims = claimsArray.filter(claim => 
+    const highValueClaims = claimsArray.filter(claim =>
       (claim.claimAmount?.requested || 0) > 50000 && claim.claimStatus === 'insurer'
     );
 
@@ -275,9 +286,9 @@ const AgentOverview = () => {
           title: 'Batch Process Similar Claims',
           description: `You have ${similarClaims.length} similar claims that could be processed together for improved efficiency.`,
           action: 'Start Batch Processing',
-          metadata: { 
-            type: `${similarClaims[0].claimType} - ${similarClaims[0].lifeClaimOption || similarClaims[0].vehicleClaimOption}`, 
-            count: similarClaims.length 
+          metadata: {
+            type: `${similarClaims[0].claimType} - ${similarClaims[0].lifeClaimOption || similarClaims[0].vehicleClaimOption}`,
+            count: similarClaims.length
           }
         });
       }
@@ -286,8 +297,8 @@ const AgentOverview = () => {
     // Performance improvement recommendation
     const processedThisWeek = claimsArray.filter(claim => {
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      return ['approved', 'rejected'].includes(claim.claimStatus) && 
-             new Date(claim.updatedAt) >= weekAgo;
+      return ['approved', 'rejected'].includes(claim.claimStatus) &&
+        new Date(claim.updatedAt) >= weekAgo;
     });
 
     if (processedThisWeek.length < 5 && insurerClaims.length > 0) {
@@ -308,8 +319,8 @@ const AgentOverview = () => {
     const notifications = [];
 
     // Claims requiring action notification
-    const actionClaims = Array.isArray(claimsRequiringAction) ? claimsRequiringAction : 
-                        claimsRequiringAction?.claims || [];
+    const actionClaims = Array.isArray(claimsRequiringAction) ? claimsRequiringAction :
+      claimsRequiringAction?.claims || [];
 
     if (actionClaims.length > 0) {
       notifications.push({
@@ -380,11 +391,11 @@ const AgentOverview = () => {
     } finally {
       if (showLoading) setLoading(false);
     }
-  }, [loadAllClaimsData, processRealTimeStats, processPerformanceMetrics, 
-      processUrgentClaims, processWorkloadData, generateAIRecommendations, processNotifications]);
+  }, [loadAllClaimsData, processRealTimeStats, processPerformanceMetrics,
+    processUrgentClaims, processWorkloadData, generateAIRecommendations, processNotifications]);
 
   // ==================== EFFECTS ====================
-  
+
   // Real-time updates
   useEffect(() => {
     if (isLive) {
@@ -406,7 +417,7 @@ const AgentOverview = () => {
   }, [loadAllDashboardData]);
 
   // ==================== ACTION HANDLERS ====================
-  
+
   const handleQuickApprove = async () => {
     try {
       console.log('Opening quick approve for similar claims...');
@@ -435,7 +446,7 @@ const AgentOverview = () => {
         },
         format: 'pdf'
       };
-      
+
       // This would call your existing reports endpoint
       console.log('Report data prepared:', reportData);
     } catch (error) {
@@ -611,11 +622,10 @@ const AgentOverview = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold text-gray-900">{claim.claimId}</h4>
-                    <div className={`text-xs font-medium px-2 py-1 rounded-full ${
-                      claim.priority === 'critical' ? 'bg-red-100 text-red-700' :
-                      claim.priority === 'high' ? 'bg-amber-100 text-amber-700' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>
+                    <div className={`text-xs font-medium px-2 py-1 rounded-full ${claim.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                        claim.priority === 'high' ? 'bg-amber-100 text-amber-700' :
+                          'bg-yellow-100 text-yellow-700'
+                      }`}>
                       {claim.priority?.toUpperCase()}
                     </div>
                   </div>
@@ -635,7 +645,7 @@ const AgentOverview = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <button 
+                  <button
                     onClick={() => {
                       console.log('Navigating to claim:', claim.claimId);
                       // Navigate to claim details
@@ -672,11 +682,10 @@ const AgentOverview = () => {
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
           <div
-            className={`h-3 rounded-full transition-all duration-1000 ${
-              workloadData.currentLoad > 80 ? 'bg-gradient-to-r from-red-400 to-red-600' :
-              workloadData.currentLoad > 60 ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
-              'bg-gradient-to-r from-emerald-400 to-green-500'
-            }`}
+            className={`h-3 rounded-full transition-all duration-1000 ${workloadData.currentLoad > 80 ? 'bg-gradient-to-r from-red-400 to-red-600' :
+                workloadData.currentLoad > 60 ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                  'bg-gradient-to-r from-emerald-400 to-green-500'
+              }`}
             style={{ width: `${Math.min(100, workloadData.currentLoad || 0)}%` }}
           ></div>
         </div>
@@ -747,7 +756,7 @@ const AgentOverview = () => {
                       </div>
                     )}
                     {rec.action && (
-                      <button 
+                      <button
                         onClick={() => {
                           console.log('AI Recommendation action:', rec.action);
                           // Handle recommendation action
@@ -795,11 +804,10 @@ const AgentOverview = () => {
         ) : (
           notifications.slice(0, 6).map((notification, index) => (
             <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 hover:shadow-sm transition-shadow">
-              <div className={`p-2 rounded-lg ${
-                notification.type === 'urgent' ? 'bg-rose-100 text-rose-600' :
-                notification.type === 'info' ? 'bg-blue-100 text-blue-600' :
-                'bg-emerald-100 text-emerald-600'
-              }`}>
+              <div className={`p-2 rounded-lg ${notification.type === 'urgent' ? 'bg-rose-100 text-rose-600' :
+                  notification.type === 'info' ? 'bg-blue-100 text-blue-600' :
+                    'bg-emerald-100 text-emerald-600'
+                }`}>
                 <Bell className="w-4 h-4" />
               </div>
               <div className="flex-1">
@@ -807,10 +815,9 @@ const AgentOverview = () => {
                 <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
                 <div className="flex items-center justify-between mt-2">
                   <div className="text-xs text-gray-500">{notification.time}</div>
-                  <div className={`text-xs px-2 py-1 rounded ${
-                    notification.category === 'claims' ? 'bg-blue-100 text-blue-700' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
+                  <div className={`text-xs px-2 py-1 rounded ${notification.category === 'claims' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
                     {notification.category}
                   </div>
                 </div>
@@ -823,7 +830,7 @@ const AgentOverview = () => {
   );
 
   // ==================== MAIN RENDER ====================
-  
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
@@ -845,7 +852,7 @@ const AgentOverview = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      
+
       {/* Enhanced Header */}
       <div className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -864,11 +871,10 @@ const AgentOverview = () => {
               {/* Live Status Toggle */}
               <button
                 onClick={() => setIsLive(!isLive)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                  isLive 
-                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${isLive
+                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
                     : 'bg-gray-100 text-gray-600 border border-gray-300'
-                }`}
+                  }`}
               >
                 {isLive ? <PlayCircle className="w-4 h-4" /> : <PauseCircle className="w-4 h-4" />}
                 {isLive ? 'Live' : 'Paused'}
@@ -966,7 +972,7 @@ const AgentOverview = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Quick Action Cards */}
             <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200 hover:shadow-lg transition-shadow cursor-pointer"
-                 onClick={handleQuickApprove}>
+              onClick={handleQuickApprove}>
               <div className="text-center">
                 <div className="p-4 bg-emerald-200 rounded-full inline-block mb-4">
                   <CheckCircle className="w-8 h-8 text-emerald-700" />
@@ -980,7 +986,7 @@ const AgentOverview = () => {
             </div>
 
             <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl p-6 border border-blue-200 hover:shadow-lg transition-shadow cursor-pointer"
-                 onClick={handleSmartSearch}>
+              onClick={handleSmartSearch}>
               <div className="text-center">
                 <div className="p-4 bg-blue-200 rounded-full inline-block mb-4">
                   <Search className="w-8 h-8 text-blue-700" />
@@ -994,7 +1000,7 @@ const AgentOverview = () => {
             </div>
 
             <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-200 hover:shadow-lg transition-shadow cursor-pointer"
-                 onClick={handleOpenTeamChat}>
+              onClick={handleOpenTeamChat}>
               <div className="text-center">
                 <div className="p-4 bg-purple-200 rounded-full inline-block mb-4">
                   <MessageSquare className="w-8 h-8 text-purple-700" />
@@ -1008,7 +1014,7 @@ const AgentOverview = () => {
             </div>
 
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-200 hover:shadow-lg transition-shadow cursor-pointer"
-                 onClick={handleExportData}>
+              onClick={handleExportData}>
               <div className="text-center">
                 <div className="p-4 bg-amber-200 rounded-full inline-block mb-4">
                   <Download className="w-8 h-8 text-amber-700" />

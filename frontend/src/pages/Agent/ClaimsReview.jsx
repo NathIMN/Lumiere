@@ -64,7 +64,7 @@ const ClaimsReview = () => {
   // ==================== WORKFLOW STATUS CONSTANTS ====================
   const WORKFLOW_STATUSES = {
     EMPLOYEE_SUBMITTED: 'employee_submitted',
-    HR_REVIEW: 'hr_review', 
+    HR_REVIEW: 'hr_review',
     HR_APPROVED: 'hr_approved',
     SENT_TO_AGENT: 'sent_to_agent',
     AGENT_REVIEW: 'agent_review',
@@ -76,7 +76,7 @@ const ClaimsReview = () => {
 
   const CLAIM_DECISIONS = {
     APPROVED: 'approved',
-    REJECTED: 'rejected', 
+    REJECTED: 'rejected',
     RETURNED: 'returned'
   };
 
@@ -193,29 +193,38 @@ const ClaimsReview = () => {
   // ==================== WORKFLOW VALIDATION FUNCTIONS ====================
   const isClaimSentByHR = (claim) => {
     return claim.workflowStatus === WORKFLOW_STATUSES.SENT_TO_AGENT ||
-           claim.workflowStatus === WORKFLOW_STATUSES.AGENT_REVIEW ||
-           claim.hrStatus === 'approved' ||
-           claim.sentToAgent === true ||
-           claim.hrApproved === true;
+      claim.workflowStatus === WORKFLOW_STATUSES.AGENT_REVIEW ||
+      claim.hrStatus === 'approved' ||
+      claim.sentToAgent === true ||
+      claim.hrApproved === true;
   };
 
   const isClaimProcessedByAgent = (claim) => {
-    return claim.workflowStatus === WORKFLOW_STATUSES.AGENT_PROCESSED ||
-           claim.workflowStatus === WORKFLOW_STATUSES.SENT_TO_INSURER ||
-           claim.workflowStatus === WORKFLOW_STATUSES.COMPLETED ||
-           claim.agentDecision !== null ||
-           claim.agentStatus === 'processed' ||
-           [CLAIM_DECISIONS.APPROVED, CLAIM_DECISIONS.REJECTED, CLAIM_DECISIONS.RETURNED].includes(claim.claimStatus);
-  };
+  const status = (claim.claimStatus || '').toLowerCase();
+  const decision = (claim.agentDecision || '').toLowerCase();
+
+  const hasFinalStatus = ['approved', 'rejected', 'returned'].includes(status);
+  const hasAgentDecision = ['approved', 'rejected', 'returned'].includes(decision);
+  const processedFlag = claim.processedByAgent === true;
+  const processedWorkflow = [
+    WORKFLOW_STATUSES.AGENT_PROCESSED,
+    WORKFLOW_STATUSES.SENT_TO_INSURER,
+    WORKFLOW_STATUSES.COMPLETED
+  ].includes(claim.workflowStatus);
+
+  return hasFinalStatus || hasAgentDecision || processedFlag || processedWorkflow;
+};
+
+
+
 
   // ==================== TOAST NOTIFICATION ====================
   const showToast = (message, type = 'info') => {
     const toast = document.createElement('div');
-    toast.className = `fixed top-4 right-4 p-4 rounded-lg z-50 transition-all transform shadow-lg border ${
-      type === 'success' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-      type === 'error' ? 'bg-rose-100 text-rose-800 border-rose-300' :
-      'bg-sky-100 text-sky-800 border-sky-300'
-    }`;
+    toast.className = `fixed top-4 right-4 p-4 rounded-lg z-50 transition-all transform shadow-lg border ${type === 'success' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+        type === 'error' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+          'bg-sky-100 text-sky-800 border-sky-300'
+      }`;
     toast.textContent = message;
     document.body.appendChild(toast);
 
@@ -251,13 +260,13 @@ const ClaimsReview = () => {
       }
 
       const claimId = selectedClaim._id || selectedClaim.id;
-      
+
       await insuranceApiService.makeClaimDecision(claimId, decisionData);
-      
-      setPendingClaims(prev => prev.filter(claim => 
+
+      setPendingClaims(prev => prev.filter(claim =>
         (claim._id || claim.id) !== claimId
       ));
-      
+
       const updatedClaim = {
         ...selectedClaim,
         claimStatus: CLAIM_DECISIONS.APPROVED,
@@ -266,14 +275,14 @@ const ClaimsReview = () => {
         updatedAt: new Date().toISOString()
       };
       setProcessedClaims(prev => [updatedClaim, ...prev]);
-      
+
       showToast('Claim approved successfully! 🎉', 'success');
       resetForms();
       setShowModal(false);
 
     } catch (error) {
       console.error('Error approving claim:', error);
-      
+
       let errorMessage = 'Failed to approve claim';
       if (error.response?.status === 400 && error.response.data) {
         errorMessage = error.response.data.message || error.response.data.error || 'Invalid request data';
@@ -309,13 +318,13 @@ const ClaimsReview = () => {
       }
 
       const claimId = selectedClaim._id || selectedClaim.id;
-      
+
       await insuranceApiService.makeClaimDecision(claimId, decisionData);
 
-      setPendingClaims(prev => prev.filter(claim => 
+      setPendingClaims(prev => prev.filter(claim =>
         (claim._id || claim.id) !== claimId
       ));
-      
+
       const updatedClaim = {
         ...selectedClaim,
         claimStatus: CLAIM_DECISIONS.REJECTED,
@@ -354,13 +363,13 @@ const ClaimsReview = () => {
     setActionLoading(true);
     try {
       const claimId = selectedClaim._id || selectedClaim.id;
-      
+
       await insuranceApiService.returnClaim(claimId, returnForm.returnReason.trim());
 
-      setPendingClaims(prev => prev.filter(claim => 
+      setPendingClaims(prev => prev.filter(claim =>
         (claim._id || claim.id) !== claimId
       ));
-      
+
       const updatedClaim = {
         ...selectedClaim,
         claimStatus: CLAIM_DECISIONS.RETURNED,
@@ -416,51 +425,40 @@ const ClaimsReview = () => {
 
   // ==================== LOAD CLAIM DETAILS ====================
   const loadClaimDetails = async (claimId) => {
+  try {
+    setActionLoading(true);
+    const claimResp = await insuranceApiService.getClaimById(claimId);
+    let claimData = claimResp?.data || claimResp?.claim || claimResp;
+
+    let questionnaireResp = null;
     try {
-      setActionLoading(true);
-      
-      const claimResponse = await insuranceApiService.getClaimById(claimId);
-      
-      let questionnaireResponse = null;
-      try {
-        questionnaireResponse = await insuranceApiService.getQuestionnaireQuestions(claimId);
-      } catch (qError) {
-        console.log('No questionnaire found:', qError.message);
-      }
+      questionnaireResp = await insuranceApiService.getQuestionnaireQuestions(claimId);
+    } catch {}
 
-      let claimData = claimResponse;
-      if (claimResponse.success && claimResponse.data) {
-        claimData = claimResponse.data;
-      } else if (claimResponse.claim) {
-        claimData = claimResponse.claim;
-      }
+    const claimWithDetails = {
+      ...claimData,
+      questionnaire:
+        questionnaireResp?.questionnaire ||
+        questionnaireResp?.data ||
+        questionnaireResp ||
+        null,
+    };
 
-      const claimWithDetails = {
-        ...claimData,
-        questionnaire: questionnaireResponse?.questionnaire ||
-          questionnaireResponse?.data ||
-          questionnaireResponse ||
-          null
-      };
-
-      setSelectedClaim(claimWithDetails);
-    } catch (error) {
-      console.error('Error loading claim details:', error);
-      showToast('Error loading claim details: ' + error.message, 'error');
-    } finally {
-      setActionLoading(false);
-    }
-  };
+    setSelectedClaim(claimWithDetails);
+  } finally {
+    setActionLoading(false);
+  }
+};
 
   // ==================== **FIXED** LOAD FUNCTIONS ====================
-  
+
   const loadPendingClaims = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
     setError(null);
 
     try {
       let response;
-      
+
       try {
         response = await insuranceApiService.getClaims({
           workflowStatus: WORKFLOW_STATUSES.AGENT_REVIEW,
@@ -491,20 +489,23 @@ const ClaimsReview = () => {
       const uniqueClaimsData = removeDuplicateClaims(claimsData);
       console.log('Unique pending claims after dedup:', uniqueClaimsData.length);
 
-      const validPendingClaims = uniqueClaimsData.filter(claim => {
-        console.log(`Checking pending claim: ${claim.claimId}`, {
-          claimStatus: claim.claimStatus,
-          workflowStatus: claim.workflowStatus,
-          sentToAgent: claim.sentToAgent
-        });
+      const validPendingClaims = uniqueClaimsData.filter((claim) => {
+  const status = (claim.claimStatus || '').toLowerCase();
+  const awaitingAgent =
+    status === 'insurer' ||
+    claim.workflowStatus === WORKFLOW_STATUSES.SENT_TO_AGENT ||
+    claim.workflowStatus === WORKFLOW_STATUSES.AGENT_REVIEW ||
+    isClaimSentByHR(claim);
 
-        return (
-          claim.claimStatus === 'insurer' ||
-          claim.workflowStatus === WORKFLOW_STATUSES.AGENT_REVIEW ||
-          claim.workflowStatus === WORKFLOW_STATUSES.SENT_TO_AGENT ||
-          isClaimSentByHR(claim)
-        );
-      });
+  const notProcessed =
+    !isClaimProcessedByAgent(claim) &&
+    !['approved', 'rejected', 'returned'].includes(status) &&
+    claim.processedByAgent !== true;
+
+  return awaitingAgent && notProcessed;
+});
+
+
 
       console.log('Valid pending claims after filtering:', validPendingClaims.length);
 
@@ -532,16 +533,16 @@ const ClaimsReview = () => {
       console.log('Loading processed claims...');
 
       const [approvedResponse, rejectedResponse] = await Promise.all([
-        insuranceApiService.getClaims({ 
+        insuranceApiService.getClaims({
           claimStatus: 'approved',
           processedByAgent: true,
-          limit: 50 
+          limit: 50
         }).catch(() => insuranceApiService.getClaims({ claimStatus: 'approved', limit: 50 })),
-        
-        insuranceApiService.getClaims({ 
+
+        insuranceApiService.getClaims({
           claimStatus: 'rejected',
           processedByAgent: true,
-          limit: 50 
+          limit: 50
         }).catch(() => insuranceApiService.getClaims({ claimStatus: 'rejected', limit: 50 }))
       ]);
 
@@ -567,11 +568,11 @@ const ClaimsReview = () => {
 
       // Try to load returned claims (if supported)
       try {
-        const returnedResponse = await insuranceApiService.getClaims({ 
-          claimStatus: 'returned', 
-          limit: 50 
+        const returnedResponse = await insuranceApiService.getClaims({
+          claimStatus: 'returned',
+          limit: 50
         });
-        
+
         if (returnedResponse.success && returnedResponse.data) {
           allProcessedClaims.push(...returnedResponse.data);
         } else if (returnedResponse.claims) {
@@ -589,19 +590,26 @@ const ClaimsReview = () => {
       const uniqueProcessedClaims = removeDuplicateClaims(allProcessedClaims);
       console.log('Unique processed claims after dedup:', uniqueProcessedClaims.length);
 
-      const validProcessedClaims = uniqueProcessedClaims.filter(claim => {
-        const wasProcessedByAgent = isClaimProcessedByAgent(claim);
-        const wasSentByHR = isClaimSentByHR(claim) || claim.claimStatus !== 'draft';
-        
-        console.log(`Checking processed claim: ${claim.claimId}`, {
-          wasProcessedByAgent,
-          wasSentByHR,
-          claimStatus: claim.claimStatus,
-          agentDecision: claim.agentDecision
-        });
+      const validProcessedClaims = uniqueProcessedClaims.filter((claim) => {
+  const status = (claim.claimStatus || '').toLowerCase();
+  const decision = (claim.agentDecision || '').toLowerCase();
+  const isFinalStatus = ['approved', 'rejected', 'returned'].includes(status);
+  const isFinalDecision = ['approved', 'rejected', 'returned'].includes(decision);
 
-        return wasProcessedByAgent && wasSentByHR;
-      });
+  return (
+    isFinalStatus ||
+    isFinalDecision ||
+    claim.processedByAgent === true ||
+    [
+      WORKFLOW_STATUSES.AGENT_PROCESSED,
+      WORKFLOW_STATUSES.SENT_TO_INSURER,
+      WORKFLOW_STATUSES.COMPLETED
+    ].includes(claim.workflowStatus)
+  );
+});
+
+
+
 
       console.log('Valid processed claims after filtering:', validProcessedClaims.length);
 
@@ -619,16 +627,26 @@ const ClaimsReview = () => {
       loadPendingClaims(showLoading),
       loadProcessedClaims()
     ]);
+    // remove overlaps between pending and processed
+// ensure no overlap: remove any item from pending that exists in processed
+setPendingClaims((prevPending) => {
+  const processedIds = new Set(
+    (processedClaims || []).map((c) => c._id || c.id || c.claimId)
+  );
+  return prevPending.filter((p) => !processedIds.has(p._id || p.id || p.claimId));
+});
+
+
   }, [loadPendingClaims, loadProcessedClaims]);
 
   // ==================== **FIXED** COMPUTED VALUES ====================
-  
+
   // **FIX 3:** Filter processed claims properly without duplicates
   const filteredProcessedClaims = useMemo(() => {
     return processedClaims.filter(claim => {
       // Search filter
       const searchLower = searchTerm.toLowerCase();
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         claim.claimId?.toLowerCase().includes(searchLower) ||
         `${claim.employeeId?.firstName || ''} ${claim.employeeId?.lastName || ''}`.toLowerCase().includes(searchLower) ||
         claim.claimType?.toLowerCase().includes(searchLower);
@@ -646,7 +664,7 @@ const ClaimsReview = () => {
     console.log('Active view:', activeView);
     console.log('Pending claims count:', pendingClaims.length);
     console.log('Filtered processed claims count:', filteredProcessedClaims.length);
-    
+
     if (activeView === 'pending') {
       return pendingClaims;
     } else {
@@ -662,8 +680,8 @@ const ClaimsReview = () => {
   const EnhancedClaimCard = ({ claim }) => {
     const priorityConfig = PRIORITY_CONFIG[claim.priority] || PRIORITY_CONFIG['low'];
     const PriorityIcon = priorityConfig.icon;
-    
-    const statusConfig = activeView === 'processed' 
+
+    const statusConfig = activeView === 'processed'
       ? PROCESSED_CLAIM_STATUS[claim.claimStatus || claim.agentDecision] || PROCESSED_CLAIM_STATUS[CLAIM_DECISIONS.APPROVED]
       : null;
 
@@ -671,12 +689,11 @@ const ClaimsReview = () => {
     const uniqueClaimId = getUniqueClaimId(claim);
 
     return (
-      <div 
-        className={`bg-white rounded-3xl shadow-sm border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
-          selectedClaims.has(uniqueClaimId) ? 'border-sky-300 bg-sky-50' : 'border-gray-100'
-        }`}
+      <div
+        className={`bg-white rounded-3xl shadow-sm border-2 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${selectedClaims.has(uniqueClaimId) ? 'border-sky-300 bg-sky-50' : 'border-gray-100'
+          }`}
       >
-        
+
         {/* HEADER SECTION */}
         <div className="p-6 pb-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
@@ -748,7 +765,7 @@ const ClaimsReview = () => {
         {/* MAIN CONTENT SECTION */}
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
-            
+
             {/* Employee Information */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
@@ -801,7 +818,7 @@ const ClaimsReview = () => {
                 <Target className="w-5 h-5" />
                 Status & Progress
               </div>
-              
+
               {activeView === 'pending' ? (
                 <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
                   <div className="flex items-center justify-between mb-3">
@@ -927,7 +944,7 @@ const ClaimsReview = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-indigo-50">
-      
+
       {/* **FIXED** Enhanced Header */}
       <div className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -941,8 +958,8 @@ const ClaimsReview = () => {
                   Claims {activeView === 'pending' ? 'Review' : 'History'} Dashboard
                 </h1>
                 <p className="text-gray-600 text-lg">
-                  {activeView === 'pending' 
-                    ? 'Review and process claims sent by HR managers' 
+                  {activeView === 'pending'
+                    ? 'Review and process claims sent by HR managers'
                     : 'View processed claims history and details'
                   }
                 </p>
@@ -966,38 +983,34 @@ const ClaimsReview = () => {
             <div className="inline-flex bg-gray-100 rounded-xl p-1 shadow-sm">
               <button
                 onClick={() => setActiveView('pending')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium text-sm ${
-                  activeView === 'pending' 
-                    ? 'bg-white text-sky-600 shadow-sm border border-sky-200' 
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium text-sm ${activeView === 'pending'
+                    ? 'bg-white text-sky-600 shadow-sm border border-sky-200'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <Clock className="w-4 h-4" />
                 <span>Pending</span>
-                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  activeView === 'pending' 
-                    ? 'bg-sky-100 text-sky-700' 
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${activeView === 'pending'
+                    ? 'bg-sky-100 text-sky-700'
                     : 'bg-gray-200 text-gray-600'
-                }`}>
+                  }`}>
                   {pendingClaims.length}
                 </span>
               </button>
-              
+
               <button
                 onClick={() => setActiveView('processed')}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium text-sm ${
-                  activeView === 'processed' 
-                    ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200' 
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-all font-medium text-sm ${activeView === 'processed'
+                    ? 'bg-white text-emerald-600 shadow-sm border border-emerald-200'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 <CheckCircle className="w-4 h-4" />
                 <span>Processed</span>
-                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
-                  activeView === 'processed' 
-                    ? 'bg-emerald-100 text-emerald-700' 
+                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-semibold ${activeView === 'processed'
+                    ? 'bg-emerald-100 text-emerald-700'
                     : 'bg-gray-200 text-gray-600'
-                }`}>
+                  }`}>
                   {filteredProcessedClaims.length}
                 </span>
               </button>
@@ -1028,7 +1041,7 @@ const ClaimsReview = () => {
                 {activeView === 'pending' ? 'No Pending Claims from HR' : 'No Processed Claims Found'}
               </h3>
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                {activeView === 'pending' 
+                {activeView === 'pending'
                   ? 'Waiting for HR managers to send claims for review.'
                   : 'No processed claims match your current filters.'
                 }
@@ -1038,9 +1051,9 @@ const ClaimsReview = () => {
             /* **FIXED** Claims Cards with Unique Keys */
             <div className="space-y-6">
               {paginatedClaims.map((claim) => (
-                <EnhancedClaimCard 
+                <EnhancedClaimCard
                   key={getUniqueClaimId(claim)} // **FIXED: Unique keys**
-                  claim={claim} 
+                  claim={claim}
                 />
               ))}
             </div>
@@ -1052,25 +1065,25 @@ const ClaimsReview = () => {
       {showModal && selectedClaim && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-            
+
             {/* Modal Header */}
             <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-sky-50 to-indigo-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-gradient-to-r from-sky-200 to-indigo-300 rounded-xl">
                     {modalType === 'view' ? <Eye className="w-6 h-6 text-sky-700" /> :
-                     modalType === 'approve' ? <CheckCircle className="w-6 h-6 text-emerald-600" /> :
-                     modalType === 'reject' ? <XCircle className="w-6 h-6 text-rose-600" /> :
-                     modalType === 'return' ? <RotateCcw className="w-6 h-6 text-amber-600" /> :
-                     <FileText className="w-6 h-6 text-violet-600" />}
+                      modalType === 'approve' ? <CheckCircle className="w-6 h-6 text-emerald-600" /> :
+                        modalType === 'reject' ? <XCircle className="w-6 h-6 text-rose-600" /> :
+                          modalType === 'return' ? <RotateCcw className="w-6 h-6 text-amber-600" /> :
+                            <FileText className="w-6 h-6 text-violet-600" />}
                   </div>
                   <div>
                     <h2 className="text-3xl font-semibold text-gray-800">
                       {modalType === 'view' ? 'Claim Details' :
-                       modalType === 'approve' ? 'Approve Claim' :
-                       modalType === 'reject' ? 'Reject Claim' :
-                       modalType === 'return' ? 'Return Claim' :
-                       'Questionnaire'}
+                        modalType === 'approve' ? 'Approve Claim' :
+                          modalType === 'reject' ? 'Reject Claim' :
+                            modalType === 'return' ? 'Return Claim' :
+                              'Questionnaire'}
                     </h2>
                     <p className="text-lg text-gray-600 mt-1">{selectedClaim.claimId}</p>
                   </div>
@@ -1403,9 +1416,9 @@ const ClaimsReview = () => {
                           <button
                             onClick={() => {
                               setModalType('approve');
-                              setApproveForm(prev => ({ 
-                                ...prev, 
-                                approvedAmount: selectedClaim.claimAmount?.requested?.toString() || '' 
+                              setApproveForm(prev => ({
+                                ...prev,
+                                approvedAmount: selectedClaim.claimAmount?.requested?.toString() || ''
                               }));
                             }}
                             className="flex items-center gap-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200 px-6 py-3 rounded-xl font-medium transition-all transform hover:scale-105"
@@ -1475,11 +1488,11 @@ const ClaimsReview = () => {
                             </div>
                           </div>
                         )) || (
-                          <div className="text-center py-8">
-                            <MessageSquare className="w-12 h-12 text-violet-400 mx-auto mb-4" />
-                            <p className="text-violet-600">No questionnaire data available</p>
-                          </div>
-                        )}
+                            <div className="text-center py-8">
+                              <MessageSquare className="w-12 h-12 text-violet-400 mx-auto mb-4" />
+                              <p className="text-violet-600">No questionnaire data available</p>
+                            </div>
+                          )}
                       </div>
                     </div>
                   ) : (
