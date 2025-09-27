@@ -381,8 +381,8 @@ const getAllClaims = asyncWrapper(async (req, res) => {
   sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
   const claims = await Claim.find(query)
-    .populate("policy", "policyNumber policyType provider")
-    .populate("employeeId", "firstName lastName email")
+    .populate("policy", "policyNumber policyType provider policyId")
+    .populate("employeeId", "userId firstName lastName email")
     .populate("documents", "filename originalName uploadedAt")
     .sort(sortOptions)
     .skip(skip)
@@ -405,8 +405,8 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
 
   const claim = await Claim.findOne({ claimId: claimId }) // Changed from findById to findOne
-    .populate("policy", "policyNumber policyType provider coverage")
-    .populate("employeeId", "firstName lastName email department")
+    .populate("policy", "policyNumber policyId policyType provider coverage")
+    .populate("employeeId", "userId profile fullname email employment")
     .populate("documents", "filename originalName fileType uploadedAt")
     .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName")
     .populate("hrForwardingDetails.forwardedBy", "firstName lastName email")
