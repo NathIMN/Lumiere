@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 
 // Register user
 const registerUser = asyncWrapper(async (req, res, next) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email });

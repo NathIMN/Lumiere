@@ -29,7 +29,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
           <input
             type="text"
             name="accountHolderName"
-            value={formData.accountHolderName}
+            value={formData.accountHolderName || ''}
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountHolderName ? 'border-red-500' : 'border-gray-300'}`}
@@ -43,7 +43,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
           <input
             type="text"
             name="bankName"
-            value={formData.bankName}
+            value={formData.bankName || ''}
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.bankName ? 'border-red-500' : 'border-gray-300'}`}
@@ -57,7 +57,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
           <input
             type="text"
             name="branchName"
-            value={formData.branchName}
+            value={formData.branchName || ''}
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.branchName ? 'border-red-500' : 'border-gray-300'}`}
@@ -71,7 +71,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
           <input
             type="text"
             name="accountNumber"
-            value={formData.accountNumber}
+            value={formData.accountNumber || ''}
             onChange={(e) => onChange(e, 'bankDetails', 'accountNumber')}
             onKeyDown={(e) => handleKeyPress(e, 'accountNumber')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'}`}

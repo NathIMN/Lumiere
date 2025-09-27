@@ -19,7 +19,7 @@ import { authenticate, authorize, authorizeOwnerOrAdmin } from "../middleware/au
 const router = express.Router();
 
 // Authentication routes (public)
-router.post("/register", registerUser);
+router.post("/register", authorize("admin", "hr_officer"), registerUser);
 router.post("/login", loginUser);
 
 // User profile routes (protected - user's own data)
