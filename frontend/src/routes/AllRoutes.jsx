@@ -33,6 +33,9 @@ import {
 import MessagingPage from "../components/messaging/MessagingPage";
 
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
+import AgentOverview from "../pages/Agent/AgentOverview";
+import ClaimsReview from "../pages/Agent/ClaimsReview";
+import Questionnaires from "../pages/Agent/Questionnaires";
 
 import {
    EmployeeDashboard,
@@ -154,9 +157,9 @@ export const AllRoutes = () => {
                }
             >
                <Route index element={<Navigate to="overview" replace />} />
-               <Route path="overview" element={<div>Agent Overview</div>} />
-               <Route path="clients" element={<div>Manage Clients</div>} />
-               <Route path="reports" element={<div>Agent Reports</div>} />
+               <Route path="overview" element={<AgentOverview />} />
+               <Route path="claims-review" element={<ClaimsReview />} />
+               <Route path="questionnaires" element={<Questionnaires />} />
             </Route>
 
          </Routes>

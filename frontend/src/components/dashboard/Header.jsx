@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { Bell, User, Sun, Moon } from "lucide-react";
+import { Bell, User, Sun, Moon, Menu } from "lucide-react";
 
 export const Header = ({ onToggleTheme, isDark, isCollapsed, scrolled }) => {
   const location = useLocation();
