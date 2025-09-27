@@ -279,6 +279,7 @@ export const ClaimHistory = ({ claim, onClose }) => {
 
   // ENHANCED: Generate synthetic history with coverage breakdown from claim data
   const generateSyntheticHistory = () => {
+    console.log("heeeee ",claim)
     const syntheticHistory = [];
     
     if (claim.submittedAt) {
