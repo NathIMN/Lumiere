@@ -1,2 +1,4 @@
 {
+    "editor.showUnused": false,
+    "markdown.validate.unusedLinkDefinitions.enabled": "ignore"
 }

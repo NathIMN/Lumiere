@@ -11,6 +11,7 @@ import InsuranceProviderDetails from '../../components/registration/InsuarancePr
 
 import { validateForm } from '../../utils/validation';
 import { initialFormData } from '../../utils/constants';
+import userApiService from '../../services/user-api';
 
 export const Registration = () => {
   const [formData, setFormData] = useState(initialFormData);
@@ -201,14 +202,59 @@ export const Registration = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Create user data in the exact format your API expects
+      const userData = {
+        email: formData.email,
+        password: formData.password,
+        role: 'employee',
+        profile: {
+          firstName: formData.profile?.firstName || '',
+          lastName: formData.profile?.lastName || '',
+          dateOfBirth: formData.profile?.dateOfBirth || '',
+          nic: formData.profile?.nic || '',
+          phoneNumber: formData.profile?.phoneNumber || '',
+          address: formData.profile?.address || ''
+        },
+        employment: {
+          department: formData.employment?.department || '',
+          designation: formData.employment?.designation || '',
+          employmentType: formData.employment?.employmentType || 'permanent',
+          joinDate: formData.employment?.joinDate || new Date().toISOString().split('T')[0],
+          salary: Number(formData.employment?.salary) || 0
+        },
+        bankDetails: {
+          accountHolderName: formData.bankDetails?.accountHolderName || '',
+          bankName: formData.bankDetails?.bankName || '',
+          branchName: formData.bankDetails?.branchName || '',
+          accountNumber: formData.bankDetails?.accountNumber || ''
+        }
+      };
+
+      // Only add dependents if they exist and are complete
+      if (formData.dependents && formData.dependents.length > 0) {
+        userData.dependents = formData.dependents
+          .filter(dep => dep.name && dep.relationship && dep.dateOfBirth)
+          .map(dep => ({
+            name: dep.name,
+            relationship: dep.relationship,
+            dateOfBirth: dep.dateOfBirth,
+            nic: dep.nic || ''
+          }));
+      }
+
+      // Register the user
+      const response = await userApiService.register(userData);
       
-      // Remove confirmPassword before sending
-      const { confirmPassword: _, ...submitData } = formData;
+      console.log('Registration successful:', response);
+      alert('Employee registered successfully!');
       
-      console.log('Registration data:', submitData);
-      alert('Registration successful! (This is a demo)');
+      // Reset form
+      setFormData(initialFormData);
+      setCurrentStep(1);
+      setCompletedSteps([]);
+      
+      // Optionally redirect or refresh the page to show the new employee
+      // window.location.reload(); // Uncomment if needed to refresh the employee list
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -231,7 +277,7 @@ export const Registration = () => {
       case 2:
         return (
           <PersonalInformation 
-            formData={formData.profile} 
+            formData={formData.profile || {}} 
             errors={errors} 
             onChange={handleInputChange} 
           />
@@ -239,7 +285,7 @@ export const Registration = () => {
       case 3:
         return (
           <EmploymentDetails 
-            formData={formData.employment} 
+            formData={formData.employment || {}} 
             errors={errors} 
             onChange={handleInputChange} 
           />
@@ -247,7 +293,7 @@ export const Registration = () => {
       case 4:
         return (
           <BankDetails 
-            formData={formData.bankDetails} 
+            formData={formData.bankDetails || {}} 
             errors={errors} 
             onChange={handleInputChange} 
           />
@@ -255,7 +301,7 @@ export const Registration = () => {
       case 5:
         return (
           <Dependents 
-            dependents={formData.dependents}
+            dependents={formData.dependents || []}
             onAdd={addDependent}
             onRemove={removeDependent}
             onUpdate={updateDependent}
@@ -333,7 +379,7 @@ export const Registration = () => {
                       Registering...
                     </div>
                   ) : (
-                    'Register User'
+                    'Register Employee'
                   )}
                 </button>
               )}
@@ -354,4 +400,3 @@ export const Registration = () => {
     </div>
   );
 };
-
