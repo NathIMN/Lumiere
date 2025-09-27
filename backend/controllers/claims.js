@@ -1,6 +1,7 @@
 import Claim from "../models/Claim.js";
 import asyncWrapper from "../middleware/async.js";
 import { createCustomError } from "../errors/custom-error.js";
+import { uploadClaimDocument, uploadMultipleClaimDocuments } from "./documentUpload.js";
 
 // Create initial draft claim with type and option
 const createClaim = asyncWrapper(async (req, res, next) => {
@@ -61,8 +62,6 @@ const createClaim = asyncWrapper(async (req, res, next) => {
       claim,
       nextStep: "complete_questionnaire_and_submit",
     });
-
-    
   } catch (error) {
     // If questionnaire loading fails, delete the created claim
     await Claim.findByIdAndDelete(claim._id);
@@ -161,10 +160,9 @@ const submitClaim = asyncWrapper(async (req, res, next) => {
 
   // Update claim amount
   claim.claimAmount.requested = claimAmount;
-console.log(documents)
+
   // Add documents if provided
   if (documents && Array.isArray(documents)) {
-
     claim.documents = [...claim.documents, ...documents];
   }
 
@@ -344,7 +342,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
     startDate,
     endDate,
     page = 1,
-    limit = 10,
+    limit = 100,
     sortBy = "createdAt",
     sortOrder = "desc",
   } = req.query;
@@ -427,13 +425,6 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
       createCustomError("You don't have permission to view this claim", 403)
     );
   }
-
-  console.log("Validation check:", {
-    hasQuestionnaire: !!claim.questionnaire,
-    hasSections: !!claim.questionnaire?.sections,
-    sectionCount: claim.questionnaire?.sections?.length || 0,
-    firstSectionValidation: claim.questionnaire?.sections?.[0]?.responses?.[0]?.validation
-  });
 
   res.status(200).json({
     success: true,
@@ -694,6 +685,9 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
       updatedQuestions.push(answer.questionId);
     }
 
+    // Check questionnaire completion and auto-update status
+    claim.checkQuestionnaireCompletion();
+
     // Save the claim
     await claim.save();
 
@@ -854,6 +848,9 @@ const submitSectionAnswers = asyncWrapper(async (req, res, next) => {
       updatedQuestions.push(answer.questionId);
     }
 
+    // Check questionnaire completion and auto-update status
+    claim.checkQuestionnaireCompletion();
+
     // Save the claim
     await claim.save();
 
@@ -988,63 +985,95 @@ const getSectionQuestions = asyncWrapper(async (req, res, next) => {
 const deleteClaimById = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.user;
+    const { userId, role } = req.user;
 
-    // Find and validate claim
+    // Find the claim first
     const claim = await Claim.findById(id);
     
     if (!claim) {
       return res.status(404).json({
         success: false,
-        message: "Claim not found"
+        message: "Claim not found",
       });
     }
 
-    // Authorization check
-    if (claim.employeeId.toString() !== userId.toString()) {
+    // Check permissions - only employees can delete their own claims
+    if (role !== "admin" && claim.employeeId.toString() !== userId.toString()) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to delete this claim"
+        message: "You don't have permission to delete this claim",
       });
     }
 
-    // Status validation
-    const allowedStatuses = ["draft", "employee"];
-    if (!allowedStatuses.includes(claim.claimStatus)) {
+    // Check if claim can be deleted (only draft or employee status)
+    if (!["draft", "employee"].includes(claim.claimStatus)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot delete claim with status '${claim.claimStatus}'. Claims can only be deleted when status is 'draft' or 'employee'`
+        message: "Cannot delete claim that has been submitted to HR or beyond",
       });
     }
-
-    // Store claim info before deletion
-    const claimInfo = {
-      claimId: claim.claimId,
-      claimType: claim.claimType,
-      claimOption: claim.claimOption
-    };
 
     // Delete the claim
     await Claim.findByIdAndDelete(id);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: `Claim ${claimInfo.claimId} has been successfully deleted`,
-      data: {
-        ...claimInfo,
-        deletedAt: new Date().toISOString()
-      }
+      message: "Claim deleted successfully",
     });
 
   } catch (error) {
     console.error("Error deleting claim:", error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
-      message: "Internal server error occurred while deleting the claim",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined
+      message: "Failed to delete claim",
+      error: error.message,
     });
   }
 };
+
+// Upload document for a specific claim
+const uploadClaimDocuments = asyncWrapper(async (req, res, next) => {
+  // Delegate to the documentUpload controller function
+  req.body.claimId = req.params.id;
+  return uploadClaimDocument(req, res, next);
+});
+
+// Upload multiple documents for a specific claim
+const uploadMultipleDocumentsForClaim = asyncWrapper(async (req, res, next) => {
+  // Delegate to the documentUpload controller function
+  req.body.claimId = req.params.id;
+  return uploadMultipleClaimDocuments(req, res, next);
+});
+
+// Get documents for a specific claim
+const getClaimDocuments = asyncWrapper(async (req, res, next) => {
+  const { id: claimId } = req.params;
+  const { userId, role } = req.user;
+
+  const claim = await Claim.findById(claimId)
+    .populate("documents", "filename originalName fileType uploadedAt metadata docType");
+
+  if (!claim) {
+    return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // Check permissions
+  if (
+    role === "employee" &&
+    claim.employeeId.toString() !== userId.toString()
+  ) {
+    return next(
+      createCustomError("You don't have permission to view documents for this claim", 403)
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    count: claim.documents.length,
+    documents: claim.documents,
+    claimId
+  });
+});
 
 export {
   createClaim,
@@ -1062,5 +1091,8 @@ export {
   submitSectionAnswers, // New method for section-specific updates
   getSectionQuestions,  // New method for getting specific section
   updateClaimStatus,
-  deleteClaimById
+  deleteClaimById,
+  uploadClaimDocuments,
+  uploadMultipleDocumentsForClaim,
+  getClaimDocuments
 };
