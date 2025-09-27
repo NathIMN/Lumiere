@@ -417,7 +417,7 @@ export const ClaimDetails = () => {
                         {(questionnaire.isComplete && claim.claimStatus == "employee") && (
                            <div className="flex items-center mb-5 width-full space-x-2 px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg ">
 
-                              <span className="text-sm font-semibold">You have completed the questionnaire. Recheck your answers and Submit for HR review to process it</span>
+                              <span className="text-sm font-semibold">You have completed the questionnaire. Recheck your answers and Submit for HR review to process it.</span>
                            </div>
                         )}
 

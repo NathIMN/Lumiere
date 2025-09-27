@@ -145,13 +145,13 @@ export const ClaimForm = () => {
 
             {/* Header */}
             <div className="text-center mb-8">
-               <h1 className="text-3xl font-bold text-gray-900 mb-2">Insurance Claim Request</h1>
-               <p className="text-gray-600">Submit your claim by following the steps below</p>
+               <h1 className="text-3xl font-bold text-gray-900 mb-2 dark:text-white">Insurance Claim Request</h1>
+               <p className="text-gray-600 dark:text-gray-400">Submit your claim by following the steps below</p>
             </div>
 
             {/* Main Content */}
             {step < 4 && (
-               <div className="bg-white rounded-xl shadow-lg p-8">
+               <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
                   <div className="flex justify-between items-center mb-6">
                      {step > 1 && step !== 4 && (
                         <button
