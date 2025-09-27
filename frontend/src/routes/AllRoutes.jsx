@@ -41,6 +41,7 @@ import {
    ClaimsLayout,
    ClaimForm,
    ClaimDetails,
+   TestingStuff
 } from "../pages/Employee";
 
 
@@ -137,6 +138,7 @@ export const AllRoutes = () => {
                </Route>
                <Route path="policies" element={<EmployeePolicy />} />
                <Route path="messaging" element={<div>Messaging batchtop</div>} />
+               <Route path="test" element={<TestingStuff />} />
             </Route>
 
 

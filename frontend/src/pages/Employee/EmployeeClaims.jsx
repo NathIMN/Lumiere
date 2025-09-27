@@ -35,9 +35,10 @@ export const EmployeeClaims = () => {
   };
 
   const getDisplayStatus = (status) => {
-    if (['employee', 'hr', 'insurer'].includes(status)) {
+    if (['hr', 'insurer'].includes(status)) {
       return 'processing';
     }
+    else if('employee' == status) return 'incomplete';
     return status;
   };
 
@@ -47,6 +48,7 @@ export const EmployeeClaims = () => {
       case 'approved': return 'text-emerald-700 bg-emerald-100 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-900/30 dark:border-emerald-700';
       case 'processing': return 'text-amber-700 bg-amber-100 border-amber-200 dark:text-amber-400 dark:bg-amber-900/30 dark:border-amber-700';
       case 'draft': return 'text-gray-700 bg-gray-100 border-gray-200 dark:text-neutral-300 dark:bg-neutral-900 dark:border-neutral-700';
+      case 'incomplete': return 'text-orange-700 bg-orange-100 border-orange-200 dark:text-orange-400 dark:bg-orange-900/30 dark:border-orange-700';
       case 'rejected': return 'text-red-700 bg-red-100 border-red-200 dark:text-red-400 dark:bg-red-900/30 dark:border-red-700';
       default: return 'text-gray-700 bg-gray-100 border-gray-200 dark:text-neutral-300 dark:bg-neutral-900 dark:border-neutral-700';
     }
@@ -101,7 +103,7 @@ export const EmployeeClaims = () => {
         return {
           text: 'Track',
           icon: <Eye size={16} />,
-          className: 'bg-green-600 hover:bg-purple-200 text-white dark:bg-green-500 dark:hover:bg-green-600',
+          className: 'bg-green-600 hover:bg-green-700 text-white dark:bg-green-500 dark:hover:bg-green-600',
           urgent: false
         };
       case 'approved':
@@ -140,7 +142,7 @@ export const EmployeeClaims = () => {
   const stats = {
     total: claims.length,
     approved: claims.filter(c => c.claimStatus === 'approved').length,
-    processing: claims.filter(c => ['employee', 'hr', 'insurer'].includes(c.claimStatus)).length,
+    processing: claims.filter(c => ['hr', 'insurer'].includes(c.claimStatus)).length,
     draft: claims.filter(c => c.claimStatus === 'draft').length,
     rejected: claims.filter(c => c.claimStatus === 'rejected').length
   };
