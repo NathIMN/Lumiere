@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 
-export function HeaderLanding() {
-     const navigate = useNavigate();
-  return (
 
 export function HeaderLanding({scrolled}) {
   const [activeSection, setActiveSection] = useState('home');
@@ -73,12 +70,12 @@ export function HeaderLanding({scrolled}) {
         </a>
 
         {/* Desktop Nav */}
-        <nav className="hidden xl:flex items-center text-md text-white gap-2">
+        <nav className="hidden xl:flex items-center text-md gap-2">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => scrollToSection(item.id)}
-              className={`px-4 py-2 rounded-full transition-all duration-300  ${
+              className={`px-4 py-2 rounded-full ${scrolled ? 'text-white' : 'text-red-900'} transition-all duration-300  ${
                 activeSection === item.id 
                   ? 'bg-white text-red-900 font-medium' 
                   : 'hover:bg-white/10'
