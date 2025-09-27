@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lumiere VAPI Admin Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@vapi-ai/web@1.7.0/dist/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #4c1d95;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+        
+        .test-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .user-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .user-info h3 {
+            color: #1e293b;
+            margin-bottom: 10px;
+        }
+        
+        .user-info .info-item {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .user-info .info-label {
+            font-weight: 600;
+            color: #4b5563;
+        }
+        
+        .user-info .info-value {
+            color: #6b7280;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .warning-message {
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            color: #d97706;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .voice-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .control-button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .control-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .start-button {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .stop-button {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .status-indicator {
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .status-indicator h3 {
+            margin-bottom: 10px;
+            color: #374151;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .status-inactive {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .status-active {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .function-logs {
+            background: #1e293b;
+            color: #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .function-logs h3 {
+            color: #60a5fa;
+            margin-bottom: 15px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        
+        .log-entry {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .log-timestamp {
+            color: #94a3b8;
+            font-size: 0.8rem;
+        }
+        
+        .log-function {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        
+        .log-result {
+            color: #34d399;
+        }
+        
+        .log-error {
+            color: #f87171;
+        }
+        
+        .test-suggestions {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .test-suggestions h3 {
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+        
+        .test-suggestions ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .test-suggestions li {
+            background: white;
+            margin-bottom: 8px;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #3b82f6;
+            font-style: italic;
+            color: #4b5563;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Lumiere VAPI Test</h1>
+            <p class="subtitle">Admin Voice Assistant Testing Panel</p>
+        </div>
+        
+        <div class="test-panel">
+            <div class="error-message" id="errorMessage"></div>
+            <div class="warning-message" id="warningMessage"></div>
+            
+            <div class="user-info" id="userInfo" style="display: none;">
+                <h3>👤 Current User</h3>
+                <div class="info-item">
+                    <span class="info-label">Name:</span> 
+                    <span class="info-value" id="userName">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Email:</span> 
+                    <span class="info-value" id="userEmail">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Role:</span> 
+                    <span class="info-value" id="userRole">Loading...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">User ID:</span> 
+                    <span class="info-value" id="userId">Loading...</span>
+                </div>
+            </div>
+            
+            <div class="status-indicator">
+                <h3>Voice Assistant Status</h3>
+                <span class="status-badge status-inactive" id="statusBadge">Inactive</span>
+            </div>
+            
+            <div class="voice-controls">
+                <button class="control-button start-button" id="startButton" onclick="startVoiceAssistant()">
+                    🎤 Start Voice Assistant
+                </button>
+                <button class="control-button stop-button" id="stopButton" onclick="stopVoiceAssistant()" disabled>
+                    ⏹️ Stop Voice Assistant
+                </button>
+            </div>
+            
+            <div class="test-suggestions">
+                <h3>💡 Suggested Test Phrases</h3>
+                <ul>
+                    <li>"What is my profile?"</li>
+                    <li>"Show me all policies"</li>
+                    <li>"Get my claims"</li>
+                    <li>"What are the recent notifications?"</li>
+                    <li>"How many users are in the system?"</li>
+                </ul>
+            </div>
+            
+            <div class="function-logs" id="functionLogs" style="display: none;">
+                <h3>📋 Function Call Logs</h3>
+                <div id="logEntries"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize variables
+        let vapi = null;
+        let currentUser = null;
+        let authToken = null;
+        let callStatus = 'inactive';
+        
+        // Initialize the page
+        async function initializePage() {
+            try {
+                // Get auth token from localStorage (same as the React app)
+                authToken = localStorage.getItem('authToken');
+                
+                if (!authToken) {
+                    showError('No authentication token found. Please log in to the main application first.');
+                    return;
+                }
+                
+                // Fetch current user info
+                await fetchCurrentUser();
+                
+                // Initialize VAPI
+                await initializeVAPI();
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError('Failed to initialize test page: ' + error.message);
+            }
+        }
+        
+        // Fetch current user information
+        async function fetchCurrentUser() {
+            try {
+                const response = await fetch('/api/v1/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch user profile: ${response.status}`);
+                }
+                
+                currentUser = await response.json();
+                
+                // Check if user is admin
+                if (currentUser.role !== 'admin') {
+                    showWarning(`This test page is designed for admin users. Your role: ${currentUser.role}. Some functions may not work as expected.`);
+                }
+                
+                // Display user info
+                displayUserInfo();
+                
+            } catch (error) {
+                console.error('Error fetching user:', error);
+                throw new Error('Unable to fetch current user information');
+            }
+        }
+        
+        // Display user information
+        function displayUserInfo() {
+            document.getElementById('userName').textContent = currentUser.name || 'N/A';
+            document.getElementById('userEmail').textContent = currentUser.email || 'N/A';
+            document.getElementById('userRole').textContent = currentUser.role || 'N/A';
+            document.getElementById('userId').textContent = currentUser._id || 'N/A';
+            document.getElementById('userInfo').style.display = 'block';
+        }
+        
+        // Initialize VAPI
+        async function initializeVAPI() {
+            try {
+                // Import VAPI (assuming it's available globally)
+                if (typeof Vapi === 'undefined') {
+                    throw new Error('VAPI library not loaded');
+                }
+                
+                // Get VAPI public key from backend
+                const keyResponse = await fetch('/api/v1/vapi/public-key', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!keyResponse.ok) {
+                    throw new Error('Failed to get VAPI public key');
+                }
+                
+                const { publicKey } = await keyResponse.json();
+                
+                // Initialize VAPI instance
+                vapi = new Vapi(publicKey);
+                
+                // Set up event listeners
+                setupVAPIEventListeners();
+                
+                console.log('VAPI initialized successfully');
+                
+            } catch (error) {
+                console.error('VAPI initialization error:', error);
+                throw new Error('Failed to initialize VAPI');
+            }
+        }
+        
+        // Set up VAPI event listeners
+        function setupVAPIEventListeners() {
+            vapi.on("call-start", () => {
+                console.log("Call started");
+                updateCallStatus('active');
+                showFunctionLogs();
+                addLogEntry('Call started', 'info');
+            });
+
+            vapi.on("call-end", () => {
+                console.log("Call ended");
+                updateCallStatus('inactive');
+                addLogEntry('Call ended', 'info');
+            });
+
+            vapi.on("speech-start", () => {
+                console.log("User started speaking");
+                addLogEntry('User started speaking', 'info');
+            });
+
+            vapi.on("speech-end", () => {
+                console.log("User stopped speaking");
+                addLogEntry('User stopped speaking', 'info');
+            });
+
+            vapi.on("message", (message) => {
+                console.log("Message received:", message);
+                addLogEntry(`Message: ${JSON.stringify(message)}`, 'info');
+            });
+
+            vapi.on("function-call", async (functionCall) => {
+                console.log("Function call received:", functionCall);
+                addLogEntry(`Function call: ${functionCall.name}`, 'function');
+                
+                try {
+                    const result = await handleFunctionCall(functionCall);
+                    addLogEntry(`Function result: ${JSON.stringify(result)}`, 'result');
+                    return result;
+                } catch (error) {
+                    console.error("Function call error:", error);
+                    addLogEntry(`Function error: ${error.message}`, 'error');
+                    return { error: error.message };
+                }
+            });
+
+            vapi.on("error", (error) => {
+                console.error("VAPI error:", error);
+                addLogEntry(`VAPI error: ${error.message}`, 'error');
+                updateCallStatus('inactive');
+            });
+        }
+        
+        // Handle function calls
+        async function handleFunctionCall(functionCall) {
+            try {
+                const response = await fetch('/api/v1/vapi/function-call', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: functionCall.name,
+                        parameters: functionCall.parameters || {}
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Function call failed: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                return result;
+                
+            } catch (error) {
+                console.error('Function call error:', error);
+                throw error;
+            }
+        }
+        
+        // Start voice assistant
+        async function startVoiceAssistant() {
+            try {
+                if (!vapi) {
+                    throw new Error('VAPI not initialized');
+                }
+                
+                // Get assistant configuration from backend
+                const configResponse = await fetch('/api/v1/vapi/assistant-config', {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!configResponse.ok) {
+                    throw new Error('Failed to get assistant configuration');
+                }
+                
+                const assistantConfig = await configResponse.json();
+                console.log('Starting call with config:', assistantConfig);
+                
+                // Start the call
+                await vapi.start(assistantConfig);
+                
+            } catch (error) {
+                console.error('Error starting voice assistant:', error);
+                showError('Failed to start voice assistant: ' + error.message);
+                addLogEntry(`Start error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Stop voice assistant
+        async function stopVoiceAssistant() {
+            try {
+                if (vapi) {
+                    await vapi.stop();
+                }
+            } catch (error) {
+                console.error('Error stopping voice assistant:', error);
+                addLogEntry(`Stop error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Update call status
+        function updateCallStatus(status) {
+            callStatus = status;
+            const statusBadge = document.getElementById('statusBadge');
+            const startButton = document.getElementById('startButton');
+            const stopButton = document.getElementById('stopButton');
+            
+            if (status === 'active') {
+                statusBadge.textContent = 'Active';
+                statusBadge.className = 'status-badge status-active';
+                startButton.disabled = true;
+                stopButton.disabled = false;
+            } else {
+                statusBadge.textContent = 'Inactive';
+                statusBadge.className = 'status-badge status-inactive';
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        }
+        
+        // Show function logs
+        function showFunctionLogs() {
+            document.getElementById('functionLogs').style.display = 'block';
+        }
+        
+        // Add log entry
+        function addLogEntry(message, type = 'info') {
+            const logEntries = document.getElementById('logEntries');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            
+            let className = '';
+            let icon = '';
+            
+            switch (type) {
+                case 'function':
+                    className = 'log-function';
+                    icon = '🔧';
+                    break;
+                case 'result':
+                    className = 'log-result';
+                    icon = '✅';
+                    break;
+                case 'error':
+                    className = 'log-error';
+                    icon = '❌';
+                    break;
+                default:
+                    className = '';
+                    icon = 'ℹ️';
+            }
+            
+            logEntry.innerHTML = `
+                <div class="log-timestamp">${timestamp}</div>
+                <div class="${className}">${icon} ${message}</div>
+            `;
+            
+            logEntries.appendChild(logEntry);
+            logEntries.scrollTop = logEntries.scrollHeight;
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        // Show warning message
+        function showWarning(message) {
+            const warningDiv = document.getElementById('warningMessage');
+            warningDiv.textContent = message;
+            warningDiv.style.display = 'block';
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>

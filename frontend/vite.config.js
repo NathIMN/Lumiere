@@ -8,5 +8,12 @@ export default defineConfig({
   server: {
     //host: '0.0.0.0', // Listen on all network interfaces
     port: 5173,      // Explicit port
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000', // Backend server URL
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 })

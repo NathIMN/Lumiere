@@ -1,24 +1,27 @@
-<div class="summary-cards">
-    <div class="summary-card">
-        <h4>Total Premium Revenue</h4>
-        <div class="value">${{formatCurrency totalPremiumRevenue}}</div>
-    </div>
-    <div class="summary-card">
-        <h4>Total Claims Paid</h4>
-        <div class="value">${{formatCurrency totalClaimsPaid}}</div>
-    </div>
-    <div class="summary-card">
-        <h4>Net Profit</h4>
-        <div class="value">${{formatCurrency netProfit}}</div>
-    </div>
-    <div class="summary-card">
-        <h4>Profit Margin</h4>
+<div class="table-section">
+    <h2 class="table-title">Financial Summary</h2>
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h4>Total Premium Revenue</h4>
+            <div class="value">${{formatCurrency totalPremiumRevenue}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Total Claims Paid</h4>
+            <div class="value">${{formatCurrency totalClaimsPaid}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Net Profit</h4>
+            <div class="value">${{formatCurrency netProfit}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Profit Margin</h4>
         <div class="value">{{profitMargin}}%</div>
     </div>
 </div>
 
-<h3>Revenue and Expenses Breakdown</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Revenue and Expenses Breakdown</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Category</th>
@@ -38,11 +41,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 
 {{#if monthlyFinancials}}
 <div class="page-break"></div>
-<h3>Monthly Financial Performance</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Monthly Financial Performance</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Month</th>
@@ -66,11 +71,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if policyTypeRevenue}}
-<h3>Revenue by Policy Type</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Revenue by Policy Type</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Policy Type</th>
@@ -92,12 +99,14 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if agentPerformance}}
 <div class="page-break"></div>
-<h3>Agent Performance</h3>
-<table class="data-table">
+<div class="table-section cols-7">
+    <h2 class="table-title">Agent Performance</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Agent Name</th>
@@ -119,11 +128,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if keyMetrics}}
-<h3>Key Performance Indicators</h3>
-<table class="data-table">
+<div class="table-section cols-7">
+    <h2 class="table-title">Key Performance Indicators</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Metric</th>
@@ -147,4 +158,5 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}

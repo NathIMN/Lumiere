@@ -1,0 +1,120 @@
+import asyncWrapper from '../middleware/async.js';
+import geminiService from '../services/geminiService.js';
+
+// Send a message to the chatbot and get AI response
+const sendMessage = asyncWrapper(async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    try {
+        // Generate AI response
+        const aiResponse = await geminiService.generateResponse(message);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                userMessage: message,
+                aiResponse: aiResponse,
+                timestamp: new Date()
+            }
+        });
+
+    } catch (error) {
+        console.error('Chatbot error:', error);
+        res.status(500).json({ 
+            error: 'Failed to process message',
+            details: error.message 
+        });
+    }
+});
+
+// Stream response for real-time chat
+const streamMessage = asyncWrapper(async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    try {
+        // Set headers for Server-Sent Events
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Cache-Control'
+        });
+
+        // Get streaming response from Gemini
+        const stream = await geminiService.generateStreamResponse(message);
+        
+        let fullResponse = '';
+        
+        for await (const chunk of stream) {
+            const chunkText = chunk.text();
+            fullResponse += chunkText;
+            
+            // Send chunk to client
+            res.write(`data: ${JSON.stringify({ 
+                type: 'chunk', 
+                content: chunkText 
+            })}\n\n`);
+        }
+
+        // Send completion signal
+        res.write(`data: ${JSON.stringify({ 
+            type: 'complete', 
+            fullResponse 
+        })}\n\n`);
+
+        res.end();
+        
+    } catch (error) {
+        console.error('Stream error:', error);
+        res.write(`data: ${JSON.stringify({ 
+            type: 'error', 
+            message: 'Failed to generate response' 
+        })}\n\n`);
+        res.end();
+    }
+});
+
+// Formalize a message to make it professional
+const formalizeMessage = asyncWrapper(async (req, res) => {
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+        return res.status(400).json({ error: 'Message is required' });
+    }
+
+    try {
+        // Generate formalized version
+        const formalizedMessage = await geminiService.formalizeMessage(message);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                originalMessage: message,
+                formalizedMessage: formalizedMessage.trim(),
+                timestamp: new Date()
+            }
+        });
+
+    } catch (error) {
+        console.error('Formalize error:', error);
+        res.status(500).json({ 
+            error: 'Failed to formalize message',
+            details: error.message 
+        });
+    }
+});
+
+export {
+    sendMessage,
+    streamMessage,
+    formalizeMessage
+};
