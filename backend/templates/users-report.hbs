@@ -1,16 +1,18 @@
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Employee ID</th>
-            <th>Full Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Department</th>
-            <th>Hire Date</th>
-            <th>Status</th>
-            <th>Last Login</th>
-        </tr>
-    </thead>
+<div class="table-section cols-8">
+    <h2 class="table-title">Employee Information</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Employee ID</th>
+                <th>Full Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Department</th>
+                <th>Hire Date</th>
+                <th>Status</th>
+                <th>Last Login</th>
+            </tr>
+        </thead>
     <tbody>
         {{#each users}}
         <tr>
@@ -26,50 +28,74 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 
 {{#if usersByRole}}
-<div class="page-break"></div>
-<h3>Users by Role Distribution</h3>
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Role</th>
-            <th>Count</th>
-            <th>Percentage</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{#each usersByRole}}
-        <tr>
-            <td>{{role}}</td>
-            <td>{{count}}</td>
-            <td>{{percentage}}%</td>
-        </tr>
-        {{/each}}
-    </tbody>
-</table>
+<div class="letterhead">
+    <div class="letterhead-left">
+        <div class="company-name">LUMIERE INSURANCE</div>
+        <h1 class="report-title">{{reportTitle}}</h1>
+        <p class="report-subtitle">{{reportSubtitle}}</p>
+    </div>
+    <div class="letterhead-right">
+        <img src="data:image/svg+xml;base64,{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
+    </div>
+</div>
+
+<div class="table-section cols-6">
+    <h2 class="table-title">Users by Role Distribution</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th>Count</th>
+                <th>Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each usersByRole}}
+            <tr>
+                <td>{{role}}</td>
+                <td>{{count}}</td>
+                <td>{{percentage}}%</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
 {{/if}}
 
 {{#if usersByDepartment}}
-<h3>Users by Department</h3>
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Department</th>
-            <th>Active Users</th>
-            <th>Inactive Users</th>
-            <th>Total</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{#each usersByDepartment}}
-        <tr>
-            <td>{{department}}</td>
-            <td>{{activeCount}}</td>
-            <td>{{inactiveCount}}</td>
-            <td>{{totalCount}}</td>
-        </tr>
-        {{/each}}
-    </tbody>
-</table>
+<div class="letterhead">
+    <div class="letterhead-left">
+        <div class="company-name">LUMIERE INSURANCE</div>
+        <h1 class="report-title">{{reportTitle}}</h1>
+        <p class="report-subtitle">{{reportSubtitle}}</p>
+    </div>
+    <div class="letterhead-right">
+        <img src="data:image/svg+xml;base64,{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
+    </div>
+</div>
+
+<div class="table-section cols-6">
+    <h2 class="table-title">Users by Department Distribution</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Department</th>
+                <th>Count</th>
+                <th>Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each usersByDepartment}}
+            <tr>
+                <td>{{department}}</td>
+                <td>{{count}}</td>
+                <td>{{percentage}}%</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
 {{/if}}

@@ -1,0 +1,38 @@
+[
+{
+    "success": true,
+    "message": "User registered successfully",
+    "user": {
+        "email": "monkey.d.luffy@gmail.com",
+        "role": "insurance_agent",
+        "profile": {
+            "firstName": "Luffy",
+            "lastName": "Monkey",
+            "dateOfBirth": "1998-07-22T00:00:00.000Z",
+            "nic": "881994867V",
+            "phoneNumber": "+94765432109",
+            "address": "789 Insurance Plaza, Colombo 01, Sri Lanka"
+        },
+        "insuranceProvider": {
+            "companyName": "Janashakthi Insurance",
+            "agentId": "AGT001",
+            "licenseNumber": "LIC123456",
+            "contactEmail": "contact@janashakthi.com",
+            "contactPhone": "+94112345678"
+        },
+        "status": "active",
+        "loginAttempts": 0,
+        "_id": "68bfea85fe97514cedd28cdc",
+        "dependents": [],
+        "createdAt": "2025-09-09T08:51:17.839Z",
+        "updatedAt": "2025-09-09T08:51:17.839Z",
+        "userId": "I00003",
+        "__v": 0,
+        "fullName": "Luffy Monkey",
+        "age": 27,
+        "isLocked": false,
+        "id": "68bfea85fe97514cedd28cdc"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGJmZWE4NWZlOTc1MTRjZWRkMjhjZGMiLCJpYXQiOjE3NTc0MDc4NzgsImV4cCI6MTc1ODAxMjY3OH0.OHOipqgdPlYW5tTqnQZt69J38hFGV8rTLsNyjSrs-uA"
+}
+]
