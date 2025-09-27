@@ -27,17 +27,43 @@ const DocumentSchema = new mongoose.Schema(
       required: [true, "Document category is required"],
       enum: {
         values: [
+          // General document types
           "nic",
           "passport",
           "invoice",
-          "medical_bill",
-          "police_report",
           "photo",
           "receipt",
           "policy_document",
           "claim_form",
           "supporting_document",
+          "supporting",
+          "identification",
+          "proof_of_policy",
           "other",
+          
+          // Life insurance specific
+          "medical_bill",
+          "discharge_summary",
+          "prescription",
+          "lab_report",
+          "channelling_receipt",
+          "doctor_report",
+          "pharmacy_receipt",
+          "medical_report",
+          "death_certificate",
+          
+          // Vehicle insurance specific
+          "police_report",
+          "damage_assessment",
+          "repair_estimate",
+          "photos",
+          "fir_copy",
+          "vehicle_registration",
+          "fire_department_report",
+          "weather_report",
+          
+          // Questionnaire related
+          "questionnaire_answer"
         ],
         message: "Invalid document category",
       },

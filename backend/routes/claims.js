@@ -15,9 +15,13 @@ import {
    submitSectionAnswers,  // New method
    getSectionQuestions,   // New method
    updateClaimStatus,
-   deleteClaimById
+   deleteClaimById,
+   uploadClaimDocuments,
+   uploadMultipleDocumentsForClaim,
+   getClaimDocuments
 } from "../controllers/claims.js";
 import { authenticate, authorize } from "../middleware/auth.js";
+import upload from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -74,6 +78,26 @@ router.patch("/:id/submit",
    authenticate,
    authorize("employee", "admin", "hr_officer"),
    submitClaim
+);
+
+// Document upload routes for claims
+router.post("/:id/documents/upload",
+   authenticate,
+   authorize("employee", "admin", "hr_officer"),
+   upload.single('document'),
+   uploadClaimDocuments
+);
+
+router.post("/:id/documents/upload/multiple",
+   authenticate,
+   authorize("employee", "admin", "hr_officer"),
+   upload.array('documents', 10),
+   uploadMultipleDocumentsForClaim
+);
+
+router.get("/:id/documents",
+   authenticate,
+   getClaimDocuments
 );
 
 // HR actions (forward to insurer)
