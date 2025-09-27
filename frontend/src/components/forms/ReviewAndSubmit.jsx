@@ -37,6 +37,21 @@ export const ReviewAndSubmit = ({
          }));
       
       console.log('ReviewAndSubmit - Processed sections:', sections);
+      
+      // Debug: Log the structure of questions and their answers
+      sections.forEach((section, sIndex) => {
+         console.log(`ReviewAndSubmit - Section ${sIndex} (${section.title}) questions:`, section.questions);
+         section.questions.forEach((q, qIndex) => {
+            if (q.isAnswered) {
+               console.log(`ReviewAndSubmit - Question ${qIndex} (${q.questionId}):`, {
+                  isAnswered: q.isAnswered,
+                  answer: q.answer,
+                  currentAnswer: q.currentAnswer
+               });
+            }
+         });
+      });
+      
       return sections;
    };
 
@@ -177,20 +192,46 @@ export const ReviewAndSubmit = ({
                                  <div className="text-sm text-gray-900">
                                     {response.isAnswered ? (
                                        (() => {
-                                          const answer = response.answer;
+                                          // Try both data structures: response.answer and response.currentAnswer
+                                          const answer = response.answer || response.currentAnswer;
                                           if (!answer) {
                                              console.log('ReviewAndSubmit - No answer data for question:', response.questionId);
                                              return <span className="text-gray-500 italic">Answer data not available</span>;
                                           }
                                           
-                                          const displayValue = answer.textValue ||
-                                             answer.numberValue ||
-                                             (answer.dateValue ? new Date(answer.dateValue).toLocaleDateString() : null) ||
-                                             (answer.booleanValue !== undefined ? (answer.booleanValue ? 'Yes' : 'No') : null) ||
-                                             answer.selectValue ||
-                                             (answer.multiselectValue && answer.multiselectValue.length > 0 ? answer.multiselectValue.join(', ') : null) ||
-                                             (answer.fileValue ? 'File uploaded' : null) ||
-                                             'No answer provided';
+                                          // Handle both structured answer (textValue, numberValue, etc.) and simple value
+                                          let displayValue;
+                                          if (typeof answer === 'object' && answer.value !== undefined) {
+                                             // Simple currentAnswer.value structure
+                                             displayValue = answer.value;
+                                             // Special handling for file types
+                                             if (response.questionType === 'file' && displayValue) {
+                                                displayValue = 'File uploaded';
+                                             }
+                                          } else if (typeof answer === 'object') {
+                                             // Structured answer with textValue, numberValue, etc.
+                                             if (response.questionType === 'file') {
+                                                displayValue = (answer.fileValue && answer.fileValue.length > 0) ? 
+                                                   `${Array.isArray(answer.fileValue) ? answer.fileValue.length : 1} file(s) uploaded` : 
+                                                   'File uploaded';
+                                             } else {
+                                                displayValue = answer.textValue ||
+                                                   answer.numberValue ||
+                                                   (answer.dateValue ? new Date(answer.dateValue).toLocaleDateString() : null) ||
+                                                   (answer.booleanValue !== undefined ? (answer.booleanValue ? 'Yes' : 'No') : null) ||
+                                                   answer.selectValue ||
+                                                   (answer.multiselectValue && answer.multiselectValue.length > 0 ? answer.multiselectValue.join(', ') : null);
+                                             }
+                                          } else {
+                                             // Direct value
+                                             displayValue = answer;
+                                             // Special handling for file types
+                                             if (response.questionType === 'file' && displayValue) {
+                                                displayValue = 'File uploaded';
+                                             }
+                                          }
+                                          
+                                          displayValue = displayValue || 'No answer provided';
                                           return <span className="font-medium text-green-700">{displayValue}</span>;
                                        })()
                                     ) : (

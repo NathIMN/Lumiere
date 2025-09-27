@@ -179,41 +179,76 @@ export const Questionnaire = ({
    // Initialize form data with existing answers
    useEffect(() => {
       if (questionnaire?.sections) {
-         const initialFormData = {};
+         console.log("Processing questionnaire sections for form data:", questionnaire.sections);
+         const existingAnswers = {};
          
-         questionnaire.sections.forEach(section => {
+         questionnaire.sections.forEach((section, sectionIndex) => {
+            console.log(`Processing section ${sectionIndex}:`, section);
             // Handle both 'responses' and 'questions' structures
             const questions = section.responses || section.questions || [];
-            questions.forEach(item => {
-               if (item.isAnswered && item.answer) {
-                  const answer = item.answer;
-                  // Use the actual answer value based on type
-                  let value = '';
-                  if (answer.textValue !== undefined) value = answer.textValue;
-                  else if (answer.numberValue !== undefined) value = answer.numberValue;
-                  else if (answer.dateValue !== undefined) {
-                     // Format date for input field
-                     value = formatDateForInput(answer.dateValue);
-                  }
-                  else if (answer.booleanValue !== undefined) value = answer.booleanValue;
-                  else if (answer.selectValue !== undefined) value = answer.selectValue;
-                  else if (answer.multiselectValue !== undefined) value = answer.multiselectValue;
-                  else if (answer.fileValue !== undefined) value = answer.fileValue;
-                  
-                  initialFormData[item.questionId] = value;
+            console.log(`Section ${sectionIndex} has ${questions.length} questions:`, questions);
+            
+            questions.forEach((response, responseIndex) => {
+               console.log(`Processing response ${responseIndex}:`, response);
+               console.log(`Response structure:`, {
+                  questionId: response.questionId,
+                  questionText: response.questionText,
+                  isAnswered: response.isAnswered,
+                  answer: response.answer,
+                  currentAnswer: response.currentAnswer,
+                  allKeys: Object.keys(response)
+               });
+               
+               // Try multiple approaches to get the answer value
+               let answerValue = null;
+               
+               if (response.isAnswered && response.currentAnswer) {
+                  answerValue = response.currentAnswer.value;
+                  console.log(`Found answer via currentAnswer.value: ${answerValue}`);
+               } else if (response.isAnswered && response.answer) {
+                  // Try structured answer approach
+                  const answer = response.answer;
+                  answerValue = answer.textValue || answer.numberValue || answer.dateValue || 
+                               answer.selectValue || answer.multiselectValue || answer.fileValue ||
+                               (answer.booleanValue !== undefined ? answer.booleanValue : null);
+                  console.log(`Found answer via structured answer: ${answerValue}`);
+               } else if (response.isAnswered && response.value !== undefined) {
+                  answerValue = response.value;
+                  console.log(`Found answer via direct value: ${answerValue}`);
+               }
+               
+               if (answerValue !== null && answerValue !== undefined && answerValue !== '') {
+                  existingAnswers[response.questionId] = answerValue;
+                  console.log(`Setting formData[${response.questionId}] = ${answerValue}`);
+               } else {
+                  console.log(`Question ${response.questionId} has no extractable answer:`, { 
+                     isAnswered: response.isAnswered, 
+                     hasCurrentAnswer: !!response.currentAnswer,
+                     hasAnswer: !!response.answer,
+                     hasDirectValue: response.value !== undefined
+                  });
                }
             });
          });
 
-         console.log("Setting initial form data from existing answers:", initialFormData);
-         setFormData(initialFormData);
+         console.log("Final existing answers from enhanced extraction:", existingAnswers);
+         setFormData(prev => ({
+            ...existingAnswers,
+            ...prev // Keep any new local changes
+         }));
       }
-   }, [questionnaire]); // FIX: Add questionnaire as dependency
+   }, [questionnaire]);
 
    console.log("formData = ", formData);
 
    const canCompleteQuestionnaire = () => {
       if (!questionnaire?.sections) return false;
+      
+      // If backend says questionnaire is complete, trust it
+      if (questionnaire.isComplete === true) {
+         console.log("Questionnaire marked as complete in backend, allowing completion");
+         return true;
+      }
       
       const sections = getSections();
       
@@ -228,17 +263,21 @@ export const Questionnaire = ({
                                       formData[question.questionId] !== undefined &&
                                       !(Array.isArray(formData[question.questionId]) && formData[question.questionId].length === 0);
                
-               // Check if question has backend answer
+               // Check if question has backend answer (using backup approach)
                const hasBackendAnswer = question.isAnswered || 
                                         (question.currentAnswer && question.currentAnswer.value);
                
+               console.log(`Question ${question.questionId}: hasLocal=${hasLocalAnswer}, hasBackend=${hasBackendAnswer}, required=${question.isRequired}`);
+               
                if (!hasLocalAnswer && !hasBackendAnswer) {
+                  console.log(`Cannot complete questionnaire: missing answer for required question ${question.questionId}`);
                   return false;
                }
             }
          }
       }
       
+      console.log("All required questions answered, questionnaire can be completed");
       return true;
    };
 
@@ -524,16 +563,27 @@ export const Questionnaire = ({
 
       setErrors({});
 
-      const sections = getSections();
-      const currentSection = sections[currentSectionIndex];
-      if (currentSection?.sectionId) {
-         await saveAnswers(currentSection.sectionId);
-      } else {
-         await saveAnswers();
-      }
+      // Set saving state to show loading UI
+      setSaving(true);
 
-      if (questionnaire && currentSectionIndex < sections.length - 1) {
-         setCurrentSectionIndex(prev => prev + 1);
+      try {
+         const sections = getSections();
+         const currentSection = sections[currentSectionIndex];
+         if (currentSection?.sectionId) {
+            await saveAnswers(currentSection.sectionId);
+         } else {
+            await saveAnswers();
+         }
+
+         // Only proceed to next section if save was successful
+         if (questionnaire && currentSectionIndex < sections.length - 1) {
+            setCurrentSectionIndex(prev => prev + 1);
+         }
+      } catch (error) {
+         console.error('Error saving before next section:', error);
+         setErrors({ save: 'Failed to save current section. Please try again.' });
+      } finally {
+         setSaving(false);
       }
    };
 
@@ -562,31 +612,40 @@ export const Questionnaire = ({
 
       // Save current section/form before submitting
       try {
+         setSaving(true);
          console.log('Saving answers before submit');
          await saveAnswers();
          console.log('Save completed successfully');
       } catch (error) {
          console.error('Error saving answers before submit:', error);
          setErrors({ submit: 'Please save all answers before submitting' });
+         setSaving(false);
          return;
       }
 
       try {
-         console.log('Updating claim status and completing questionnaire');
-         await InsuranceApiService.updateClaimStatus(claimId, 'employee');
+         console.log('Updating claim status to employee');
+         const statusResponse = await InsuranceApiService.updateClaimStatus(claimId, 'employee');
          
-         // Fetch updated claim data to get the latest questionnaire state
-         const updatedClaim = await InsuranceApiService.getClaimById(claimId);
-         if (updatedClaim.success && updatedClaim.claim.questionnaire) {
-            // Update the questionnaire state with the latest data
-            const updatedQuestionnaireData = updatedClaim.claim.questionnaire;
-            setQuestionnaire(updatedQuestionnaireData);
+         if (statusResponse.success) {
+            console.log('Status updated successfully, proceeding to next step');
+            // Update questionnaire completion status
+            setQuestionnaire(prev => ({
+               ...prev,
+               isComplete: true,
+               completedAt: new Date().toISOString()
+            }));
+            
+            // Call onComplete to proceed to ReviewAndSubmit
+            onComplete(formData);
+         } else {
+            setErrors({ submit: 'Failed to complete questionnaire. Please try again.' });
          }
-         
-         onComplete(formData);
       } catch (error) {
          console.error('Error submitting claim:', error);
          setErrors({ submit: 'Error submitting claim. Please try again.' });
+      } finally {
+         setSaving(false);
       }
    };
 
@@ -926,9 +985,17 @@ export const Questionnaire = ({
                      ) : (
                         <button
                            onClick={handleNext}
-                           className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                           disabled={saving || uploadingFiles}
+                           className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
-                           Save & Next Section
+                           {saving || uploadingFiles ? (
+                              <>
+                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                 {uploadingFiles ? 'Uploading Files...' : 'Saving...'}
+                              </>
+                           ) : (
+                              'Save & Next Section'
+                           )}
                         </button>
                      )}
                   </div>
