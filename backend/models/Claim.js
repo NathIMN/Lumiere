@@ -377,6 +377,7 @@ ClaimSchema.methods.checkQuestionnaireCompletion = function() {
   
   if (allSectionsComplete && !this.questionnaire.isComplete) {
     this.questionnaire.isComplete = true;
+    this.claimStatus = "employee"; // Move to next status when complete
     this.questionnaire.completedAt = new Date();
   } else if (!allSectionsComplete && this.questionnaire.isComplete) {
     // Reset completion if not all sections are complete
