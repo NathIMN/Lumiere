@@ -204,16 +204,28 @@ export const Questionnaire = ({
                
                if (response.isAnswered && response.currentAnswer) {
                   answerValue = response.currentAnswer.value;
+                  // Format dates for HTML input compatibility
+                  if (response.questionType === 'date' && answerValue) {
+                     answerValue = formatDateForInput(answerValue);
+                  }
                   console.log(`Found answer via currentAnswer.value: ${answerValue}`);
                } else if (response.isAnswered && response.answer) {
                   // Try structured answer approach
                   const answer = response.answer;
-                  answerValue = answer.textValue || answer.numberValue || answer.dateValue || 
-                               answer.selectValue || answer.multiselectValue || answer.fileValue ||
-                               (answer.booleanValue !== undefined ? answer.booleanValue : null);
+                  if (answer.dateValue) {
+                     answerValue = formatDateForInput(answer.dateValue);
+                  } else {
+                     answerValue = answer.textValue || answer.numberValue || 
+                                  answer.selectValue || answer.multiselectValue || answer.fileValue ||
+                                  (answer.booleanValue !== undefined ? answer.booleanValue : null);
+                  }
                   console.log(`Found answer via structured answer: ${answerValue}`);
                } else if (response.isAnswered && response.value !== undefined) {
                   answerValue = response.value;
+                  // Format dates for HTML input compatibility
+                  if (response.questionType === 'date' && answerValue) {
+                     answerValue = formatDateForInput(answerValue);
+                  }
                   console.log(`Found answer via direct value: ${answerValue}`);
                }
                
@@ -294,12 +306,21 @@ export const Questionnaire = ({
          [questionId]: processedValue
       }));
 
-      // Clear error for this field
-      if (errors[questionId]) {
+      // Real-time validation
+      const validationError = validateField(question, processedValue);
+      if (validationError) {
          setErrors(prev => ({
             ...prev,
-            [questionId]: ''
+            [questionId]: validationError
          }));
+      } else {
+         // Clear error for this field
+         if (errors[questionId]) {
+            setErrors(prev => ({
+               ...prev,
+               [questionId]: ''
+            }));
+         }
       }
 
       // Only auto-save file uploads
