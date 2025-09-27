@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Questionnaire } from '../../components/forms/Questionnaire';
 import { ReviewAndSubmit } from '../../components/forms/ReviewAndSubmit';
 import InsuranceApiService from '../../services/insurance-api';
-import DocumentApiService from '../../services/document-api';
 
 import {
    Calendar,
@@ -76,11 +75,6 @@ export const ClaimDetails = () => {
    const handleQuestionnaireComplete = async () => {
       await fetchClaimDetails();
       setShowQuestionnaireModal(false);
-   };
-
-   const handleSubmitSuccess = async (updatedClaim) => {
-      await fetchClaimDetails();
-      setShowReviewAndSubmitModal(false);
    };
 
    const handleDeleteClaim = async () => {
@@ -754,7 +748,6 @@ export const ClaimDetails = () => {
                            claimId={claim._id}
                            questionnaire={questionnaire}
                            selectedPolicy={selectedPolicy}
-                           onSubmitSuccess={handleSubmitSuccess}
                         />
                      </div>
                   </div>

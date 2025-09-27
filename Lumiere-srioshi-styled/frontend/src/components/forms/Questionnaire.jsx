@@ -2,21 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FileText, Calendar, AlertCircle, Check, Upload } from 'lucide-react';
 import InsuranceApiService from "../../services/insurance-api";
-import DocumentApiService from "../../services/document-api";
 
 export const Questionnaire = ({
    claimId,
    questionnaire,
    setQuestionnaire,
    selectedPolicy,
-   onComplete,
-   initialFormData = {}
+   onComplete
 }) => {
    const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-   const [formData, setFormData] = useState(initialFormData);
+   const [formData, setFormData] = useState({});
    const [errors, setErrors] = useState({});
    const [saving, setSaving] = useState(false);
-   const [uploadingFiles, setUploadingFiles] = useState(false);
 
    console.log("questionnaire = ", questionnaire);
 
@@ -142,32 +139,15 @@ export const Questionnaire = ({
       }
 
       // File validation
-      if (question.questionType === 'file') {
-         // For file questions, check if files are selected
-         const hasLocalFiles = formData[question.questionId] && 
-            Array.isArray(formData[question.questionId]) && 
-            formData[question.questionId].length > 0 &&
-            formData[question.questionId][0] instanceof File;
-         
-         const hasBackendAnswer = question.isAnswered && question.currentAnswer && question.currentAnswer.value;
-         
-         console.log(`Validating file question ${question.questionId}: hasLocalFiles=${hasLocalFiles}, hasBackendAnswer=${hasBackendAnswer}`);
-         
-         if (question.isRequired && !hasLocalFiles && !hasBackendAnswer) {
-            return `${question.questionText} is required`;
-         }
-
-         // Validate file properties if files are present
-         if (hasLocalFiles && Array.isArray(formData[question.questionId])) {
-            for (const file of formData[question.questionId]) {
-               if (validation.max && file.size > parseInt(validation.max)) {
-                  return `File size must be less than ${Math.round(validation.max / 1024 / 1024)}MB`;
-               }
-               if (validation.pattern) {
-                  const regex = new RegExp(validation.pattern);
-                  if (!regex.test(file.name)) {
-                     return validation.message || 'Invalid file type';
-                  }
+      if (question.questionType === 'file' && value && Array.isArray(value)) {
+         for (const file of value) {
+            if (validation.max && file.size > parseInt(validation.max)) {
+               return `File size must be less than ${Math.round(validation.max / 1024 / 1024)}MB`;
+            }
+            if (validation.pattern) {
+               const regex = new RegExp(validation.pattern);
+               if (!regex.test(file.name)) {
+                  return validation.message || 'Invalid file type';
                }
             }
          }
@@ -176,77 +156,49 @@ export const Questionnaire = ({
       return null;
    };
 
-   // Initialize form data with existing answers
+   // FIX: Update useEffect to respond to questionnaire changes
    useEffect(() => {
-      if (questionnaire?.sections) {
-         const initialFormData = {};
-         
-         questionnaire.sections.forEach(section => {
-            // Handle both 'responses' and 'questions' structures
-            const questions = section.responses || section.questions || [];
-            questions.forEach(item => {
-               if (item.isAnswered && item.answer) {
-                  const answer = item.answer;
-                  // Use the actual answer value based on type
-                  let value = '';
-                  if (answer.textValue !== undefined) value = answer.textValue;
-                  else if (answer.numberValue !== undefined) value = answer.numberValue;
-                  else if (answer.dateValue !== undefined) {
-                     // Format date for input field
-                     value = formatDateForInput(answer.dateValue);
-                  }
-                  else if (answer.booleanValue !== undefined) value = answer.booleanValue;
-                  else if (answer.selectValue !== undefined) value = answer.selectValue;
-                  else if (answer.multiselectValue !== undefined) value = answer.multiselectValue;
-                  else if (answer.fileValue !== undefined) value = answer.fileValue;
-                  
-                  initialFormData[item.questionId] = value;
-               }
-            });
-         });
-
-         console.log("Setting initial form data from existing answers:", initialFormData);
-         setFormData(initialFormData);
+      if (!questionnaire.sections) {
+         setFormData({});
+         return;
       }
+
+      const initialFormData = {};
+      questionnaire.sections.forEach(section => {
+         // Handle both 'responses' and 'questions' structures
+         const questions = section.responses || section.questions || [];
+         questions.forEach(item => {
+            if (item.isAnswered && item.answer) {
+               const answer = item.answer;
+               // Use the actual answer value based on type
+               let value = '';
+               if (answer.textValue !== undefined) value = answer.textValue;
+               else if (answer.numberValue !== undefined) value = answer.numberValue;
+               else if (answer.dateValue !== undefined) {
+                  // Format date for input field
+                  value = formatDateForInput(answer.dateValue);
+               }
+               else if (answer.booleanValue !== undefined) value = answer.booleanValue;
+               else if (answer.selectValue !== undefined) value = answer.selectValue;
+               else if (answer.multiselectValue !== undefined) value = answer.multiselectValue;
+               else if (answer.fileValue !== undefined) value = answer.fileValue;
+               
+               initialFormData[item.questionId] = value;
+            }
+         });
+      });
+
+      console.log("Setting initial form data:", initialFormData);
+      setFormData(initialFormData);
    }, [questionnaire]); // FIX: Add questionnaire as dependency
 
    console.log("formData = ", formData);
-
-   const canCompleteQuestionnaire = () => {
-      if (!questionnaire?.sections) return false;
-      
-      const sections = getSections();
-      
-      // Check if all required questions in all sections have answers
-      for (const section of sections) {
-         for (const question of section.questions) {
-            if (question.isRequired) {
-               // Check if question has local answer in formData
-               const hasLocalAnswer = formData[question.questionId] && 
-                                      formData[question.questionId] !== '' && 
-                                      formData[question.questionId] !== null && 
-                                      formData[question.questionId] !== undefined &&
-                                      !(Array.isArray(formData[question.questionId]) && formData[question.questionId].length === 0);
-               
-               // Check if question has backend answer
-               const hasBackendAnswer = question.isAnswered || 
-                                        (question.currentAnswer && question.currentAnswer.value);
-               
-               if (!hasLocalAnswer && !hasBackendAnswer) {
-                  return false;
-               }
-            }
-         }
-      }
-      
-      return true;
-   };
 
    const handleInputChange = (questionId, value, question) => {
       let processedValue = value;
       
       // Process date values to remove time component
-      if (question && question.questionType === 'date' && value) {
+      if (question.questionType === 'date' && value) {
          processedValue = value; // Keep as YYYY-MM-DD for input
       }
 
@@ -255,50 +207,21 @@ export const Questionnaire = ({
          [questionId]: processedValue
       }));
 
-      // Clear error for this field
-      if (errors[questionId]) {
+      // Real-time validation
+      const validationError = validateField(question, processedValue);
+      if (validationError) {
          setErrors(prev => ({
             ...prev,
-            [questionId]: ''
+            [questionId]: validationError
          }));
-      }
-
-      // Only auto-save file uploads
-      if (Array.isArray(value) && value.length > 0 && value[0] instanceof File) {
-         console.log('File selected, auto-saving to update completion status');
-      }
-   };
-
-   // Helper function to upload files and get document IDs
-   const uploadFilesAndGetIds = async (files, claimId, questionId) => {
-      if (!files || !Array.isArray(files) || files.length === 0) return null;
-      
-      try {
-         // For now, handle single file per question (most common case)
-         // Can be extended to handle multiple files if needed
-         const file = files[0];
-         
-         // Get current user ID from localStorage
-         const currentUserId = localStorage.getItem('userId');
-         
-         const uploadResponse = await DocumentApiService.uploadDocument(file, {
-            type: 'claim',
-            docType: 'questionnaire_answer',
-            uploadedBy: currentUserId || claimId, // Fallback to claimId if userId not found
-            uploadedByRole: 'employee',
-            refId: claimId,
-            description: `Answer to ${questionId}`,
-            tags: `questionnaire,${questionId}`
-         });
-         
-         if (uploadResponse.success && uploadResponse.document._id) {
-            return uploadResponse.document._id;
-         } else {
-            throw new Error('Failed to upload document');
+      } else {
+         // Clear error for this field
+         if (errors[questionId]) {
+            setErrors(prev => ({
+               ...prev,
+               [questionId]: ''
+            }));
          }
-      } catch (error) {
-         console.error('File upload error:', error);
-         throw error;
       }
    };
 
@@ -326,35 +249,10 @@ export const Questionnaire = ({
       if (!currentSection) return {};
 
       currentSection.questions.forEach(question => {
-         if (question.isRequired) {
-            // For file questions, check if files are selected
-            if (question.questionType === 'file') {
-               const hasLocalFiles = formData[question.questionId] && 
-                  Array.isArray(formData[question.questionId]) && 
-                  formData[question.questionId].length > 0 &&
-                  formData[question.questionId][0] instanceof File;
-               
-               const hasBackendAnswer = question.isAnswered && question.currentAnswer && question.currentAnswer.value;
-               
-               console.log(`Validating file question ${question.questionId}: hasLocalFiles=${hasLocalFiles}, hasBackendAnswer=${hasBackendAnswer}`);
-               
-               if (!hasLocalFiles && !hasBackendAnswer) {
-                  newErrors[question.questionId] = `${question.questionText} is required`;
-               }
-            } else {
-               // For non-file questions, use original validation
-               const hasLocalAnswer = formData[question.questionId] !== undefined && 
-                  formData[question.questionId] !== null && 
-                  formData[question.questionId] !== '';
-               
-               const hasBackendAnswer = question.isAnswered && question.currentAnswer && question.currentAnswer.value;
-               
-               console.log(`Validating non-file question ${question.questionId}: hasLocalAnswer=${hasLocalAnswer}, hasBackendAnswer=${hasBackendAnswer}`);
-               
-               if (!hasLocalAnswer && !hasBackendAnswer) {
-                  newErrors[question.questionId] = `${question.questionText} is required`;
-               }
-            }
+         const value = formData[question.questionId];
+         const validationError = validateField(question, value);
+         if (validationError) {
+            newErrors[question.questionId] = validationError;
          }
       });
 
@@ -364,57 +262,16 @@ export const Questionnaire = ({
    const saveAnswers = async (sectionId = null) => {
       if (!claimId || !questionnaire) return;
 
-      console.log('SaveAnswers called with sectionId:', sectionId);
-      console.log('Current formData:', formData);
-
       setSaving(true);
       try {
-         // First, handle file uploads and get document IDs
-         const processedAnswers = [];
-         
-         for (const [questionId, value] of Object.entries(formData)) {
-            if (value === '' || value === null || value === undefined) continue;
-            
-            console.log(`Processing answer for ${questionId}:`, value);
-            
-            // Check if this is a file question
-            const sections = getSections();
-            let isFileQuestion = false;
-            for (const section of sections) {
-               const question = section.questions.find(q => q.questionId === questionId);
-               if (question && question.questionType === 'file') {
-                  isFileQuestion = true;
-                  console.log(`${questionId} is a file question`);
-                  break;
-               }
-            }
-            
-            if (isFileQuestion && Array.isArray(value) && value.length > 0) {
-               console.log(`Uploading file for question ${questionId}`);
-               // Upload file and get document ID
-               try {
-                  setUploadingFiles(true);
-                  const documentId = await uploadFilesAndGetIds(value, claimId, questionId);
-                  if (documentId) {
-                     console.log(`File uploaded successfully, document ID: ${documentId}`);
-                     processedAnswers.push({
-                        questionId,
-                        value: documentId
-                     });
-                  }
-               } catch (error) {
-                  console.error(`Failed to upload file for question ${questionId}:`, error);
-                  setErrors({ save: `Failed to upload file for ${questionId}: ${error.message}` });
-                  setSaving(false);
-                  setUploadingFiles(false);
-                  return;
-               } finally {
-                  setUploadingFiles(false);
-               }
-            } else if (!isFileQuestion) {
-               // Regular non-file question
-               console.log(`Adding non-file answer for ${questionId}: ${value}`);
-               
+         let answersToSave = Object.entries(formData)
+            .filter(([_, value]) => {
+               // Better filtering for meaningful values
+               if (value === null || value === undefined || value === '') return false;
+               if (Array.isArray(value) && value.length === 0) return false;
+               return true;
+            })
+            .map(([questionId, value]) => {
                // Find the question to check its type
                const sections = getSections();
                let question = null;
@@ -424,39 +281,16 @@ export const Questionnaire = ({
                }
 
                let processedValue = value;
-               
-               // Handle different question types properly
-               if (question) {
-                  switch (question.questionType) {
-                     case 'date':
-                        if (value) {
-                           processedValue = formatDateForStorage(value);
-                        }
-                        break;
-                     case 'number':
-                        if (value !== '' && value !== null && value !== undefined) {
-                           processedValue = Number(value);
-                        }
-                        break;
-                     case 'boolean':
-                        processedValue = Boolean(value);
-                        break;
-                     default:
-                        processedValue = value;
-                  }
+               // Format date values for storage
+               if (question && question.questionType === 'date' && value) {
+                  processedValue = formatDateForStorage(value);
                }
-               
-               processedAnswers.push({
+
+               return {
                   questionId,
                   value: processedValue
-               });
-            }
-            // Skip file questions that don't have files selected
-         }
-
-         console.log('Processed answers:', processedAnswers);
-
-         let answersToSave = processedAnswers;
+               };
+            });
 
          if (sectionId) {
             const sections = getSections();
@@ -545,49 +379,22 @@ export const Questionnaire = ({
    };
 
    const handleSubmit = async () => {
-      console.log('HandleSubmit called - validating and saving before submit');
       const validationErrors = validateCurrentSection();
 
       if (Object.keys(validationErrors).length > 0) {
-         console.log('Validation errors found:', validationErrors);
          setErrors(validationErrors);
          return;
       }
 
-      // Check if questionnaire can be completed based on current data
-      if (!canCompleteQuestionnaire()) {
+      await saveAnswers();
+
+      if (!questionnaire?.isComplete) {
          setErrors({ submit: 'Please complete all required questions before submitting' });
          return;
       }
 
-      // Save current section/form before submitting
-      try {
-         console.log('Saving answers before submit');
-         await saveAnswers();
-         console.log('Save completed successfully');
-      } catch (error) {
-         console.error('Error saving answers before submit:', error);
-         setErrors({ submit: 'Please save all answers before submitting' });
-         return;
-      }
-
-      try {
-         console.log('Updating claim status and completing questionnaire');
-         await InsuranceApiService.updateClaimStatus(claimId, 'employee');
-         
-         // Fetch updated claim data to get the latest questionnaire state
-         const updatedClaim = await InsuranceApiService.getClaimById(claimId);
-         if (updatedClaim.success && updatedClaim.claim.questionnaire) {
-            // Update the questionnaire state with the latest data
-            const updatedQuestionnaireData = updatedClaim.claim.questionnaire;
-            setQuestionnaire(updatedQuestionnaireData);
-         }
-         
-         onComplete(formData);
-      } catch (error) {
-         console.error('Error submitting claim:', error);
-         setErrors({ submit: 'Error submitting claim. Please try again.' });
-      }
+      await InsuranceApiService.updateClaimStatus(claimId, 'employee');
+      onComplete(formData);
    };
 
    const renderQuestion = (question) => {
@@ -735,13 +542,9 @@ export const Questionnaire = ({
                   <label className="block text-sm font-medium text-gray-700">
                      {question.questionText}
                      {question.isRequired && <span className="text-red-500 ml-1">*</span>}
-                     {question.isAnswered && (
-                        <span className="ml-2 text-green-600 text-xs">✓ Answered</span>
-                     )}
                   </label>
-                  <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${
-                     hasError ? 'border-red-300' : 'border-gray-300'
-                  }`}>
+                  <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${hasError ? 'border-red-300' : 'border-gray-300'
+                     }`}>
                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                      <p className="text-sm text-gray-600 mb-2">Click to upload or drag and drop files here</p>
                      <input
@@ -751,23 +554,14 @@ export const Questionnaire = ({
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         accept={question.validation?.pattern ? question.validation.pattern.replace(/\\/g, '').replace(/\.\(\|/g, '.').replace(/\)\$/, '') : undefined}
                      />
-                     
-                     {/* Show selected files */}
-                     {formData[question.questionId] && Array.isArray(formData[question.questionId]) && formData[question.questionId].length > 0 && (
-                        <div className="mt-2">
-                           <p className="text-sm text-gray-600 mb-1">Selected files:</p>
-                           {formData[question.questionId].map((file, index) => (
-                              <div key={index} className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block mr-2 mb-1">
-                                 {file.name} ({Math.round(file.size / 1024)}KB)
-                              </div>
-                           ))}
-                        </div>
-                     )}
-                     
-                     {/* Show previously uploaded file */}
-                     {question.isAnswered && question.currentAnswer && question.currentAnswer.value && (
-                        <div className="mt-2">
-                           <p className="text-sm text-green-600">✓ Previously uploaded document: {question.currentAnswer.value}</p>
+                     {value && Array.isArray(value) && value.length > 0 && (
+                        <div className="mt-2 text-sm text-gray-600">
+                           {value.length} file(s) selected
+                           <div className="text-xs text-gray-500 mt-1">
+                              {value.map((file, idx) => (
+                                 <div key={idx}>{file.name} ({Math.round(file.size / 1024)}KB)</div>
+                              ))}
+                           </div>
                         </div>
                      )}
                   </div>
@@ -911,17 +705,10 @@ export const Questionnaire = ({
                      {isLastSection ? (
                         <button
                            onClick={handleSubmit}
-                           disabled={!canCompleteQuestionnaire() || saving || uploadingFiles}
+                           disabled={!questionnaire.isComplete}
                            className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                           {saving || uploadingFiles ? (
-                              <div className="flex items-center gap-2">
-                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                 {uploadingFiles ? 'Uploading...' : 'Saving...'}
-                              </div>
-                           ) : (
-                              canCompleteQuestionnaire() ? 'Complete Questionnaire' : 'Complete All Questions First'
-                           )}
+                           {questionnaire.isComplete ? 'Complete Questionnaire' : 'Complete All Questions First'}
                         </button>
                      ) : (
                         <button
