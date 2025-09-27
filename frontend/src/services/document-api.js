@@ -622,6 +622,87 @@ class DocumentApiService {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   }
+
+  // ==================== CLAIM-SPECIFIC DOCUMENT METHODS ====================
+
+  /**
+   * Get claim documents (using claim-specific endpoint)
+   * @param {string} claimId - Claim ID
+   * @returns {Promise<Object>} Claim documents
+   */
+  async getClaimDocuments(claimId) {
+    if (!claimId) {
+      throw new Error('Claim ID is required');
+    }
+    // Use the claims endpoint for better integration
+    return this.request(`/claims/${claimId}/documents`);
+  }
+
+  /**
+   * Upload document directly to a claim
+   * @param {string} claimId - Claim ID
+   * @param {File} file - File to upload
+   * @param {Object} metadata - Document metadata
+   * @param {string} metadata.docType - Document type
+   * @param {string} [metadata.description] - Document description
+   * @returns {Promise<Object>} Upload response
+   */
+  async uploadClaimDocument(claimId, file, metadata) {
+    if (!claimId) {
+      throw new Error('Claim ID is required');
+    }
+    if (!file) {
+      throw new Error('File is required');
+    }
+    if (!metadata || !metadata.docType) {
+      throw new Error('Document type is required');
+    }
+
+    const formData = new FormData();
+    formData.append('document', file);
+    formData.append('docType', metadata.docType);
+    
+    if (metadata.description) {
+      formData.append('description', metadata.description);
+    }
+
+    return this.uploadRequest(`/claims/${claimId}/documents/upload`, formData);
+  }
+
+  /**
+   * Upload multiple documents to a claim
+   * @param {string} claimId - Claim ID
+   * @param {File[]} files - Files to upload
+   * @param {Object} metadata - Document metadata
+   * @param {string[]} metadata.docTypes - Document types array
+   * @param {string} [metadata.description] - Shared description
+   * @returns {Promise<Object>} Upload response
+   */
+  async uploadMultipleClaimDocuments(claimId, files, metadata) {
+    if (!claimId) {
+      throw new Error('Claim ID is required');
+    }
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      throw new Error('Files array is required');
+    }
+    if (!metadata || !metadata.docTypes) {
+      throw new Error('Document types are required');
+    }
+
+    const formData = new FormData();
+    
+    files.forEach(file => {
+      formData.append('documents', file);
+    });
+    
+    formData.append('docTypes', JSON.stringify(metadata.docTypes));
+    
+    if (metadata.description) {
+      formData.append('description', metadata.description);
+    }
+
+    return this.uploadRequest(`/claims/${claimId}/documents/upload/multiple`, formData);
+  }
 }
 
 // Create and export singleton instance

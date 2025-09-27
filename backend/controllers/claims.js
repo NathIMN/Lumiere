@@ -342,7 +342,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
     startDate,
     endDate,
     page = 1,
-    limit = 100,
+    limit = 10,
     sortBy = "createdAt",
     sortOrder = "desc",
   } = req.query;
