@@ -418,14 +418,7 @@ const AgentOverview = () => {
 
   // ==================== ACTION HANDLERS ====================
 
-  const handleQuickApprove = async () => {
-    try {
-      console.log('Opening quick approve for similar claims...');
-      // Navigate to claims review with pre-selected similar claims
-    } catch (error) {
-      console.error('Error in quick approve:', error);
-    }
-  };
+  
 
   const handleSmartSearch = () => {
     console.log('Opening smart search...');
@@ -971,19 +964,7 @@ const AgentOverview = () => {
           {/* Quick Action Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Quick Action Cards */}
-            <div className="bg-gradient-to-br from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-200 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={handleQuickApprove}>
-              <div className="text-center">
-                <div className="p-4 bg-emerald-200 rounded-full inline-block mb-4">
-                  <CheckCircle className="w-8 h-8 text-emerald-700" />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Quick Approve</h3>
-                <p className="text-sm text-gray-600 mb-4">Bulk approve similar claims</p>
-                <div className="w-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 py-2 rounded-lg transition-colors text-center">
-                  Start Batch
-                </div>
-              </div>
-            </div>
+            
 
             <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl p-6 border border-blue-200 hover:shadow-lg transition-shadow cursor-pointer"
               onClick={handleSmartSearch}>
