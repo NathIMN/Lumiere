@@ -86,6 +86,15 @@ export const EmployeePolicy = () => {
     }
   };
 
+  const getCoverages = (policy) => {
+   if(policy.policyType == "vehicle"){
+      return policy.coverage.typeVehicle
+   }
+   else{
+      return policy.coverage.typeLife
+   }
+  }
+
   const PolicyCard = ({ policy }) => {
     const daysUntilExpiry = getDaysUntilExpiry(policy.validity.endDate);
     const isExpiringSoon = daysUntilExpiry <= 30 && daysUntilExpiry > 0;
@@ -148,7 +157,7 @@ export const EmployeePolicy = () => {
           <div className="mb-4">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Coverage Types</p>
             <div className="flex flex-wrap gap-1">
-              {(policy.coverage.typeLife || policy.coverage.typeVehicle).map((type, index) => (
+              {(getCoverages(policy)).map((type, index) => (
                 <span key={index} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-md">
                   {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
@@ -326,7 +335,7 @@ export const EmployeePolicy = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6 bg-[url('/card-bg01.png')] bg-cover bg-center bg-no-repeat relative">
+        <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6 bg-[url('/card-bg04.jpg')] bg-cover bg-center bg-no-repeat relative">
     <div className="flex items-center relative z-10">
       <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
       <div className="ml-4">
@@ -376,8 +385,10 @@ export const EmployeePolicy = () => {
           <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-md border-2 border-dashed border-gray-300 dark:border-neutral-600 hover:border-blue-400 dark:hover:border-blue-500 transition-colors cursor-pointer">
             <div className="p-6 text-center">
               <Plus className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Add New Policy</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">You can have up to 2 active insurance policies</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Policies Found</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+               You are not currently enrolled in any insurance policy. You cannot add
+               yourself to a policy, but you can request HR to add one for you.</p>
               <button className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors">
                 Request Policy
               </button>

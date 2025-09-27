@@ -1,17 +1,17 @@
-
 import { useLocation } from "react-router-dom";
 import { Bell, User, Sun, Moon } from "lucide-react";
 
-export const Header = ({ onToggleTheme, isDark , isCollapsed, scrolled}) => {
+export const Header = ({ onToggleTheme, isDark, isCollapsed, scrolled }) => {
   const location = useLocation();
 
-
-  // Get current active tab name from path
-    const activeTab = location.pathname
+  // Get path parts
+  const parts = location.pathname
     .split("/")
-    .filter(Boolean) // remove empty parts
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1)) // capitalize first letter
-    .join(" > ");
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1));
+
+  const breadcrumbs = parts.join(" > ");
+  const lastPart = parts[parts.length - 1] || "Dashboard";
 
   return (
     <header
@@ -26,9 +26,18 @@ export const Header = ({ onToggleTheme, isDark , isCollapsed, scrolled}) => {
         ${isCollapsed ? "left-32" : "left-75"}
       `}
     >
-      <h2 className="text-lg font-semibold capitalize text-gray-800 dark:text-gray-100">
-        {activeTab || "Dashboard"}
-      </h2>
+      {/* Left: breadcrumbs + big title */}
+      <div className="flex flex-col gap-2">
+        {/* Breadcrumbs (small text) */}
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {breadcrumbs || "Dashboard"}
+        </p>
+
+        {/* Big title (last part of URL) */}
+        <h2 className="text-2xl font-bold capitalize text-gray-800 dark:text-gray-100">
+          {lastPart}
+        </h2>
+      </div>
 
       {/* Right: actions */}
       <div className="flex items-center space-x-4">

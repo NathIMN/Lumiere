@@ -17,8 +17,10 @@ const QuestionSchema = new mongoose.Schema({
   options: [String],
   isRequired: { type: Boolean, default: true },
   validation: {
-    min: Number,
-    max: Number,
+    minLength: Number,
+    maxLength: Number,
+    min: String,
+    max: String,
     pattern: String,
     message: String,
   },

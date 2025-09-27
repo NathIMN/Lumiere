@@ -61,6 +61,8 @@ const createClaim = asyncWrapper(async (req, res, next) => {
       claim,
       nextStep: "complete_questionnaire_and_submit",
     });
+
+    
   } catch (error) {
     // If questionnaire loading fails, delete the created claim
     await Claim.findByIdAndDelete(claim._id);
@@ -159,9 +161,10 @@ const submitClaim = asyncWrapper(async (req, res, next) => {
 
   // Update claim amount
   claim.claimAmount.requested = claimAmount;
-
+console.log(documents)
   // Add documents if provided
   if (documents && Array.isArray(documents)) {
+
     claim.documents = [...claim.documents, ...documents];
   }
 
@@ -380,8 +383,8 @@ const getAllClaims = asyncWrapper(async (req, res) => {
   sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
   const claims = await Claim.find(query)
-    .populate("policy", "policyNumber policyType provider")
-    .populate("employeeId", "firstName lastName email")
+    .populate("policy", "policyNumber policyType provider policyId")
+    .populate("employeeId", "userId firstName lastName email")
     .populate("documents", "filename originalName uploadedAt")
     .sort(sortOptions)
     .skip(skip)
@@ -400,13 +403,12 @@ const getAllClaims = asyncWrapper(async (req, res) => {
 });
 
 // Get claim by ID
-// Get claim by ID
 const getClaimById = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
 
-  const claim = await Claim.findById(claimId)
-    .populate("policy", "policyNumber policyType provider coverage")
-    .populate("employeeId", "firstName lastName email department")
+  const claim = await Claim.findOne({ claimId: claimId }) // Changed from findById to findOne
+    .populate("policy", "policyNumber policyId policyType provider coverage")
+    .populate("employeeId", "userId profile fullname email employment")
     .populate("documents", "filename originalName fileType uploadedAt")
     .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName")
     .populate("hrForwardingDetails.forwardedBy", "firstName lastName email")
@@ -426,11 +428,20 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
     );
   }
 
+  console.log("Validation check:", {
+    hasQuestionnaire: !!claim.questionnaire,
+    hasSections: !!claim.questionnaire?.sections,
+    sectionCount: claim.questionnaire?.sections?.length || 0,
+    firstSectionValidation: claim.questionnaire?.sections?.[0]?.responses?.[0]?.validation
+  });
+
   res.status(200).json({
     success: true,
     claim,
   });
 });
+
+
 
 // Get claims requiring action (for dashboards)
 const getClaimsRequiringAction = asyncWrapper(async (req, res) => {
@@ -774,8 +785,8 @@ const updateClaimStatus = asyncWrapper(async (req, res, next) => {
 
 // Submit questionnaire answers for a specific section
 const submitSectionAnswers = asyncWrapper(async (req, res, next) => {
-  const { id: claimId } = req.params;
-  const { sectionId, answers } = req.body;
+  const { id: claimId, sectionId } = req.params;
+  const { answers } = req.body;
   const { userId } = req.user;
 
   // Validate request body
@@ -974,6 +985,67 @@ const getSectionQuestions = asyncWrapper(async (req, res, next) => {
   });
 });
 
+const deleteClaimById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.user;
+
+    // Find and validate claim
+    const claim = await Claim.findById(id);
+    
+    if (!claim) {
+      return res.status(404).json({
+        success: false,
+        message: "Claim not found"
+      });
+    }
+
+    // Authorization check
+    if (claim.employeeId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this claim"
+      });
+    }
+
+    // Status validation
+    const allowedStatuses = ["draft", "employee"];
+    if (!allowedStatuses.includes(claim.claimStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete claim with status '${claim.claimStatus}'. Claims can only be deleted when status is 'draft' or 'employee'`
+      });
+    }
+
+    // Store claim info before deletion
+    const claimInfo = {
+      claimId: claim.claimId,
+      claimType: claim.claimType,
+      claimOption: claim.claimOption
+    };
+
+    // Delete the claim
+    await Claim.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: `Claim ${claimInfo.claimId} has been successfully deleted`,
+      data: {
+        ...claimInfo,
+        deletedAt: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error("Error deleting claim:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error occurred while deleting the claim",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined
+    });
+  }
+};
+
 export {
   createClaim,
   updateQuestionnaireAnswer,
@@ -989,5 +1061,6 @@ export {
   submitQuestionnaireAnswers,
   submitSectionAnswers, // New method for section-specific updates
   getSectionQuestions,  // New method for getting specific section
-  updateClaimStatus
+  updateClaimStatus,
+  deleteClaimById
 };
