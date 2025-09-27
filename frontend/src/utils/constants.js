@@ -54,10 +54,3 @@ export const relationships = [
   { value: 'spouse', label: 'Spouse' },
   { value: 'child', label: 'Child' }
 ];
-
-// export const userRoles = [
-//   { value: 'employee', label: 'Employee' },
-//   { value: 'hr_officer', label: 'HR Officer' },
-//   { value: 'insurance_agent', label: 'Insurance Agent' },
-//   { value: 'admin', label: 'Admin' }
-// ];
