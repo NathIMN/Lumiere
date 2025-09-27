@@ -9,7 +9,8 @@ export function HeaderLanding({scrolled}) {
     { id: 'features', label: 'Features', href: '#features' },
     { id: 'faq', label: 'FAQs', href: '#faq' },
     { id: 'reviews', label: 'Reviews', href: '#reviews' },
-    { id: 'contact', label: 'Contact', href: '#contact' }
+    { id: 'contact', label: 'Contact', href: '#contact' },
+    { id: 'bla', label: 'Bla', href: '#bla' }
   ];
 
   // Scroll spy effect

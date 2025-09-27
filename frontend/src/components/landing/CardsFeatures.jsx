@@ -7,12 +7,12 @@ export const CardsFeatures = () => {
       <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end md:px-8">
         <h2 className="max-w-lg text-4xl font-bold text-red-900 md:text-5xl">
           Grow faster with our
-          <span className="text-blue-900"> all in one solution</span>
+          <span className="text-[#151E3D]"> all in one solution</span>
         </h2>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="whitespace-nowrap rounded-lg bg-red-900 px-4 py-2 font-medium text-white shadow-xl transition-colors hover:bg-slate-700"
+          className="whitespace-nowrap rounded-lg bg-red-900 px-4 py-2 font-medium text-white shadow-xl transition-colors hover:bg-[#151E3D]"
         >
           Learn more
         </motion.button>
@@ -26,7 +26,7 @@ export const CardsFeatures = () => {
             </span>
           </div>
         </BounceCard>
-        <BounceCard className="col-span-12 md:col-span-8 bg-blue-900">
+        <BounceCard className="col-span-12 md:col-span-8 bg-[#151E3D]">
           <CardTitle>Do another thing</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-8 rounded-t-2xl bg-white p-4 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <span className="block text-center font-semibold text-orange-50">
@@ -44,7 +44,7 @@ export const CardsFeatures = () => {
             </span>
           </div>
         </BounceCard>
-        <BounceCard className="col-span-12 md:col-span-4 bg-blue-900">
+        <BounceCard className="col-span-12 md:col-span-4 bg-[#151E3D]">
           <CardTitle>And finally this</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-8 rounded-t-2xl bg-white p-4 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <span className="block text-center font-semibold text-red-50">

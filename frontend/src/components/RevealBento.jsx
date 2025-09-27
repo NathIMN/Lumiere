@@ -6,7 +6,6 @@ import { FiArrowRight, FiMail, FiMapPin } from "react-icons/fi";
 export const RevealBento = () => {
   return (
     <div className="min-h-screen bg-white px-4 py-12 text-zinc-900">
-      <Logo />
       <motion.div
         initial="initial"
         animate="animate"
@@ -47,26 +46,26 @@ const HeaderBlock = () => (
       className="mb-4 size-14 rounded-full"
     />
     <h1 className="mb-12 text-4xl font-medium leading-tight">
-      Hi, I'm Tom. <span className="text-zinc-600">I build cool websites like this one.</span>
+      Hi, I'm Lumi!. <span className="text-zinc-600">Your AI assistant for Managing claims</span>
     </h1>
-    <a href="#" className="flex items-center gap-1 text-red-500 hover:underline">
-      Contact me <FiArrowRight />
+    <a href="#" className="flex items-center gap-1 text-red-900 hover:underline">
+      Talk to Lumi... <FiArrowRight />
     </a>
   </Block>
 );
 
 const SocialsBlock = () => (
   <>
-    <Block whileHover={{ rotate: "2.5deg", scale: 1.1 }} className="col-span-6 bg-red-300 md:col-span-3">
+    <Block whileHover={{ rotate: "2.5deg", scale: 1.1 }} className="col-span-6 bg-red-900 md:col-span-3">
       <div className="grid h-full place-content-center text-3xl text-white">YouTube</div>
     </Block>
-    <Block whileHover={{ rotate: "-2.5deg", scale: 1.1 }} className="col-span-6 bg-green-400 md:col-span-3">
+    <Block whileHover={{ rotate: "-2.5deg", scale: 1.1 }} className="col-span-6 bg-[#151E3D] md:col-span-3">
       <div className="grid h-full place-content-center text-3xl text-white">GitHub</div>
     </Block>
-    <Block whileHover={{ rotate: "-2.5deg", scale: 1.1 }} className="col-span-6 bg-zinc-200 md:col-span-3">
+    <Block whileHover={{ rotate: "-2.5deg", scale: 1.1 }} className="col-span-6 bg-[#151E3D] md:col-span-3">
       <div className="grid h-full place-content-center text-3xl text-zinc-900">TikTok</div>
     </Block>
-    <Block whileHover={{ rotate: "2.5deg", scale: 1.1 }} className="col-span-6 bg-blue-400 md:col-span-3">
+    <Block whileHover={{ rotate: "2.5deg", scale: 1.1 }} className="col-span-6 bg-red-900 md:col-span-3">
       <div className="grid h-full place-content-center text-3xl text-white">Twitter</div>
     </Block>
   </>
@@ -75,10 +74,8 @@ const SocialsBlock = () => (
 const AboutBlock = () => (
   <Block className="col-span-12 text-3xl leading-snug">
     <p>
-      My passion is building cool stuff.{" "}
-      <span className="text-zinc-600">
-        I build primarily with React, Tailwind CSS, and Framer Motion. I love this stack so much that I even built a website about it. I've made over a hundred videos on the subject.
-      </span>
+      My passion is helping you.{" "}
+      <span className="text-zinc-600">I can understand your questions, process claim information, and keep you updated in real time. Powered by AI, I make filing and tracking claims simple, whether by voice or text.</span>
     </p>
   </Block>
 );
@@ -99,7 +96,7 @@ const EmailListBlock = () => (
         placeholder="Enter your email"
         className="w-full rounded border border-zinc-300 bg-white px-3 py-1.5 transition-colors focus:border-red-500 focus:outline-0"
       />
-      <button className="flex items-center gap-2 whitespace-nowrap rounded bg-red-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600">
+      <button className="flex items-center gap-2 whitespace-nowrap rounded bg-[#151E3D] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-red-600">
         <FiMail /> Join the list
       </button>
     </form>

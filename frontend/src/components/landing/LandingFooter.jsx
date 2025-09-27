@@ -2,7 +2,7 @@ import { Twitter, Facebook, Instagram } from 'lucide-react';
 
 export function LandingFooter() {
   return (
-    <footer className="bg-gradient-to-br from-black via-red-900 to-blue-900 text-white py-20 px-6">
+    <footer className="bg-gradient-to-br from-black via-red-900 to-[#151E3D] text-white py-20 px-6">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
           
