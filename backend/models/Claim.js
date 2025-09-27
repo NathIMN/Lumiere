@@ -65,48 +65,77 @@ const ClaimSchema = new mongoose.Schema(
       }
     },
     
-    // Embedded questionnaire section
+    // Questionnaire with sections
     questionnaire: {
       templateReference: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "QuestionnaireTemplate",
       },
-      responses: [
+      sections: [
         {
-          questionId: {
+          sectionId: {
             type: String,
             required: true,
           },
-          questionText: {
+          title: {
             type: String,
             required: true,
           },
-          questionType: {
+          description: {
             type: String,
-            enum: ["text", "number", "date", "boolean", "select", "multiselect", "file"],
+          },
+          order: {
+            type: Number,
             required: true,
           },
-          isRequired: {
-            type: Boolean,
-            default: true,
-          },
-          answer: {
-            textValue: String,
-            numberValue: Number,
-            dateValue: Date,
-            booleanValue: Boolean,
-            selectValue: String,
-            multiselectValue: [String],
-            fileValue: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "Document",
+          responses: [
+            {
+              questionId: {
+                type: String,
+                required: true,
+              },
+              questionText: {
+                type: String,
+                required: true,
+              },
+              questionType: {
+                type: String,
+                enum: ["text", "number", "date", "boolean", "select", "multiselect", "file"],
+                required: true,
+              },
+              options: [String],
+              isRequired: {
+                type: Boolean,
+                default: true,
+              },
+              order: {
+                type: Number,
+                required: true,
+              },
+              answer: {
+                textValue: String,
+                numberValue: Number,
+                dateValue: Date,
+                booleanValue: Boolean,
+                selectValue: String,
+                multiselectValue: [String],
+                fileValue: {
+                  type: mongoose.Schema.Types.ObjectId,
+                  ref: "Document",
+                },
+              },
+              isAnswered: {
+                type: Boolean,
+                default: false,
+              },
+              answeredAt: Date,
             },
-          },
-          isAnswered: {
+          ],
+          isComplete: {
             type: Boolean,
             default: false,
           },
-          answeredAt: Date,
+          completedAt: Date,
         },
       ],
       isComplete: {
@@ -213,14 +242,11 @@ const ClaimSchema = new mongoose.Schema(
   }
 );
 
-// Method to load questionnaire template based on claim type and option
+// Updated method to load questionnaire template with sections
 ClaimSchema.methods.loadQuestionnaire = async function() {
   try {
     const claimOption = this.claimType === "life" ? this.lifeClaimOption : this.vehicleClaimOption;
-    
-    if (!claimOption) {
-      throw new Error("Claim option must be set before loading questionnaire");
-    }
+    if (!claimOption) throw new Error("Claim option must be set before loading questionnaire");
 
     const template = await mongoose.model("QuestionnaireTemplate").findOne({
       claimType: this.claimType,
@@ -228,92 +254,155 @@ ClaimSchema.methods.loadQuestionnaire = async function() {
       isActive: true
     });
 
-    if (!template) {
-      throw new Error(`No active questionnaire template found for ${this.claimType} - ${claimOption}`);
-    }
+    if (!template) throw new Error(`No active questionnaire template found for ${this.claimType} - ${claimOption}`);
 
-    // Store template reference
     this.questionnaire.templateReference = template._id;
 
-    // Initialize responses from template questions
-    this.questionnaire.responses = template.questions
+    // Process sections and questions
+    this.questionnaire.sections = template.sections
       .sort((a, b) => a.order - b.order)
-      .map((question) => ({
-        questionId: question.questionId,
-        questionText: question.questionText,
-        questionType: question.questionType,
-        isRequired: question.isRequired,
-        answer: {},
-        isAnswered: false,
+      .map((section, sectionIndex) => ({
+        sectionId: section._id.toString(),
+        title: section.title,
+        description: section.description,
+        order: section.order,
+        responses: section.questions
+          .sort((a, b) => a.order - b.order)
+          .map(q => ({
+            questionId: q.questionId,
+            questionText: q.questionText,
+            questionType: q.questionType,
+            options: q.options,
+            isRequired: q.isRequired,
+            order: q.order,
+            answer: {},
+            isAnswered: false,
+          })),
+        isComplete: false,
       }));
 
-    // Update status to employee (questionnaire loaded, ready for completion)
-    this.claimStatus = "employee";
-    
+    this.claimStatus = "draft";
+
     return this.save();
   } catch (error) {
     throw error;
   }
 };
 
-// Method to update questionnaire answer
+// Updated method to update questionnaire answer with section support
 ClaimSchema.methods.updateQuestionnaireAnswer = function(questionId, answerValue) {
-  const response = this.questionnaire.responses.find((r) => r.questionId === questionId);
-  if (!response) {
+  let targetResponse = null;
+  let targetSection = null;
+
+  // Find the question across all sections
+  for (const section of this.questionnaire.sections) {
+    const response = section.responses.find(r => r.questionId === questionId);
+    if (response) {
+      targetResponse = response;
+      targetSection = section;
+      break;
+    }
+  }
+
+  if (!targetResponse) {
     throw new Error("Question not found");
   }
 
   // Clear previous answer values
-  response.answer = {};
+  targetResponse.answer = {};
 
   // Set the appropriate answer field based on question type
-  switch (response.questionType) {
+  switch (targetResponse.questionType) {
     case "text":
-      response.answer.textValue = answerValue;
+      targetResponse.answer.textValue = answerValue;
       break;
     case "number":
-      response.answer.numberValue = answerValue;
+      targetResponse.answer.numberValue = answerValue;
       break;
     case "date":
-      response.answer.dateValue = answerValue;
+      targetResponse.answer.dateValue = answerValue;
       break;
     case "boolean":
-      response.answer.booleanValue = answerValue;
+      targetResponse.answer.booleanValue = answerValue;
       break;
     case "select":
-      response.answer.selectValue = answerValue;
+      targetResponse.answer.selectValue = answerValue;
       break;
     case "multiselect":
-      response.answer.multiselectValue = answerValue;
+      targetResponse.answer.multiselectValue = answerValue;
       break;
     case "file":
-      response.answer.fileValue = answerValue;
+      targetResponse.answer.fileValue = answerValue;
       break;
   }
 
-  response.isAnswered = true;
-  response.answeredAt = new Date();
+  targetResponse.isAnswered = true;
+  targetResponse.answeredAt = new Date();
+
+  // Check if section is complete
+  this.checkSectionCompletion(targetSection);
 
   return this.save();
 };
 
-// Method to check if questionnaire is complete
-ClaimSchema.methods.checkQuestionnaireCompletion = function() {
-  if (!this.questionnaire.responses || this.questionnaire.responses.length === 0) {
+// New method to check section completion
+ClaimSchema.methods.checkSectionCompletion = function(section) {
+  if (!section || !section.responses || section.responses.length === 0) {
     return false;
   }
 
-  // Check if all required questions are answered
-  const requiredQuestions = this.questionnaire.responses.filter(r => r.isRequired);
+  const requiredQuestions = section.responses.filter(r => r.isRequired);
   const answeredRequired = requiredQuestions.filter(r => r.isAnswered);
   const allRequiredAnswered = requiredQuestions.length === answeredRequired.length;
   
-  if (allRequiredAnswered && !this.questionnaire.isComplete) {
-    this.questionnaire.isComplete = true;
-    this.questionnaire.completedAt = new Date();
+  if (allRequiredAnswered && !section.isComplete) {
+    section.isComplete = true;
+    section.completedAt = new Date();
   }
 
+  // Check overall questionnaire completion
+  this.checkQuestionnaireCompletion();
+
   return allRequiredAnswered;
+};
+
+// Updated method to check if questionnaire is complete
+ClaimSchema.methods.checkQuestionnaireCompletion = function() {
+  if (!this.questionnaire.sections || this.questionnaire.sections.length === 0) {
+    return false;
+  }
+
+  // Check if all sections are complete
+  const allSectionsComplete = this.questionnaire.sections.every(section => section.isComplete);
+  
+  if (allSectionsComplete && !this.questionnaire.isComplete) {
+    this.questionnaire.isComplete = true;
+    this.claimStatus = "employee"; // Move to next status when complete
+    this.questionnaire.completedAt = new Date();
+  } else if (!allSectionsComplete && this.questionnaire.isComplete) {
+    // Reset completion if not all sections are complete
+    this.questionnaire.isComplete = false;
+    this.questionnaire.completedAt = undefined;
+  }
+
+  return allSectionsComplete;
+};
+
+// Helper method to get all questions flattened (for backward compatibility)
+ClaimSchema.methods.getAllQuestions = function() {
+  if (!this.questionnaire.sections) return [];
+  
+  return this.questionnaire.sections
+    .sort((a, b) => a.order - b.order)
+    .flatMap(section => 
+      section.responses
+        .sort((a, b) => a.order - b.order)
+        .map(response => ({
+          ...response.toObject(),
+          sectionTitle: section.title,
+          sectionId: section.sectionId
+        }))
+    );
 };
 
 // Method to submit claim (employee to HR)

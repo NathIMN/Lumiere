@@ -1,4 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
+
+export function HeaderLanding() {
+     const navigate = useNavigate();
+  return (
 
 export function HeaderLanding({scrolled}) {
   const [activeSection, setActiveSection] = useState('home');
@@ -34,6 +39,7 @@ export function HeaderLanding({scrolled}) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+
   // Smooth scroll to section
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -41,6 +47,7 @@ export function HeaderLanding({scrolled}) {
       const headerOffset = 120; // Account for fixed header
       const elementPosition = element.offsetTop;
       const offsetPosition = elementPosition - headerOffset;
+
 
       window.scrollTo({
         top: offsetPosition,
@@ -95,9 +102,12 @@ export function HeaderLanding({scrolled}) {
           Get Started
         </a>
 
-        <button className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium shadow h-9 rounded-full bg-[#1A1A2E] text-white hover:bg-[#282845] px-6 py-2 transition-all duration-300">
-          Login
-        </button>
+    <button
+      className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium shadow h-9 rounded-full bg-[#1A1A2E] text-white hover:bg-[#282845] px-6 py-2"
+      onClick={() => navigate("/auth")}
+    >
+      Login
+    </button>
       </div>
 
       {/* Mobile Nav Toggle - You'll need to implement mobile menu separately */}

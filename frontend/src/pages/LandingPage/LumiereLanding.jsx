@@ -38,6 +38,7 @@ export const LumiereLanding = () => {
   }, []);
 
   return (
+
     <div className="flex-1 flex flex-col overflow-x-hidden">
       {/* Header Section */}
       <HeaderLanding scrolled={scrolled}/>
@@ -49,6 +50,7 @@ export const LumiereLanding = () => {
         <section id="features">
         <DrawCircleText />
 </section>
+
 
 
         <section id="faq">
