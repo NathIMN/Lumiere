@@ -26,9 +26,11 @@ import {
   UserX,
   ArrowLeft,
   Paperclip,
-  Smile
+  Smile,
+  Sparkles
 } from 'lucide-react';
 import messagingApiService from '../../services/messaging-api';
+import chatbotApiService from '../../services/chatbot-api';
 import { useMessaging } from '../../hooks/useMessaging';
 import { messagingUtils } from '../../utils/messagingUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -61,6 +63,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
   const [loading, setLoading] = useState(false);
   const [contactsLoading, setContactsLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState(false);
+  const [formalizeLoading, setFormalizeLoading] = useState(false);
   
   // Filtering and sorting
   const [statusFilter, setStatusFilter] = useState("all");
@@ -356,6 +359,28 @@ const MessagingPage = ({ userRole, config = {} }) => {
       content: messageContent,
       messageType: 'text'
     });
+  };
+
+  // Formalize message using AI
+  const formalizeMessage = async () => {
+    if (!messageInput.trim()) {
+      return;
+    }
+
+    setFormalizeLoading(true);
+    
+    try {
+      const response = await chatbotApiService.formalizeMessage(messageInput);
+      
+      if (response.success && response.data.formalizedMessage) {
+        setMessageInput(response.data.formalizedMessage);
+      }
+    } catch (error) {
+      console.error('Failed to formalize message:', error);
+      // You might want to add a toast notification here
+    } finally {
+      setFormalizeLoading(false);
+    }
   };
 
   // Start conversation with contact
@@ -853,6 +878,18 @@ const MessagingPage = ({ userRole, config = {} }) => {
                 </div>
                 <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                   <Smile className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={formalizeMessage}
+                  disabled={!messageInput.trim() || formalizeLoading}
+                  className="p-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  title="Formalize message with AI"
+                >
+                  {formalizeLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
                 </button>
                 <button
                   onClick={sendMessage}

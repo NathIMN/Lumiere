@@ -1,6 +1,8 @@
 import express from "express";
 import { createServer } from "http";
 import dotenv from "dotenv";
+import cors from "cors";
+
 import connectDB from "./db/connect.js";
 import notFound from "./middleware/not-found.js";
 import errorHandlerMiddleware from "./middleware/error-handler.js";
@@ -15,7 +17,8 @@ import claims from "./routes/claims.js";
 import messages from "./routes/messages.js";
 import notifications from "./routes/notifications.js";
 import reports from "./routes/reports.js";
-import cors from "cors";
+import vapi from "./routes/vapi.js"
+import chatbot from "./routes/chatbot.js";
 
 dotenv.config();
 
@@ -28,16 +31,6 @@ let socketHandler;
 app.use(express.static("./public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-//CORS middleware (add this if you'll have a frontend later)
-// app.use((req, res, next) => {
-//   res.header("Access-Control-Allow-Origin", process.env.CLIENT_URL || "http://localhost:3000");
-//   res.header("Access-Control-Allow-Credentials", "true");
-//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-//   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-//   next();
-// });
-//app.use(cors());
 
 app.use(cors({
   origin: [
@@ -58,6 +51,8 @@ app.use("/api/v1/claims", claims);
 app.use("/api/v1/messages", messages);
 app.use("/api/v1/notifications", notifications);
 app.use("/api/v1/reports", reports);
+app.use("/api/v1/vapi", vapi);
+app.use("/api/v1/chatbot", chatbot);
 
 app.use(notFound);
 app.use(errorHandlerMiddleware);

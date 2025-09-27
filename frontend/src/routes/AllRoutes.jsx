@@ -10,12 +10,13 @@ import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
 import DebugPage from "../components/DebugPage";
 
 import {
-   AdminDashboard,
-   AdminOverview,
-   AdminPolicies,
-   AdminHrOfficers,
-   AdminInsuranceAgents,
-   AdminReports,
+  AdminDashboard,
+  AdminOverview,
+  AdminPolicies,
+  AdminHrOfficers,
+  AdminInsuranceAgents,
+  AdminReports,
+  VapiTestPage
 } from "../pages/Admin";
 
 import {
@@ -88,16 +89,17 @@ export const AllRoutes = () => {
             >
                <Route index element={<Navigate to="overview" replace />} />
 
-               <Route path="overview" element={<AdminOverview />} />
-               <Route path="manage-policies" element={<AdminPolicies />} />
-               <Route path="hr-officers" element={<AdminHrOfficers />} />
-               <Route
-                  path="insurance-agents"
-                  element={<AdminInsuranceAgents />}
-               />
-               <Route path="reports" element={<AdminReports />} />
-               <Route path="messaging" element={<MessagingPage userRole="admin" />} />
-            </Route>
+          <Route path="overview" element={<AdminOverview />} />
+          <Route path="manage-policies" element={<AdminPolicies />} />
+          <Route path="hr-officers" element={<AdminHrOfficers />} />
+          <Route
+            path="insurance-agents"
+            element={<AdminInsuranceAgents />}
+          />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="messaging" element={<MessagingPage userRole="admin" />} />
+          <Route path="vapi-test" element={<VapiTestPage />} />
+        </Route>
 
 
             {/* ================== HR DASHBOARD ================== */}

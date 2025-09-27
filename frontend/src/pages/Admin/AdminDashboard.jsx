@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   MessageSquare,
   FileBarChart,
+  Mic,
 } from "lucide-react";
 
 export const AdminDashboard = () => {
@@ -24,7 +25,10 @@ export const AdminDashboard = () => {
     },
     { path: "messaging", label: "Messaging", icon: MessageSquare },
     { path: "reports", label: "Reports", icon: FileBarChart },
+    { path: "vapi-test", label: "Voice Assistant Test", icon: Mic },
   ];
+
+  const color = "#2e7096";
 
   const [isDark, setIsDark] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -46,6 +50,7 @@ export const AdminDashboard = () => {
         links={adminLinks}
         toggleSidebar={toggleSidebar}
         isCollapsed={isCollapsed}
+        color={color}
       />
 
       {/* Main Content */}
