@@ -70,7 +70,7 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
 
                            {/* Animated label */}
                            <span
-                              className={`font-medium whitespace-nowrap transition-all duration-500 overflow-hidden ${
+                              className={`font-semibold uppercase whitespace-nowrap transition-all duration-500 overflow-hidden ${
                                  isCollapsed
                                     ? "opacity-0 translate-x-[-20px] w-0"
                                     : "opacity-100 translate-x-0 w-auto ml-2"

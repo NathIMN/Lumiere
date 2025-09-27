@@ -1,6 +1,7 @@
 import Claim from "../models/Claim.js";
 import asyncWrapper from "../middleware/async.js";
 import { createCustomError } from "../errors/custom-error.js";
+import { uploadClaimDocument, uploadMultipleClaimDocuments } from "./documentUpload.js";
 
 // Create initial draft claim with type and option
 const createClaim = asyncWrapper(async (req, res, next) => {
@@ -380,8 +381,8 @@ const getAllClaims = asyncWrapper(async (req, res) => {
   sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
   const claims = await Claim.find(query)
-    .populate("policy", "policyNumber policyType provider")
-    .populate("employeeId", "firstName lastName email")
+    .populate("policy", "policyNumber policyType provider policyId")
+    .populate("employeeId", "userId firstName lastName email")
     .populate("documents", "filename originalName uploadedAt")
     .sort(sortOptions)
     .skip(skip)
@@ -400,13 +401,12 @@ const getAllClaims = asyncWrapper(async (req, res) => {
 });
 
 // Get claim by ID
-// Get claim by ID
 const getClaimById = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
 
-  const claim = await Claim.findById(claimId)
-    .populate("policy", "policyNumber policyType provider coverage")
-    .populate("employeeId", "firstName lastName email department")
+  const claim = await Claim.findOne({ claimId: claimId }) // Changed from findById to findOne
+    .populate("policy", "policyNumber policyId policyType provider coverage")
+    .populate("employeeId", "userId profile fullname email employment")
     .populate("documents", "filename originalName fileType uploadedAt")
     .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName")
     .populate("hrForwardingDetails.forwardedBy", "firstName lastName email")
@@ -431,6 +431,8 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
     claim,
   });
 });
+
+
 
 // Get claims requiring action (for dashboards)
 const getClaimsRequiringAction = asyncWrapper(async (req, res) => {
@@ -683,6 +685,9 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
       updatedQuestions.push(answer.questionId);
     }
 
+    // Check questionnaire completion and auto-update status
+    claim.checkQuestionnaireCompletion();
+
     // Save the claim
     await claim.save();
 
@@ -774,8 +779,8 @@ const updateClaimStatus = asyncWrapper(async (req, res, next) => {
 
 // Submit questionnaire answers for a specific section
 const submitSectionAnswers = asyncWrapper(async (req, res, next) => {
-  const { id: claimId } = req.params;
-  const { sectionId, answers } = req.body;
+  const { id: claimId, sectionId } = req.params;
+  const { answers } = req.body;
   const { userId } = req.user;
 
   // Validate request body
@@ -842,6 +847,9 @@ const submitSectionAnswers = asyncWrapper(async (req, res, next) => {
       await claim.updateQuestionnaireAnswer(answer.questionId, answer.value);
       updatedQuestions.push(answer.questionId);
     }
+
+    // Check questionnaire completion and auto-update status
+    claim.checkQuestionnaireCompletion();
 
     // Save the claim
     await claim.save();
@@ -974,6 +982,99 @@ const getSectionQuestions = asyncWrapper(async (req, res, next) => {
   });
 });
 
+const deleteClaimById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, role } = req.user;
+
+    // Find the claim first
+    const claim = await Claim.findById(id);
+    
+    if (!claim) {
+      return res.status(404).json({
+        success: false,
+        message: "Claim not found",
+      });
+    }
+
+    // Check permissions - only employees can delete their own claims
+    if (role !== "admin" && claim.employeeId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to delete this claim",
+      });
+    }
+
+    // Check if claim can be deleted (only draft or employee status)
+    if (!["draft", "employee"].includes(claim.claimStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete claim that has been submitted to HR or beyond",
+      });
+    }
+
+    // Delete the claim
+    await Claim.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Claim deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("Error deleting claim:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete claim",
+      error: error.message,
+    });
+  }
+};
+
+// Upload document for a specific claim
+const uploadClaimDocuments = asyncWrapper(async (req, res, next) => {
+  // Delegate to the documentUpload controller function
+  req.body.claimId = req.params.id;
+  return uploadClaimDocument(req, res, next);
+});
+
+// Upload multiple documents for a specific claim
+const uploadMultipleDocumentsForClaim = asyncWrapper(async (req, res, next) => {
+  // Delegate to the documentUpload controller function
+  req.body.claimId = req.params.id;
+  return uploadMultipleClaimDocuments(req, res, next);
+});
+
+// Get documents for a specific claim
+const getClaimDocuments = asyncWrapper(async (req, res, next) => {
+  const { id: claimId } = req.params;
+  const { userId, role } = req.user;
+
+  const claim = await Claim.findById(claimId)
+    .populate("documents", "filename originalName fileType uploadedAt metadata docType");
+
+  if (!claim) {
+    return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // Check permissions
+  if (
+    role === "employee" &&
+    claim.employeeId.toString() !== userId.toString()
+  ) {
+    return next(
+      createCustomError("You don't have permission to view documents for this claim", 403)
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    count: claim.documents.length,
+    documents: claim.documents,
+    claimId
+  });
+});
+
 export {
   createClaim,
   updateQuestionnaireAnswer,
@@ -989,5 +1090,9 @@ export {
   submitQuestionnaireAnswers,
   submitSectionAnswers, // New method for section-specific updates
   getSectionQuestions,  // New method for getting specific section
-  updateClaimStatus
+  updateClaimStatus,
+  deleteClaimById,
+  uploadClaimDocuments,
+  uploadMultipleDocumentsForClaim,
+  getClaimDocuments
 };
