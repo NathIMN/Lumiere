@@ -219,7 +219,7 @@ export const AdminOverview = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

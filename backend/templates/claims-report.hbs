@@ -1,17 +1,19 @@
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>Claim Number</th>
-            <th>Policy Number</th>
-            <th>Claimant</th>
-            <th>Claim Type</th>
-            <th>Claim Amount</th>
-            <th>Date Filed</th>
-            <th>Status</th>
-            <th>Assigned Agent</th>
-            <th>Settlement Date</th>
-        </tr>
-    </thead>
+<div class="table-section cols-9">
+    <h2 class="table-title">Insurance Claims</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Claim Number</th>
+                <th>Policy Number</th>
+                <th>Claimant</th>
+                <th>Claim Type</th>
+                <th>Claim Amount</th>
+                <th>Date Filed</th>
+                <th>Status</th>
+                <th>Assigned Agent</th>
+                <th>Settlement Date</th>
+            </tr>
+        </thead>
     <tbody>
         {{#each claims}}
         <tr>
@@ -28,10 +30,12 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 
 {{#if claimStats}}
 <div class="page-break"></div>
-<h3>Claims Statistics</h3>
+<div class="table-section cols-6">
+<h2 class="table-title">Claims Statistics</h2>
 <table class="data-table">
     <thead>
         <tr>
@@ -56,11 +60,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if monthlyClaimTrends}}
-<h3>Monthly Claims Trends</h3>
-<table class="data-table">
+<div class="table-section cols-6">
+    <h2 class="table-title">Monthly Claims Trends</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Month</th>
@@ -82,12 +88,13 @@
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
 
 {{#if pendingClaims}}
-<div class="page-break"></div>
-<h3>Pending Claims (Requiring Attention)</h3>
-<table class="data-table">
+<div class="table-section cols-7">
+    <h2 class="table-title">Pending Claims (Requiring Attention)</h2>
+    <table class="data-table">
     <thead>
         <tr>
             <th>Claim Number</th>
@@ -106,9 +113,10 @@
             <td>{{daysPending}}</td>
             <td>${{formatCurrency claimAmount}}</td>
             <td><span class="status {{priority}}">{{priority}}</span></td>
-            <td>{{agentName}}</td>
+            <td>{{assignedAgent}}</td>
         </tr>
         {{/each}}
     </tbody>
 </table>
+</div>
 {{/if}}
