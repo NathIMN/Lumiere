@@ -1,4 +1,4 @@
-// pages/ClaimForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FileText, Car, Heart, Upload, AlertCircle, Check, X, Info, Clock, Shield, Camera } from 'lucide-react';
 import InsuranceApiService from "../../services/insurance-api";
