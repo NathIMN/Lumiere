@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 
-
 const BasicInformation = ({ formData, errors, onChange }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,7 +37,6 @@ const BasicInformation = ({ formData, errors, onChange }) => {
             disabled
             className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
           />
-          {/* <p className="text-xs text-gray-500 mt-1">Default role for registration</p> */}
         </div>
 
         <div>

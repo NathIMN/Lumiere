@@ -1,14 +1,17 @@
 import Claim from "../models/Claim.js";
 import asyncWrapper from "../middleware/async.js";
 import { createCustomError } from "../errors/custom-error.js";
+import { uploadClaimDocument, uploadMultipleClaimDocuments } from "./documentUpload.js";
 
 // Create initial draft claim with type and option
 const createClaim = asyncWrapper(async (req, res, next) => {
-  const { employeeId, policy, claimType, claimOption } = req.body;
+  const { policy, claimType, claimOption } = req.body;
   const { userId } = req.user;
 
+  const employeeId = userId;
+
   // Validate required fields
-  if (!employeeId || !policy || !claimType || !claimOption) {
+  if (!policy || !claimType || !claimOption) {
     return next(
       createCustomError("Employee ID, policy, claim type, and claim option are required", 400)
     );
@@ -22,15 +25,15 @@ const createClaim = asyncWrapper(async (req, res, next) => {
   }
 
   // Check if employee exists and matches authenticated user
-  if (
-    userId.toString() !== employeeId.toString() &&
-    req.user.role !== "admin" &&
-    req.user.role !== "hr_officer"
-  ) {
-    return next(
-      createCustomError("You can only create claims for yourself", 403)
-    );
-  }
+//   if (
+//     userId.toString() !== employeeId.toString() &&
+//     req.user.role !== "admin" &&
+//     req.user.role !== "hr_officer"
+//   ) {
+//     return next(
+//       createCustomError("You can only create claims for yourself", 403)
+//     );
+//   }
 
   // Create claim data with appropriate claim option field
   const claimData = {
@@ -378,8 +381,8 @@ const getAllClaims = asyncWrapper(async (req, res) => {
   sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
 
   const claims = await Claim.find(query)
-    .populate("policy", "policyNumber policyType provider")
-    .populate("employeeId", "firstName lastName email")
+    .populate("policy", "policyNumber policyType provider policyId")
+    .populate("employeeId", "userId firstName lastName email")
     .populate("documents", "filename originalName uploadedAt")
     .sort(sortOptions)
     .skip(skip)
@@ -401,11 +404,11 @@ const getAllClaims = asyncWrapper(async (req, res) => {
 const getClaimById = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
 
-  const claim = await Claim.findById(claimId)
-    .populate("policy", "policyNumber policyType provider coverage")
-    .populate("employeeId", "firstName lastName email department")
+  const claim = await Claim.findOne({ claimId: claimId }) // Changed from findById to findOne
+    .populate("policy", "policyNumber policyId policyType provider coverage")
+    .populate("employeeId", "userId profile fullname email employment")
     .populate("documents", "filename originalName fileType uploadedAt")
-    .populate("questionnaire.responses.answer.fileValue", "filename originalName")
+    .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName")
     .populate("hrForwardingDetails.forwardedBy", "firstName lastName email")
     .populate("decision.decidedBy", "firstName lastName email");
 
@@ -428,6 +431,8 @@ const getClaimById = asyncWrapper(async (req, res, next) => {
     claim,
   });
 });
+
+
 
 // Get claims requiring action (for dashboards)
 const getClaimsRequiringAction = asyncWrapper(async (req, res) => {
@@ -516,14 +521,15 @@ const getClaimStatistics = asyncWrapper(async (req, res) => {
   });
 });
 
-// Get questionnaire questions for a claim
+
+// Get questionnaire questions for a claim (updated to return sections)
 const getQuestionnaireQuestions = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
   const { userId } = req.user;
 
   const claim = await Claim.findById(claimId)
     .populate("questionnaire.templateReference")
-    .populate("questionnaire.responses.answer.fileValue", "filename originalName");
+    .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName");
 
   if (!claim) {
     return next(createCustomError(`No claim found with id: ${claimId}`, 404));
@@ -533,7 +539,7 @@ const getQuestionnaireQuestions = asyncWrapper(async (req, res, next) => {
   if (
     claim.employeeId.toString() !== userId.toString() &&
     req.user.role !== "admin" &&
-    req.user.role !== "hr"
+    req.user.role !== "hr_officer"
   ) {
     return next(
       createCustomError("You don't have permission to view this questionnaire", 403)
@@ -548,48 +554,68 @@ const getQuestionnaireQuestions = asyncWrapper(async (req, res, next) => {
   }
 
   // Check if questionnaire is loaded
-  if (!claim.questionnaire.responses || claim.questionnaire.responses.length === 0) {
+  if (!claim.questionnaire.sections || claim.questionnaire.sections.length === 0) {
     return next(
       createCustomError("Questionnaire not loaded for this claim", 400)
     );
   }
 
-  // Format questions for frontend consumption
-  const questions = claim.questionnaire.responses.map(response => ({
-    questionId: response.questionId,
-    questionText: response.questionText,
-    questionType: response.questionType,
-    isRequired: response.isRequired,
-    currentAnswer: response.isAnswered ? {
-      value: response.answer.textValue || 
-             response.answer.numberValue || 
-             response.answer.dateValue || 
-             response.answer.booleanValue || 
-             response.answer.selectValue || 
-             response.answer.multiselectValue || 
-             response.answer.fileValue,
-      answeredAt: response.answeredAt
-    } : null,
-    isAnswered: response.isAnswered
-  }));
+  // Format sections and questions for frontend consumption
+  const sections = claim.questionnaire.sections
+    .sort((a, b) => a.order - b.order)
+    .map(section => ({
+      sectionId: section.sectionId,
+      title: section.title,
+      description: section.description,
+      order: section.order,
+      isComplete: section.isComplete,
+      completedAt: section.completedAt,
+      questions: section.responses
+        .sort((a, b) => a.order - b.order)
+        .map(response => ({
+          questionId: response.questionId,
+          questionText: response.questionText,
+          questionType: response.questionType,
+          isRequired: response.isRequired,
+          order: response.order,
+          currentAnswer: response.isAnswered ? {
+            value: response.answer.textValue || 
+                   response.answer.numberValue || 
+                   response.answer.dateValue || 
+                   response.answer.booleanValue || 
+                   response.answer.selectValue || 
+                   response.answer.multiselectValue || 
+                   response.answer.fileValue,
+            answeredAt: response.answeredAt
+          } : null,
+          isAnswered: response.isAnswered
+        }))
+    }));
+
+  // Calculate totals
+  const totalQuestions = sections.reduce((sum, section) => sum + section.questions.length, 0);
+  const answeredQuestions = sections.reduce((sum, section) => 
+    sum + section.questions.filter(q => q.isAnswered).length, 0);
 
   res.status(200).json({
     success: true,
-    message: "Questionnaire questions retrieved successfully",
+    message: "Questionnaire sections retrieved successfully",
     questionnaire: {
       claimId: claim._id,
       claimType: claim.claimType,
       claimOption: claim.claimType === "life" ? claim.lifeClaimOption : claim.vehicleClaimOption,
       isComplete: claim.questionnaire.isComplete,
       completedAt: claim.questionnaire.completedAt,
-      totalQuestions: questions.length,
-      answeredQuestions: questions.filter(q => q.isAnswered).length,
-      questions: questions
+      totalQuestions: totalQuestions,
+      answeredQuestions: answeredQuestions,
+      totalSections: sections.length,
+      completedSections: sections.filter(s => s.isComplete).length,
+      sections: sections
     }
   });
 });
 
-// Submit all questionnaire answers at once
+// Submit all questionnaire answers at once (updated to work with sections)
 const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
   const { id: claimId } = req.params;
   const { answers } = req.body;
@@ -611,7 +637,7 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
   if (
     claim.employeeId.toString() !== userId.toString() &&
     req.user.role !== "admin" &&
-    req.user.role !== "hr"
+    req.user.role !== "hr_officer"
   ) {
     return next(
       createCustomError("You don't have permission to update this questionnaire", 403)
@@ -619,14 +645,14 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
   }
 
   // Validate claim status
-  if (claim.claimStatus !== "employee") {
+  if (claim.claimStatus !== "employee" && claim.claimStatus !== "draft") {
     return next(
       createCustomError("Can only update questionnaire when claim is with employee", 400)
     );
   }
 
   // Check if questionnaire is loaded
-  if (!claim.questionnaire.responses || claim.questionnaire.responses.length === 0) {
+  if (!claim.questionnaire.sections || claim.questionnaire.sections.length === 0) {
     return next(
       createCustomError("Questionnaire not loaded for this claim", 400)
     );
@@ -634,7 +660,7 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
 
   // Validate answers format
   const validationErrors = [];
-  const questionIds = claim.questionnaire.responses.map(r => r.questionId);
+  const allQuestionIds = claim.questionnaire.sections.flatMap(s => s.responses.map(r => r.questionId));
 
   for (const answer of answers) {
     if (!answer.questionId || answer.value === undefined) {
@@ -642,7 +668,7 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
       continue;
     }
 
-    if (!questionIds.includes(answer.questionId)) {
+    if (!allQuestionIds.includes(answer.questionId)) {
       validationErrors.push(`Invalid questionId: ${answer.questionId}`);
     }
   }
@@ -659,48 +685,394 @@ const submitQuestionnaireAnswers = asyncWrapper(async (req, res, next) => {
       updatedQuestions.push(answer.questionId);
     }
 
-    // Check if questionnaire is now complete
-    const isComplete = claim.checkQuestionnaireCompletion();
+    // Check questionnaire completion and auto-update status
+    claim.checkQuestionnaireCompletion();
+
+    // Save the claim
     await claim.save();
 
-    // Get updated questionnaire data
-    const questions = claim.questionnaire.responses.map(response => ({
-      questionId: response.questionId,
-      questionText: response.questionText,
-      questionType: response.questionType,
-      isRequired: response.isRequired,
-      currentAnswer: response.isAnswered ? {
-        value: response.answer.textValue || 
-               response.answer.numberValue || 
-               response.answer.dateValue || 
-               response.answer.booleanValue || 
-               response.answer.selectValue || 
-               response.answer.multiselectValue || 
-               response.answer.fileValue,
-        answeredAt: response.answeredAt
-      } : null,
-      isAnswered: response.isAnswered,
-      wasUpdated: updatedQuestions.includes(response.questionId)
-    }));
+    // Get updated questionnaire data with sections
+    const sections = claim.questionnaire.sections
+      .sort((a, b) => a.order - b.order)
+      .map(section => ({
+        sectionId: section.sectionId,
+        title: section.title,
+        description: section.description,
+        order: section.order,
+        isComplete: section.isComplete,
+        completedAt: section.completedAt,
+        questions: section.responses
+          .sort((a, b) => a.order - b.order)
+          .map(response => ({
+            questionId: response.questionId,
+            questionText: response.questionText,
+            questionType: response.questionType,
+            options: response.options,
+            isRequired: response.isRequired,
+            order: response.order,
+            currentAnswer: response.isAnswered ? {
+              value: response.answer.textValue || 
+                     response.answer.numberValue || 
+                     response.answer.dateValue || 
+                     response.answer.booleanValue || 
+                     response.answer.selectValue || 
+                     response.answer.multiselectValue || 
+                     response.answer.fileValue,
+              answeredAt: response.answeredAt
+            } : null,
+            isAnswered: response.isAnswered,
+            wasUpdated: updatedQuestions.includes(response.questionId)
+          }))
+      }));
+
+    const totalQuestions = sections.reduce((sum, section) => sum + section.questions.length, 0);
+    const answeredQuestions = sections.reduce((sum, section) => 
+      sum + section.questions.filter(q => q.isAnswered).length, 0);
 
     res.status(200).json({
       success: true,
-      message: `Successfully updated ${updatedQuestions.length} answers`,
+      message: `Successfully updated ${updatedQuestions.length} answers across all sections`,
       questionnaire: {
         claimId: claim._id,
-        isComplete: isComplete,
+        isComplete: claim.questionnaire.isComplete,
         completedAt: claim.questionnaire.completedAt,
-        totalQuestions: questions.length,
-        answeredQuestions: questions.filter(q => q.isAnswered).length,
+        totalQuestions: totalQuestions,
+        answeredQuestions: answeredQuestions,
         updatedQuestions: updatedQuestions.length,
-        questions: questions
+        totalSections: sections.length,
+        completedSections: sections.filter(s => s.isComplete).length,
+        sections: sections
       },
-      nextStep: isComplete ? "set_claim_amount_and_submit" : "continue_answering_questions"
+      nextStep: claim.questionnaire.isComplete ? "set_claim_amount_and_submit" : "continue_answering_questions"
     });
 
   } catch (error) {
     return next(createCustomError(error.message, 400));
   }
+});
+
+// Add to your claims controller
+const updateClaimStatus = asyncWrapper(async (req, res, next) => {
+  const { id: claimId } = req.params;
+  const { status } = req.body;
+  const { userId } = req.user;
+
+  const claim = await Claim.findById(claimId);
+  if (!claim) {
+    return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // Check permissions
+  if (claim.employeeId.toString() !== userId.toString()) {
+    return next(createCustomError("You don't have permission to update this claim", 403));
+  }
+
+  claim.claimStatus = status;
+  await claim.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Claim status updated successfully",
+    claim
+  });
+});
+
+// Submit questionnaire answers for a specific section
+const submitSectionAnswers = asyncWrapper(async (req, res, next) => {
+  const { id: claimId, sectionId } = req.params;
+  const { answers } = req.body;
+  const { userId } = req.user;
+
+  // Validate request body
+  if (!sectionId) {
+    return next(createCustomError("Section ID is required", 400));
+  }
+
+  if (!answers || !Array.isArray(answers) || answers.length === 0) {
+    return next(createCustomError("Answers array is required and must not be empty", 400));
+  }
+
+  const claim = await Claim.findById(claimId);
+  if (!claim) {
+    return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // Check permissions
+  if (
+    claim.employeeId.toString() !== userId.toString() &&
+    req.user.role !== "admin" &&
+    req.user.role !== "hr_officer"
+  ) {
+    return next(
+      createCustomError("You don't have permission to update this questionnaire", 403)
+    );
+  }
+
+  // Validate claim status
+  if (claim.claimStatus !== "employee" && claim.claimStatus !== "draft") {
+    return next(
+      createCustomError("Can only update questionnaire when claim is with employee or as a draft", 400)
+    );
+  }
+
+  // Find the target section
+  const targetSection = claim.questionnaire.sections.find(s => s.sectionId === sectionId);
+  if (!targetSection) {
+    return next(createCustomError(`Section with ID ${sectionId} not found`, 404));
+  }
+
+  // Validate answers format and question IDs
+  const validationErrors = [];
+  const sectionQuestionIds = targetSection.responses.map(r => r.questionId);
+
+  for (const answer of answers) {
+    if (!answer.questionId || answer.value === undefined) {
+      validationErrors.push("Each answer must have questionId and value");
+      continue;
+    }
+
+    if (!sectionQuestionIds.includes(answer.questionId)) {
+      validationErrors.push(`Invalid questionId for this section: ${answer.questionId}`);
+    }
+  }
+
+  if (validationErrors.length > 0) {
+    return next(createCustomError(`Validation errors: ${validationErrors.join(', ')}`, 400));
+  }
+
+  try {
+    // Update answers for this section
+    const updatedQuestions = [];
+    for (const answer of answers) {
+      await claim.updateQuestionnaireAnswer(answer.questionId, answer.value);
+      updatedQuestions.push(answer.questionId);
+    }
+
+    // Check questionnaire completion and auto-update status
+    claim.checkQuestionnaireCompletion();
+
+    // Save the claim
+    await claim.save();
+
+    // Get updated section data
+    const updatedSection = claim.questionnaire.sections.find(s => s.sectionId === sectionId);
+    const formattedSection = {
+      sectionId: updatedSection.sectionId,
+      title: updatedSection.title,
+      description: updatedSection.description,
+      order: updatedSection.order,
+      isComplete: updatedSection.isComplete,
+      completedAt: updatedSection.completedAt,
+      questions: updatedSection.responses
+        .sort((a, b) => a.order - b.order)
+        .map(response => ({
+          questionId: response.questionId,
+          questionText: response.questionText,
+          questionType: response.questionType,
+          isRequired: response.isRequired,
+          order: response.order,
+          currentAnswer: response.isAnswered ? {
+            value: response.answer.textValue || 
+                   response.answer.numberValue || 
+                   response.answer.dateValue || 
+                   response.answer.booleanValue || 
+                   response.answer.selectValue || 
+                   response.answer.multiselectValue || 
+                   response.answer.fileValue,
+            answeredAt: response.answeredAt
+          } : null,
+          isAnswered: response.isAnswered,
+          wasUpdated: updatedQuestions.includes(response.questionId)
+        }))
+    };
+
+    // Calculate overall progress
+    const totalQuestions = claim.questionnaire.sections.reduce(
+      (sum, section) => sum + section.responses.length, 0);
+    const answeredQuestions = claim.questionnaire.sections.reduce(
+      (sum, section) => sum + section.responses.filter(r => r.isAnswered).length, 0);
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated ${updatedQuestions.length} answers in section: ${updatedSection.title}`,
+      section: formattedSection,
+      progress: {
+        claimId: claim._id,
+        sectionComplete: updatedSection.isComplete,
+        questionnaireComplete: claim.questionnaire.isComplete,
+        totalQuestions: totalQuestions,
+        answeredQuestions: answeredQuestions,
+        updatedQuestions: updatedQuestions.length,
+        completedSections: claim.questionnaire.sections.filter(s => s.isComplete).length,
+        totalSections: claim.questionnaire.sections.length
+      },
+      nextStep: claim.questionnaire.isComplete ? "set_claim_amount_and_submit" : "continue_answering_questions"
+    });
+
+  } catch (error) {
+    return next(createCustomError(error.message, 400));
+  }
+});
+
+// Get specific section data
+const getSectionQuestions = asyncWrapper(async (req, res, next) => {
+  const { id: claimId, sectionId } = req.params;
+  const { userId } = req.user;
+
+  const claim = await Claim.findById(claimId)
+    .populate("questionnaire.sections.responses.answer.fileValue", "filename originalName");
+
+  if (!claim) {
+    return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // Check permissions
+  if (
+    claim.employeeId.toString() !== userId.toString() &&
+    req.user.role !== "admin" &&
+    req.user.role !== "hr_officer"
+  ) {
+    return next(
+      createCustomError("You don't have permission to view this questionnaire", 403)
+    );
+  }
+
+  // Find the specific section
+  const section = claim.questionnaire.sections.find(s => s.sectionId === sectionId);
+  if (!section) {
+    return next(createCustomError(`Section with ID ${sectionId} not found`, 404));
+  }
+
+  // Format section data
+  const formattedSection = {
+    sectionId: section.sectionId,
+    title: section.title,
+    description: section.description,
+    order: section.order,
+    isComplete: section.isComplete,
+    completedAt: section.completedAt,
+    questions: section.responses
+      .sort((a, b) => a.order - b.order)
+      .map(response => ({
+        questionId: response.questionId,
+        questionText: response.questionText,
+        questionType: response.questionType,
+        isRequired: response.isRequired,
+        order: response.order,
+        currentAnswer: response.isAnswered ? {
+          value: response.answer.textValue || 
+                 response.answer.numberValue || 
+                 response.answer.dateValue || 
+                 response.answer.booleanValue || 
+                 response.answer.selectValue || 
+                 response.answer.multiselectValue || 
+                 response.answer.fileValue,
+          answeredAt: response.answeredAt
+        } : null,
+        isAnswered: response.isAnswered
+      }))
+  };
+
+  res.status(200).json({
+    success: true,
+    message: "Section questions retrieved successfully",
+    section: formattedSection,
+    claimId: claim._id,
+    claimStatus: claim.claimStatus
+  });
+});
+
+const deleteClaimById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, role } = req.user;
+
+    // Find the claim first
+    const claim = await Claim.findById(id);
+    
+    if (!claim) {
+      return res.status(404).json({
+        success: false,
+        message: "Claim not found",
+      });
+    }
+
+    // Check permissions - only employees can delete their own claims
+    if (role !== "admin" && claim.employeeId.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to delete this claim",
+      });
+    }
+
+    // Check if claim can be deleted (only draft or employee status)
+    if (!["draft", "employee"].includes(claim.claimStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete claim that has been submitted to HR or beyond",
+      });
+    }
+
+    // Delete the claim
+    await Claim.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Claim deleted successfully",
+    });
+
+  } catch (error) {
+    console.error("Error deleting claim:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete claim",
+      error: error.message,
+    });
+  }
+};
+
+// Upload document for a specific claim
+const uploadClaimDocuments = asyncWrapper(async (req, res, next) => {
+  // Delegate to the documentUpload controller function
+  req.body.claimId = req.params.id;
+  return uploadClaimDocument(req, res, next);
+});
+
+// Upload multiple documents for a specific claim
+const uploadMultipleDocumentsForClaim = asyncWrapper(async (req, res, next) => {
+  // Delegate to the documentUpload controller function
+  req.body.claimId = req.params.id;
+  return uploadMultipleClaimDocuments(req, res, next);
+});
+
+// Get documents for a specific claim
+const getClaimDocuments = asyncWrapper(async (req, res, next) => {
+  const { id: claimId } = req.params;
+  const { userId, role } = req.user;
+
+  const claim = await Claim.findById(claimId)
+    .populate("documents", "filename originalName fileType uploadedAt metadata docType");
+
+  if (!claim) {
+    return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // Check permissions
+  if (
+    role === "employee" &&
+    claim.employeeId.toString() !== userId.toString()
+  ) {
+    return next(
+      createCustomError("You don't have permission to view documents for this claim", 403)
+    );
+  }
+
+  res.status(200).json({
+    success: true,
+    count: claim.documents.length,
+    documents: claim.documents,
+    claimId
+  });
 });
 
 export {
@@ -716,4 +1088,11 @@ export {
   getClaimStatistics,
   getQuestionnaireQuestions,
   submitQuestionnaireAnswers,
+  submitSectionAnswers, // New method for section-specific updates
+  getSectionQuestions,  // New method for getting specific section
+  updateClaimStatus,
+  deleteClaimById,
+  uploadClaimDocuments,
+  uploadMultipleDocumentsForClaim,
+  getClaimDocuments
 };

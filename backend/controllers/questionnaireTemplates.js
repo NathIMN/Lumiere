@@ -13,20 +13,19 @@ const getValidCombinations = asyncWrapper(async (req, res) => {
   });
 });
 
-// Get all templates with combination status
+// Get all templates
 const getAllTemplates = asyncWrapper(async (req, res) => {
   const { claimType, claimOption, isActive } = req.query;
-  
+
   let query = {};
   if (claimType) query.claimType = claimType;
   if (claimOption) query.claimOption = claimOption;
-  if (isActive !== undefined) query.isActive = isActive === 'true';
+  if (isActive !== undefined) query.isActive = isActive === "true";
 
   const templates = await QuestionnaireTemplate.find(query)
-    .populate('modifiedBy', 'firstName lastName email')
+    .populate("modifiedBy", "firstName lastName email")
     .sort({ claimType: 1, claimOption: 1 });
 
-  // Get template coverage status
   const allCombinations = [];
   Object.keys(VALID_CLAIM_COMBINATIONS).forEach(type => {
     VALID_CLAIM_COMBINATIONS[type].forEach(option => {
@@ -56,25 +55,21 @@ const getAllTemplates = asyncWrapper(async (req, res) => {
 // Get template by ID
 const getTemplateById = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-  
+
   const template = await QuestionnaireTemplate.findById(id)
-    .populate('modifiedBy', 'firstName lastName email');
-  
+    .populate("modifiedBy", "firstName lastName email");
+
   if (!template) {
     return next(createCustomError(`No template found with id: ${id}`, 404));
   }
 
-  res.status(200).json({
-    success: true,
-    template
-  });
+  res.status(200).json({ success: true, template });
 });
 
 // Get template by claim type and option
 const getTemplateByTypeAndOption = asyncWrapper(async (req, res, next) => {
   const { claimType, claimOption } = req.params;
-  
-  // Validate combination
+
   if (!VALID_CLAIM_COMBINATIONS[claimType]?.includes(claimOption)) {
     return next(createCustomError(`Invalid combination: ${claimType} - ${claimOption}`, 400));
   }
@@ -83,64 +78,51 @@ const getTemplateByTypeAndOption = asyncWrapper(async (req, res, next) => {
     claimType,
     claimOption,
     isActive: true
-  }).populate('modifiedBy', 'firstName lastName email');
-  
+  }).populate("modifiedBy", "firstName lastName email");
+
   if (!template) {
     return next(createCustomError(`No active template found for ${claimType} - ${claimOption}`, 404));
   }
 
-  res.status(200).json({
-    success: true,
-    template
-  });
+  res.status(200).json({ success: true, template });
 });
 
 // Create new template
 const createTemplate = asyncWrapper(async (req, res, next) => {
-  const { claimType, claimOption, title, description, questions } = req.body;
+  const { claimType, claimOption, title, description, sections } = req.body;
   const { userId } = req.user;
 
-  // Validate claim type and option combination
   if (!VALID_CLAIM_COMBINATIONS[claimType]?.includes(claimOption)) {
     return next(createCustomError(`Invalid combination: ${claimType} - ${claimOption}`, 400));
   }
 
-  // Check if template already exists for this combination
-  const existingTemplate = await QuestionnaireTemplate.findOne({
-    claimType,
-    claimOption
-  });
-
+  const existingTemplate = await QuestionnaireTemplate.findOne({ claimType, claimOption });
   if (existingTemplate) {
     return next(createCustomError(
-      `Template already exists for ${claimType} - ${claimOption}. Use update instead.`, 
+      `Template already exists for ${claimType} - ${claimOption}. Use update instead.`,
       409
     ));
   }
 
-  // Validate questions array
-  if (!questions || !Array.isArray(questions) || questions.length === 0) {
-    return next(createCustomError("At least one question is required", 400));
+  if (!sections || !Array.isArray(sections) || sections.length === 0) {
+    return next(createCustomError("At least one section with questions is required", 400));
   }
 
-  // Validate question structure and assign order if not provided
-  const processedQuestions = questions.map((question, index) => {
-    if (!question.questionId || !question.questionText || !question.questionType) {
-      throw new Error(`Question at index ${index} is missing required fields`);
-    }
-    
-    return {
-      ...question,
-      order: question.order || (index + 1)
-    };
-  });
+  const processedSections = sections.map((section, sIndex) => ({
+    ...section,
+    order: section.order || (sIndex + 1),
+    questions: (section.questions || []).map((q, qIndex) => ({
+      ...q,
+      order: q.order || (qIndex + 1)
+    }))
+  }));
 
   const template = await QuestionnaireTemplate.create({
     claimType,
     claimOption,
     title,
     description,
-    questions: processedQuestions,
+    sections: processedSections,
     modifiedBy: userId
   });
 
@@ -151,40 +133,34 @@ const createTemplate = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Update existing template
+// Update template
 const updateTemplate = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-  const { title, description, questions, isActive } = req.body;
+  const { title, description, sections, isActive } = req.body;
   const { userId } = req.user;
 
   const template = await QuestionnaireTemplate.findById(id);
-  
   if (!template) {
     return next(createCustomError(`No template found with id: ${id}`, 404));
   }
 
-  // Process questions if provided
-  let processedQuestions;
-  if (questions && Array.isArray(questions)) {
-    processedQuestions = questions.map((question, index) => {
-      if (!question.questionId || !question.questionText || !question.questionType) {
-        throw new Error(`Question at index ${index} is missing required fields`);
-      }
-      
-      return {
-        ...question,
-        order: question.order || (index + 1)
-      };
-    });
+  let processedSections;
+  if (sections && Array.isArray(sections)) {
+    processedSections = sections.map((section, sIndex) => ({
+      ...section,
+      order: section.order || (sIndex + 1),
+      questions: (section.questions || []).map((q, qIndex) => ({
+        ...q,
+        order: q.order || (qIndex + 1)
+      }))
+    }));
   }
 
-  // Update fields
   if (title !== undefined) template.title = title;
   if (description !== undefined) template.description = description;
-  if (processedQuestions) template.questions = processedQuestions;
+  if (processedSections) template.sections = processedSections;
   if (isActive !== undefined) template.isActive = isActive;
-  
-  // Increment version and update metadata
+
   template.version += 1;
   template.modifiedBy = userId;
   template.lastModified = new Date();
@@ -198,207 +174,154 @@ const updateTemplate = asyncWrapper(async (req, res, next) => {
   });
 });
 
-// Delete template (soft delete by setting isActive to false)
+// Delete (soft)
 const deleteTemplate = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { userId } = req.user;
 
   const template = await QuestionnaireTemplate.findById(id);
-  
-  if (!template) {
-    return next(createCustomError(`No template found with id: ${id}`, 404));
-  }
+  if (!template) return next(createCustomError(`No template found with id: ${id}`, 404));
 
-  // Soft delete by setting isActive to false
   template.isActive = false;
   template.modifiedBy = userId;
   template.lastModified = new Date();
-  
+
   await template.save();
 
-  res.status(200).json({
-    success: true,
-    message: "Template deleted successfully",
-    template
-  });
+  res.status(200).json({ success: true, message: "Template deleted successfully", template });
 });
 
-// Hard delete template (only for admin)
+// Hard delete
 const hardDeleteTemplate = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
-
   const template = await QuestionnaireTemplate.findByIdAndDelete(id);
-  
-  if (!template) {
-    return next(createCustomError(`No template found with id: ${id}`, 404));
-  }
+  if (!template) return next(createCustomError(`No template found with id: ${id}`, 404));
 
-  res.status(200).json({
-    success: true,
-    message: "Template permanently deleted",
-    template
-  });
+  res.status(200).json({ success: true, message: "Template permanently deleted", template });
 });
 
-// Activate/Deactivate template
+// Toggle active status
 const toggleTemplateStatus = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { userId } = req.user;
 
   const template = await QuestionnaireTemplate.findById(id);
-  
-  if (!template) {
-    return next(createCustomError(`No template found with id: ${id}`, 404));
-  }
+  if (!template) return next(createCustomError(`No template found with id: ${id}`, 404));
 
   template.isActive = !template.isActive;
   template.modifiedBy = userId;
   template.lastModified = new Date();
-  
+
   await template.save();
 
   res.status(200).json({
     success: true,
-    message: `Template ${template.isActive ? 'activated' : 'deactivated'} successfully`,
+    message: `Template ${template.isActive ? "activated" : "deactivated"} successfully`,
     template
   });
 });
 
-// Clone template to create a new version
+// Clone template
 const cloneTemplate = asyncWrapper(async (req, res, next) => {
   const { id } = req.params;
   const { userId } = req.user;
 
-  const originalTemplate = await QuestionnaireTemplate.findById(id);
-  
-  if (!originalTemplate) {
-    return next(createCustomError(`No template found with id: ${id}`, 404));
-  }
+  const original = await QuestionnaireTemplate.findById(id);
+  if (!original) return next(createCustomError(`No template found with id: ${id}`, 404));
 
-  // Check if there's already an active template for this combination
   const existingActive = await QuestionnaireTemplate.findOne({
-    claimType: originalTemplate.claimType,
-    claimOption: originalTemplate.claimOption,
+    claimType: original.claimType,
+    claimOption: original.claimOption,
     isActive: true,
     _id: { $ne: id }
   });
-
   if (existingActive) {
     return next(createCustomError(
-      `An active template already exists for ${originalTemplate.claimType} - ${originalTemplate.claimOption}`,
+      `An active template already exists for ${original.claimType} - ${original.claimOption}`,
       409
     ));
   }
 
-  // Create clone with incremented version
-  const clonedTemplate = new QuestionnaireTemplate({
-    claimType: originalTemplate.claimType,
-    claimOption: originalTemplate.claimOption,
-    title: originalTemplate.title,
-    description: originalTemplate.description,
-    questions: originalTemplate.questions.map(q => ({
-      questionId: q.questionId,
-      questionText: q.questionText,
-      questionType: q.questionType,
-      options: q.options,
-      isRequired: q.isRequired,
-      validation: q.validation,
-      order: q.order,
-      helpText: q.helpText
+  const cloned = new QuestionnaireTemplate({
+    claimType: original.claimType,
+    claimOption: original.claimOption,
+    title: original.title,
+    description: original.description,
+    sections: original.sections.map((section, sIndex) => ({
+      title: section.title,
+      description: section.description,
+      order: section.order || (sIndex + 1),
+      questions: section.questions.map((q, qIndex) => ({
+        questionId: q.questionId,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        options: q.options,
+        isRequired: q.isRequired,
+        validation: q.validation,
+        order: q.order || (qIndex + 1),
+        helpText: q.helpText
+      }))
     })),
-    version: originalTemplate.version + 1,
+    version: original.version + 1,
     modifiedBy: userId,
-    isActive: false // New clone starts as inactive
+    isActive: false
   });
 
-  await clonedTemplate.save();
+  await cloned.save();
 
   res.status(201).json({
     success: true,
     message: "Template cloned successfully",
-    template: clonedTemplate,
-    originalTemplate: originalTemplate
+    template: cloned,
+    originalTemplate: original
   });
 });
 
-// Get missing template combinations
+// Get missing combinations
 const getMissingCombinations = asyncWrapper(async (req, res) => {
-  const existingTemplates = await QuestionnaireTemplate.find({}, 'claimType claimOption');
-  
-  const missingCombinations = [];
+  const existingTemplates = await QuestionnaireTemplate.find({}, "claimType claimOption");
+  const missing = [];
   Object.keys(VALID_CLAIM_COMBINATIONS).forEach(type => {
     VALID_CLAIM_COMBINATIONS[type].forEach(option => {
-      const exists = existingTemplates.some(t => 
-        t.claimType === type && t.claimOption === option
-      );
-      if (!exists) {
-        missingCombinations.push({ claimType: type, claimOption: option });
-      }
+      const exists = existingTemplates.some(t => t.claimType === type && t.claimOption === option);
+      if (!exists) missing.push({ claimType: type, claimOption: option });
     });
   });
 
-  res.status(200).json({
-    success: true,
-    missingCombinations,
-    count: missingCombinations.length
-  });
+  res.status(200).json({ success: true, missingCombinations: missing, count: missing.length });
 });
 
-// Validate template structure
-const validateTemplate = asyncWrapper(async (req, res, next) => {
-  const { claimType, claimOption, questions } = req.body;
-
+// Validate structure
+const validateTemplate = asyncWrapper(async (req, res) => {
+  const { claimType, claimOption, sections } = req.body;
   const errors = [];
 
-  // Validate combination
   if (!VALID_CLAIM_COMBINATIONS[claimType]?.includes(claimOption)) {
     errors.push(`Invalid combination: ${claimType} - ${claimOption}`);
   }
 
-  // Validate questions
-  if (!questions || !Array.isArray(questions) || questions.length === 0) {
-    errors.push("At least one question is required");
+  if (!sections || !Array.isArray(sections) || sections.length === 0) {
+    errors.push("At least one section is required");
   } else {
-    questions.forEach((question, index) => {
-      if (!question.questionId) {
-        errors.push(`Question ${index + 1}: questionId is required`);
-      }
-      if (!question.questionText) {
-        errors.push(`Question ${index + 1}: questionText is required`);
-      }
-      if (!question.questionType) {
-        errors.push(`Question ${index + 1}: questionType is required`);
-      }
-      if (!["text", "number", "date", "boolean", "select", "multiselect", "file"].includes(question.questionType)) {
-        errors.push(`Question ${index + 1}: invalid questionType`);
-      }
-      if ((question.questionType === "select" || question.questionType === "multiselect") && 
-          (!question.options || !Array.isArray(question.options) || question.options.length === 0)) {
-        errors.push(`Question ${index + 1}: options array is required for select/multiselect questions`);
+    sections.forEach((section, sIndex) => {
+      if (!section.title) errors.push(`Section ${sIndex + 1}: title is required`);
+      if (!section.questions || section.questions.length === 0) {
+        errors.push(`Section ${sIndex + 1}: must contain at least one question`);
+      } else {
+        section.questions.forEach((q, qIndex) => {
+          if (!q.questionId) errors.push(`Section ${sIndex + 1}, Q${qIndex + 1}: questionId is required`);
+          if (!q.questionText) errors.push(`Section ${sIndex + 1}, Q${qIndex + 1}: questionText is required`);
+          if (!q.questionType) errors.push(`Section ${sIndex + 1}, Q${qIndex + 1}: questionType is required`);
+        });
       }
     });
-
-    // Check for duplicate questionIds
-    const questionIds = questions.map(q => q.questionId);
-    const duplicates = questionIds.filter((id, index) => questionIds.indexOf(id) !== index);
-    if (duplicates.length > 0) {
-      errors.push(`Duplicate question IDs found: ${duplicates.join(', ')}`);
-    }
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({
-      success: false,
-      errors,
-      isValid: false
-    });
+    return res.status(400).json({ success: false, errors, isValid: false });
   }
 
-  res.status(200).json({
-    success: true,
-    message: "Template structure is valid",
-    isValid: true
-  });
+  res.status(200).json({ success: true, message: "Template structure is valid", isValid: true });
 });
 
 export {

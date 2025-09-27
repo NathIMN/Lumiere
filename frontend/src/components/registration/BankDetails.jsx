@@ -33,7 +33,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountHolderName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter account holder name "
+            placeholder="Enter account holder name"
           />
           {errors.accountHolderName && <p className="text-red-500 text-sm mt-1">{errors.accountHolderName}</p>}
         </div>
@@ -47,7 +47,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.bankName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter bank name "
+            placeholder="Enter bank name"
           />
           {errors.bankName && <p className="text-red-500 text-sm mt-1">{errors.bankName}</p>}
         </div>
@@ -61,7 +61,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'bankDetails', 'name')}
             onKeyDown={(e) => handleKeyPress(e, 'name')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.branchName ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter branch name "
+            placeholder="Enter branch name"
           />
           {errors.branchName && <p className="text-red-500 text-sm mt-1">{errors.branchName}</p>}
         </div>
@@ -75,7 +75,7 @@ const BankDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'bankDetails', 'accountNumber')}
             onKeyDown={(e) => handleKeyPress(e, 'accountNumber')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter account number "
+            placeholder="Enter account number"
           />
           {errors.accountNumber && <p className="text-red-500 text-sm mt-1">{errors.accountNumber}</p>}
         </div>

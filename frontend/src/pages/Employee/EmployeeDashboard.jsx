@@ -7,8 +7,9 @@ import { useState } from "react";
 import {
    SquareKanban,
    Trophy,
-   LifeBuoy
-} from "lucide-react"; 
+   LifeBuoy,
+   MessageSquareMore
+} from "lucide-react";
 
 export const EmployeeDashboard = () => {
 
@@ -16,7 +17,7 @@ export const EmployeeDashboard = () => {
       { path: "overview", label: "Overview", icon: SquareKanban },
       { path: "claims", label: "Claims", icon: Trophy },
       { path: "policies", label: "Policies", icon: LifeBuoy },
-      { path: "messaging", label: "Messaging", icon: LifeBuoy },
+      { path: "messaging", label: "Messaging", icon: MessageSquareMore },
    ];
 
    const color = "#ff7a66";
