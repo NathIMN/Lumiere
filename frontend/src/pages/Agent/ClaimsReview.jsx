@@ -17,6 +17,7 @@ const ClaimsReview = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
+  
 
   // Enhanced UI State
   const [selectedClaim, setSelectedClaim] = useState(null);
@@ -645,56 +646,56 @@ const ClaimsReview = () => {
 
   // ==================== **FIXED** COMPUTED VALUES ====================
 
-  const filteredProcessedClaims = useMemo(() => {
-    const from = dateRange.from ? new Date(dateRange.from) : null;
-    const to = dateRange.to ? new Date(dateRange.to) : null;
-    const minAmt = amountRange.min !== '' ? Number(amountRange.min) : null;
-    const maxAmt = amountRange.max !== '' ? Number(amountRange.max) : null;
-    const idQuery = searchId.trim().toLowerCase();
+const filteredProcessedClaims = useMemo(() => {
+  const from = dateRange.from ? new Date(dateRange.from) : null;
+  const to   = dateRange.to ? new Date(dateRange.to) : null;
+  const minAmt = amountRange.min !== '' ? Number(amountRange.min) : null;
+  const maxAmt = amountRange.max !== '' ? Number(amountRange.max) : null;
+  const idQuery = searchId.trim().toLowerCase();
 
-    const withinDate = (c) => {
-      const d = new Date(c.updatedAt || c.createdAt);
-      if (from && d < from) return false;
-      if (to) { const end = new Date(to); end.setHours(23, 59, 59, 999); if (d > end) return false; }
-      return true;
-    };
-    const withinAmount = (c) => {
-      const amt = Number(c.claimAmount?.requested ?? c.approvedAmount ?? 0);
-      if (minAmt !== null && amt < minAmt) return false;
-      if (maxAmt !== null && amt > maxAmt) return false;
-      return true;
-    };
-    const matchesStatus = (c) => {
-      if (statusFilter === 'all') return true;
-      const s = (c.claimStatus || c.agentDecision || '').toLowerCase();
-      return s === statusFilter;
-    };
-    const matchesId = (c) => !idQuery || (c.claimId || '').toLowerCase().includes(idQuery);
+  const withinDate = (c) => {
+    const d = new Date(c.updatedAt || c.createdAt);
+    if (from && d < from) return false;
+    if (to) { const end = new Date(to); end.setHours(23,59,59,999); if (d > end) return false; }
+    return true;
+  };
+  const withinAmount = (c) => {
+    const amt = Number(c.claimAmount?.requested ?? c.approvedAmount ?? 0);
+    if (minAmt !== null && amt < minAmt) return false;
+    if (maxAmt !== null && amt > maxAmt) return false;
+    return true;
+  };
+  const matchesStatus = (c) => {
+    if (statusFilter === 'all') return true;
+    const s = (c.claimStatus || c.agentDecision || '').toLowerCase();
+    return s === statusFilter;
+  };
+  const matchesId = (c) => !idQuery || (c.claimId || '').toLowerCase().includes(idQuery);
 
-    const sorted = [...processedClaims]
-      .filter((c) => matchesId(c) && matchesStatus(c) && withinDate(c) && withinAmount(c))
-      .sort((a, b) => {
-        if (sortConfig.key === 'amount') {
-          const av = Number(a.claimAmount?.requested ?? a.approvedAmount ?? 0);
-          const bv = Number(b.claimAmount?.requested ?? b.approvedAmount ?? 0);
-          return sortConfig.direction === 'asc' ? av - bv : bv - av;
-        }
-        const at = new Date(a[sortConfig.key] || a.updatedAt || a.createdAt).getTime();
-        const bt = new Date(b[sortConfig.key] || b.updatedAt || b.createdAt).getTime();
-        return sortConfig.direction === 'asc' ? at - bt : bt - at;
-      });
+  const sorted = [...processedClaims]
+    .filter((c) => matchesId(c) && matchesStatus(c) && withinDate(c) && withinAmount(c))
+    .sort((a,b) => {
+      if (sortConfig.key === 'amount') {
+        const av = Number(a.claimAmount?.requested ?? a.approvedAmount ?? 0);
+        const bv = Number(b.claimAmount?.requested ?? b.approvedAmount ?? 0);
+        return sortConfig.direction === 'asc' ? av - bv : bv - av;
+      }
+      const at = new Date(a[sortConfig.key] || a.updatedAt || a.createdAt).getTime();
+      const bt = new Date(b[sortConfig.key] || b.updatedAt || b.createdAt).getTime();
+      return sortConfig.direction === 'asc' ? at - bt : bt - at;
+    });
 
-    return sorted;
-  }, [processedClaims, statusFilter, dateRange, amountRange, sortConfig, searchId]);
+  return sorted;
+}, [processedClaims, statusFilter, dateRange, amountRange, sortConfig, searchId]);
 
-  const currentClaims = useMemo(() => (
-    activeView === 'pending' ? pendingClaims : filteredProcessedClaims
-  ), [activeView, pendingClaims, filteredProcessedClaims]);
+const currentClaims = useMemo(() => (
+  activeView === 'pending' ? pendingClaims : filteredProcessedClaims
+), [activeView, pendingClaims, filteredProcessedClaims]);
 
-  const paginatedClaims = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return currentClaims.slice(start, start + itemsPerPage);
-  }, [currentClaims, currentPage, itemsPerPage]);
+const paginatedClaims = useMemo(() => {
+  const start = (currentPage - 1) * itemsPerPage;
+  return currentClaims.slice(start, start + itemsPerPage);
+}, [currentClaims, currentPage, itemsPerPage]);
 
 
   // ==================== USER-FRIENDLY CLAIM CARD COMPONENT ====================
@@ -998,209 +999,207 @@ const ClaimsReview = () => {
               </button>
             </div>
           </div>
+{/* Premium Enhanced Filter Toolbar */}
+<div className="mt-6 mb-8">
+  {/* Primary Filter Row - More Prominent */}
+  <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
+    {/* Enhanced Search - Takes more space */}
+    <div className="lg:col-span-5">
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        Search Claims
+      </label>
+      <div className="relative group">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        </div>
+        <input
+          type="text"
+          value={searchId}
+          onChange={(e) => setSearchId(e.target.value.trim())}
+          className="block w-full pl-12 pr-12 py-4 text-sm border-2 border-gray-200 rounded-2xl bg-white/90 backdrop-blur-sm placeholder-gray-400 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:bg-white transition-all duration-200 hover:shadow-md focus:shadow-lg"
+          placeholder="Enter Claim ID (e.g., LC000002, LC000003...)"
+        />
+        {searchId && (
+          <button
+            onClick={() => setSearchId('')}
+            className="absolute inset-y-0 right-0 pr-4 flex items-center"
+          >
+            <X className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
+          </button>
+        )}
+      </div>
+    </div>
 
+    {/* Status Filter - Enhanced */}
+    <div className="lg:col-span-3">
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        Filter by Status
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <FilterIcon className="h-4 w-4 text-gray-400" />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="block w-full pl-11 pr-10 py-4 text-sm border-2 border-gray-200 rounded-2xl bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-200 hover:shadow-md focus:shadow-lg appearance-none cursor-pointer"
+        >
+          <option value="all">🔍 All Statuses</option>
+          <option value="approved">✅ Approved Claims</option>
+          <option value="rejected">❌ Rejected Claims</option>
+          <option value="returned">↩️ Returned Claims</option>
+        </select>
+        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+          <ChevronDown className="h-4 w-4 text-gray-400" />
+        </div>
+      </div>
+    </div>
 
-          {/* Premium Enhanced Filter Toolbar */}
-          <div className="mt-6 mb-8">
-            {/* Primary Filter Row - More Prominent */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-              {/* Enhanced Search - Takes more space */}
-              <div className="lg:col-span-5">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Search Claims
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
-                  </div>
-                  <input
-                    type="text"
-                    value={searchId}
-                    onChange={(e) => setSearchId(e.target.value.trim())}
-                    className="block w-full pl-12 pr-12 py-4 text-sm border-2 border-gray-200 rounded-2xl bg-white/90 backdrop-blur-sm placeholder-gray-400 focus:ring-4 focus:ring-blue-100 focus:border-blue-400 focus:bg-white transition-all duration-200 hover:shadow-md focus:shadow-lg"
-                    placeholder="Enter Claim ID (e.g., LC000002, LC000003...)"
-                  />
-                  {searchId && (
-                    <button
-                      onClick={() => setSearchId('')}
-                      className="absolute inset-y-0 right-0 pr-4 flex items-center"
-                    >
-                      <X className="h-4 w-4 text-gray-400 hover:text-gray-600 transition-colors" />
-                    </button>
-                  )}
-                </div>
-              </div>
+    {/* Sort Options - Enhanced */}
+    <div className="lg:col-span-4">
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        Sort Results
+      </label>
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <SortAsc className="h-4 w-4 text-gray-400" />
+        </div>
+        <select
+          value={`${sortConfig.key}:${sortConfig.direction}`}
+          onChange={(e) => {
+            const [key, direction] = e.target.value.split(':');
+            setSortConfig({ key, direction });
+          }}
+          className="block w-full pl-11 pr-10 py-4 text-sm border-2 border-gray-200 rounded-2xl bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-200 hover:shadow-md focus:shadow-lg appearance-none cursor-pointer"
+        >
+          <option value="updatedAt:desc">🕐 Latest Updates First</option>
+          <option value="updatedAt:asc">🕐 Oldest Updates First</option>
+          <option value="amount:desc">💰 Highest Amount First</option>
+          <option value="amount:asc">💰 Lowest Amount First</option>
+          <option value="createdAt:desc">📅 Recently Created</option>
+          <option value="createdAt:asc">📅 Oldest Claims</option>
+        </select>
+        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+          <ChevronDown className="h-4 w-4 text-gray-400" />
+        </div>
+      </div>
+    </div>
+  </div>
 
-              {/* Status Filter - Enhanced */}
-              <div className="lg:col-span-3">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Filter by Status
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <FilterIcon className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="block w-full pl-11 pr-10 py-4 text-sm border-2 border-gray-200 rounded-2xl bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-200 hover:shadow-md focus:shadow-lg appearance-none cursor-pointer"
-                  >
-                    <option value="all">🔍 All Statuses</option>
-                    <option value="approved">✅ Approved Claims</option>
-                    <option value="rejected">❌ Rejected Claims</option>
-                    <option value="returned">↩️ Returned Claims</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  </div>
-                </div>
-              </div>
+  {/* Advanced Filters - Collapsible Section */}
+  <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 rounded-3xl border border-gray-200/60 p-6 shadow-sm">
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <Sliders className="h-4 w-4" />
+        Advanced Filters
+      </h3>
+      <button className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
+        <ChevronUp className="h-4 w-4" />
+      </button>
+    </div>
 
-              {/* Sort Options - Enhanced */}
-              <div className="lg:col-span-4">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Sort Results
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <SortAsc className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <select
-                    value={`${sortConfig.key}:${sortConfig.direction}`}
-                    onChange={(e) => {
-                      const [key, direction] = e.target.value.split(':');
-                      setSortConfig({ key, direction });
-                    }}
-                    className="block w-full pl-11 pr-10 py-4 text-sm border-2 border-gray-200 rounded-2xl bg-white focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all duration-200 hover:shadow-md focus:shadow-lg appearance-none cursor-pointer"
-                  >
-                    <option value="updatedAt:desc">🕐 Latest Updates First</option>
-                    <option value="updatedAt:asc">🕐 Oldest Updates First</option>
-                    <option value="amount:desc">💰 Highest Amount First</option>
-                    <option value="amount:asc">💰 Lowest Amount First</option>
-                    <option value="createdAt:desc">📅 Recently Created</option>
-                    <option value="createdAt:asc">📅 Oldest Claims</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                    <ChevronDown className="h-4 w-4 text-gray-400" />
-                  </div>
-                </div>
-              </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Date Range Filter */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          📅 Date Range
+        </label>
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">From</label>
+              <input
+                type="date"
+                value={dateRange.from ?? ''}
+                onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value || null }))}
+                className="w-full text-sm bg-transparent border-none outline-none"
+              />
             </div>
-
-            {/* Advanced Filters - Collapsible Section */}
-            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 rounded-3xl border border-gray-200/60 p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                  <Sliders className="h-4 w-4" />
-                  Advanced Filters
-                </h3>
-                <button className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
-                  <ChevronUp className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Date Range Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    📅 Date Range
-                  </label>
-                  <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">From</label>
-                        <input
-                          type="date"
-                          value={dateRange.from ?? ''}
-                          onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value || null }))}
-                          className="w-full text-sm bg-transparent border-none outline-none"
-                        />
-                      </div>
-                      <div className="px-3">
-                        <ArrowRight className="h-4 w-4 text-gray-300" />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">To</label>
-                        <input
-                          type="date"
-                          value={dateRange.to ?? ''}
-                          onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value || null }))}
-                          className="w-full text-sm bg-transparent border-none outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Amount Range Filter */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    💰 Amount Range
-                  </label>
-                  <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Min ($)</label>
-                        <input
-                          type="number"
-                          placeholder="0"
-                          value={amountRange.min}
-                          onChange={(e) => setAmountRange(prev => ({ ...prev, min: e.target.value }))}
-                          className="w-full text-sm bg-transparent border-none outline-none"
-                        />
-                      </div>
-                      <div className="px-3">
-                        <Minus className="h-4 w-4 text-gray-300" />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-xs text-gray-500 mb-1">Max ($)</label>
-                        <input
-                          type="number"
-                          placeholder="∞"
-                          value={amountRange.max}
-                          onChange={(e) => setAmountRange(prev => ({ ...prev, max: e.target.value }))}
-                          className="w-full text-sm bg-transparent border-none outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Results Summary & Actions */}
-                <div className="flex flex-col justify-end">
-                  <div className="space-y-3">
-                    {/* Results Counter */}
-                    <div className="bg-white rounded-2xl border-2 border-blue-200 p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-600">{currentClaims.length}</div>
-                      <div className="text-xs text-gray-600 font-medium">
-                        {currentClaims.length === 1 ? 'Claim Found' : 'Claims Found'}
-                      </div>
-                    </div>
-
-                    {/* Quick Actions */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSearchId('');
-                          setStatusFilter('all');
-                          setDateRange({ from: null, to: null });
-                          setAmountRange({ min: '', max: '' });
-                          setSortConfig({ key: 'updatedAt', direction: 'desc' });
-                        }}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-gray-600 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all duration-200"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        Reset
-                      </button>
-                      <button className="flex items-center justify-center px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-xl transition-all duration-200">
-                        <Download className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <div className="px-3">
+              <ArrowRight className="h-4 w-4 text-gray-300" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">To</label>
+              <input
+                type="date"
+                value={dateRange.to ?? ''}
+                onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value || null }))}
+                className="w-full text-sm bg-transparent border-none outline-none"
+              />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Amount Range Filter */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-3">
+          💰 Amount Range
+        </label>
+        <div className="bg-white rounded-2xl border-2 border-gray-200 p-3 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">Min ($)</label>
+              <input
+                type="number"
+                placeholder="0"
+                value={amountRange.min}
+                onChange={(e) => setAmountRange(prev => ({ ...prev, min: e.target.value }))}
+                className="w-full text-sm bg-transparent border-none outline-none"
+              />
+            </div>
+            <div className="px-3">
+              <Minus className="h-4 w-4 text-gray-300" />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs text-gray-500 mb-1">Max ($)</label>
+              <input
+                type="number"
+                placeholder="∞"
+                value={amountRange.max}
+                onChange={(e) => setAmountRange(prev => ({ ...prev, max: e.target.value }))}
+                className="w-full text-sm bg-transparent border-none outline-none"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Summary & Actions */}
+      <div className="flex flex-col justify-end">
+        <div className="space-y-3">
+          {/* Results Counter */}
+          <div className="bg-white rounded-2xl border-2 border-blue-200 p-4 text-center">
+            <div className="text-2xl font-bold text-blue-600">{currentClaims.length}</div>
+            <div className="text-xs text-gray-600 font-medium">
+              {currentClaims.length === 1 ? 'Claim Found' : 'Claims Found'}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setSearchId('');
+                setStatusFilter('all');
+                setDateRange({ from: null, to: null });
+                setAmountRange({ min: '', max: '' });
+                setSortConfig({ key: 'updatedAt', direction: 'desc' });
+              }}
+              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-gray-600 bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 rounded-xl transition-all duration-200"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Reset
+            </button>
+            <button className="flex items-center justify-center px-3 py-2 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border-2 border-blue-200 rounded-xl transition-all duration-200">
+              <Download className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 
 
