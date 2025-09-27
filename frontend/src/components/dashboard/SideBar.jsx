@@ -33,8 +33,9 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
                className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-neutral-800 transition-colors"
             >
                <Menu
-                  className={`w-8 h-8 text-gray-600 dark:text-gray-400 transform transition-transform duration-300 ${isCollapsed ? "rotate-90" : "rotate-0"
-                     }`}
+                  className={`w-8 h-8 text-gray-600 dark:text-gray-400 transform transition-transform duration-300 ${
+                     isCollapsed ? "rotate-90" : "rotate-0"
+                  }`}
                />
             </button>
          </div>
@@ -62,16 +63,18 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
                            })}
                         >
                            <IconComponent
-                              className={`w-5 h-5 flex-shrink-0 transition-all duration-500 ${isCollapsed ? "mx-auto" : "mr-3 ml-1"
-                                 }`}
+                              className={`w-5 h-5 flex-shrink-0 transition-all duration-500 ${
+                                 isCollapsed ? "mx-auto" : "mr-3 ml-1"
+                              }`}
                            />
 
                            {/* Animated label */}
                            <span
-                              className={`font-medium whitespace-nowrap transition-all duration-500 overflow-hidden ${isCollapsed
+                              className={`font-semibold uppercase whitespace-nowrap transition-all duration-500 overflow-hidden ${
+                                 isCollapsed
                                     ? "opacity-0 translate-x-[-20px] w-0"
                                     : "opacity-100 translate-x-0 w-auto ml-2"
-                                 }`}
+                              }`}
                            >
                               {link.label}
                            </span>

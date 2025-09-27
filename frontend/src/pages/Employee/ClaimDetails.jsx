@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Questionnaire } from '../../components/forms/Questionnaire';
 import { ReviewAndSubmit } from '../../components/forms/ReviewAndSubmit';
 import InsuranceApiService from '../../services/insurance-api';
-import DocumentApiService from '../../services/document-api';
 
 import {
    Calendar,
@@ -76,11 +75,6 @@ export const ClaimDetails = () => {
    const handleQuestionnaireComplete = async () => {
       await fetchClaimDetails();
       setShowQuestionnaireModal(false);
-   };
-
-   const handleSubmitSuccess = async (updatedClaim) => {
-      await fetchClaimDetails();
-      setShowReviewAndSubmitModal(false);
    };
 
    const handleDeleteClaim = async () => {
@@ -417,7 +411,7 @@ export const ClaimDetails = () => {
                         {(questionnaire.isComplete && claim.claimStatus == "employee") && (
                            <div className="flex items-center mb-5 width-full space-x-2 px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg ">
 
-                              <span className="text-sm font-semibold">You have completed the questionnaire. Recheck your answers and Submit for HR review to process it.</span>
+                              <span className="text-sm font-semibold">You have completed the questionnaire. Recheck your answers and Submit for HR review to process it</span>
                            </div>
                         )}
 
@@ -431,10 +425,10 @@ export const ClaimDetails = () => {
                                     onClick={() => setShowCompletedQuestionnaire(!showCompletedQuestionnaire)}
                                     className="inline-flex items-center w-[200px] space-x-2 px-4 py-2.5 bg-gradient-to-r from-blue-400 to-blue-500 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
                                  >
-
+                                    
                                     <span>{showCompletedQuestionnaire ? 'Hide' : 'View'} Questionnaire</span>
                                     {showCompletedQuestionnaire ? <EyeClosed className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-
+                                    
                                  </button>
 
                                  {canEdit() && (
@@ -460,7 +454,7 @@ export const ClaimDetails = () => {
 
                               {/* Collapsible questionnaire content */}
                               {showCompletedQuestionnaire && (
-
+                                 
                                  <div className="space-y-6 animate-in slide-in-from-top-3 duration-300">
                                     {questionnaire.sections?.map((section) => (
                                        <div key={section.sectionId} className="border border-slate-200 dark:border-neutral-700 rounded-xl overflow-hidden">
@@ -754,7 +748,6 @@ export const ClaimDetails = () => {
                            claimId={claim._id}
                            questionnaire={questionnaire}
                            selectedPolicy={selectedPolicy}
-                           onSubmitSuccess={handleSubmitSuccess}
                         />
                      </div>
                   </div>
