@@ -1,10 +1,149 @@
 // pages/ClaimForm.jsx
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, FileText, Car, Heart, Upload, AlertCircle, Check, X } from 'lucide-react';
+import { ChevronLeft, FileText, Car, Heart, Upload, AlertCircle, Check, X, Info, Clock, Shield, Camera } from 'lucide-react';
 import InsuranceApiService from "../../services/insurance-api";
 import DocumentApiService from "../../services/document-api";
 import { useNavigate } from "react-router-dom";
 import { Questionnaire } from '../../components/forms/Questionnaire';
+
+// Simple claim instructions data
+const claimInstructions = {
+   life: {
+      hospitalization: {
+         title: "Hospitalization Claim",
+         description: "Submit your hospitalization claim with required medical documentation.",
+         documents: [
+            { name: "Medical Certificate", required: true },
+            { name: "Hospital Bills", required: true },
+            { name: "Discharge Summary", required: true }
+         ],
+         information: [
+            "Keep all original receipts and medical reports",
+            "Claims must be submitted within 30 days of discharge"
+         ],
+         tips: [
+            "Ensure all documents are clear and legible",
+            "Contact your doctor if any reports are missing"
+         ]
+      },
+      channelling: {
+         title: "Channeling Claim",
+         description: "Submit your channeling fees claim with medical documentation.",
+         documents: [
+            { name: "Channeling Receipt", required: true },
+            { name: "Medical Report", required: true }
+         ],
+         information: [
+            "Keep original channeling receipts",
+            "Medical justification may be required"
+         ],
+         tips: [
+            "Submit claims promptly for faster processing"
+         ]
+      },
+      medication: {
+         title: "Medication Claim",
+         description: "Submit your medication expenses claim.",
+         documents: [
+            { name: "Pharmacy Bills", required: true },
+            { name: "Prescription", required: true }
+         ],
+         information: [
+            "Only prescribed medications are covered",
+            "Keep original pharmacy receipts"
+         ],
+         tips: [
+            "Ensure prescription is from a registered medical practitioner"
+         ]
+      },
+      death: {
+         title: "Death Claim",
+         description: "Submit death benefit claim with required documentation.",
+         documents: [
+            { name: "Death Certificate", required: true },
+            { name: "Medical Certificate", required: true },
+            { name: "Identity Documents", required: true }
+         ],
+         information: [
+            "All legal documentation must be provided",
+            "Beneficiary identification is required"
+         ],
+         tips: [
+            "Contact our support team for guidance through this process"
+         ]
+      }
+   },
+   vehicle: {
+      accident: {
+         title: "Vehicle Accident Claim",
+         description: "Submit your vehicle accident claim with incident documentation.",
+         documents: [
+            { name: "Police Report", required: true },
+            { name: "Repair Estimates", required: true },
+            { name: "Photos of Damage", required: true }
+         ],
+         information: [
+            "Report accidents to police immediately",
+            "Get multiple repair estimates"
+         ],
+         tips: [
+            "Take photos from multiple angles",
+            "Keep all incident documentation safe"
+         ]
+      },
+      theft: {
+         title: "Vehicle Theft Claim",
+         description: "Submit your vehicle theft claim with police documentation.",
+         documents: [
+            { name: "Police Report", required: true },
+            { name: "Vehicle Registration", required: true },
+            { name: "Keys and Documents", required: true }
+         ],
+         information: [
+            "Report theft to police immediately",
+            "Provide all original vehicle documents"
+         ],
+         tips: [
+            "File police report within 24 hours",
+            "Cooperate fully with police investigation"
+         ]
+      },
+      fire: {
+         title: "Fire Damage Claim",
+         description: "Submit your fire damage claim with incident reports.",
+         documents: [
+            { name: "Fire Department Report", required: true },
+            { name: "Damage Assessment", required: true },
+            { name: "Photos of Damage", required: true }
+         ],
+         information: [
+            "Contact fire department immediately",
+            "Document all damage thoroughly"
+         ],
+         tips: [
+            "Do not move the vehicle until assessed",
+            "Keep all fire department documentation"
+         ]
+      },
+      naturalDisaster: {
+         title: "Natural Disaster Claim",
+         description: "Submit your natural disaster damage claim.",
+         documents: [
+            { name: "Weather Report", required: true },
+            { name: "Damage Photos", required: true },
+            { name: "Repair Estimates", required: true }
+         ],
+         information: [
+            "Document damage immediately after the event",
+            "Get official weather reports"
+         ],
+         tips: [
+            "Take photos from multiple angles",
+            "Get estimates from certified repair shops"
+         ]
+      }
+   }
+};
 
 export const ClaimForm = () => {
    const [step, setStep] = useState(1);
@@ -35,6 +174,8 @@ export const ClaimForm = () => {
       vehicle: Car
    };
 
+
+
    // Fetch user policies on component mount
    useEffect(() => {
       fetchUserPolicies();
@@ -63,8 +204,12 @@ export const ClaimForm = () => {
       setStep(2);
    };
 
-   const handleClaimOptionSelect = async (option) => {
+   const handleClaimOptionSelect = (option) => {
       setClaimOption(option);
+      setStep(3); // Move to instructions step
+   };
+
+   const handleProceedFromInstructions = async () => {
       setLoading(true);
       setErrors({});
 
@@ -72,7 +217,7 @@ export const ClaimForm = () => {
          const response = await InsuranceApiService.createClaim({
             policy: selectedPolicy._id,
             claimType: selectedPolicy.policyType,
-            claimOption: option
+            claimOption: claimOption
          });
 
          if (response.success) {
@@ -82,7 +227,7 @@ export const ClaimForm = () => {
             const questionnaireData = {
                claimId: claim._id,
                claimType: claim.claimType,
-               claimOption: option,
+               claimOption: claimOption,
                isComplete: claim.questionnaire.isComplete,
                totalQuestions: 0,
                answeredQuestions: 0,
@@ -98,28 +243,7 @@ export const ClaimForm = () => {
 
             setQuestionnaire(questionnaireData);
 
-            // Initialize form data with existing answers
-            const initialFormData = {};
-            if (claim.questionnaire.sections) {
-               claim.questionnaire.sections.forEach(section => {
-                  section.responses.forEach(response => {
-                     if (response.isAnswered) {
-                        const answer = response.answer;
-                        initialFormData[response.questionId] =
-                           answer.textValue ||
-                           answer.numberValue ||
-                           answer.dateValue ||
-                           answer.booleanValue ||
-                           answer.selectValue ||
-                           answer.multiselectValue ||
-                           answer.fileValue || '';
-                     }
-                  });
-               });
-            }
-            setFormData(initialFormData);
-
-            setStep(3);
+            setStep(4); // Move to questionnaire step
          } else {
             setErrors({ api: 'Failed to create claim draft' });
          }
@@ -133,7 +257,29 @@ export const ClaimForm = () => {
 
    const handleQuestionnaireComplete = (questionnaireFormData) => {
       setFormData(prevData => ({ ...prevData, ...questionnaireFormData }));
-      setStep(4);
+      setStep(5); // Update step number
+   };
+
+   const handleInputChange = (questionId, value) => {
+      setFormData(prev => ({
+         ...prev,
+         [questionId]: value
+      }));
+   };
+
+   const getSections = () => {
+      if (!questionnaire?.sections) return [];
+
+      return questionnaire.sections
+         .sort((a, b) => a.order - b.order)
+         .map(section => ({
+            title: section.title,
+            description: section.description,
+            questions: section.responses || section.questions || [],
+            order: section.order,
+            sectionId: section.sectionId,
+            isComplete: section.isComplete
+         }));
    };
 
    const handleFinalSubmit = async () => {
@@ -228,20 +374,6 @@ export const ClaimForm = () => {
       setShowSuccessModal(false);
    };
 
-   const handleInputChange = (questionId, value) => {
-      setFormData(prev => ({
-         ...prev,
-         [questionId]: value
-      }));
-
-      if (errors[questionId]) {
-         setErrors(prev => ({
-            ...prev,
-            [questionId]: ''
-         }));
-      }
-   };
-
    const goBack = () => {
       if (step === 2) {
          setStep(1);
@@ -251,6 +383,8 @@ export const ClaimForm = () => {
          setClaimOption('');
       } else if (step === 4) {
          setStep(3);
+      } else if (step === 5) {
+         setStep(4);
       }
    };
 
@@ -262,25 +396,16 @@ export const ClaimForm = () => {
       return coverageTypes.slice(0, 3).join(', ') + (coverageTypes.length > 3 ? '...' : '');
    };
 
-   // Helper function to get sections from questionnaire for final step display
-   const getSections = () => {
-      if (!questionnaire?.sections) return [];
-
-      return questionnaire.sections
-         .sort((a, b) => a.order - b.order)
-         .map(section => ({
-            title: section.title,
-            description: section.description,
-            questions: section.responses || section.questions || [],
-            order: section.order,
-            sectionId: section.sectionId,
-            isComplete: section.isComplete
-         }));
+   // Get current claim instructions
+   const getCurrentInstructions = () => {
+      if (!selectedPolicy || !claimOption) return null;
+      return claimInstructions[selectedPolicy.policyType]?.[claimOption];
    };
 
    return (
       <div className="min-h-screen py-8 px-4">
          <div className="max-w-4xl mx-auto">
+            
             {/* Success Modal */}
             {showSuccessModal && (
                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -332,10 +457,10 @@ export const ClaimForm = () => {
             </div>
 
             {/* Main Content */}
-            {step !== 3 && (
+            {step < 4 && (
                <div className="bg-white rounded-xl shadow-lg p-8">
                   <div className="flex justify-between items-center mb-6">
-                     {step > 1 && step !== 3 && (
+                     {step > 1 && step !== 4 && (
                         <button
                            onClick={goBack}
                            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
@@ -385,39 +510,123 @@ export const ClaimForm = () => {
                               <p className="text-gray-500">You don't have any active policies to submit claims for.</p>
                            </div>
                         ) : (
-                           <div className="grid gap-6">
-                              {userPolicies.map((policy) => {
-                                 const IconComponent = claimTypeIcons[policy.policyType];
-                                 return (
-                                    <button
-                                       key={policy._id}
-                                       onClick={() => handlePolicySelect(policy)}
-                                       className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-left group"
-                                    >
-                                       <div className="flex items-center gap-4">
-                                          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                                             <IconComponent className="w-6 h-6 text-blue-600" />
-                                          </div>
-                                          <div className="flex-1">
-                                             <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-lg font-semibold text-gray-900 capitalize">
-                                                   {policy.policyType} Insurance
-                                                </h3>
-                                                <span className="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                                                   {policy.policyId}
-                                                </span>
+                           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                              {userPolicies
+                                 .reduce((acc, policy) => {
+                                    const existingType = acc.find(item => item.type === policy.policyType);
+                                    if (existingType) {
+                                       existingType.policies.push(policy);
+                                    } else {
+                                       acc.push({
+                                          type: policy.policyType,
+                                          policies: [policy]
+                                       });
+                                    }
+                                    return acc;
+                                 }, [])
+                                 .map((policyGroup) => {
+                                    const IconComponent = claimTypeIcons[policyGroup.type];
+                                    const isLife = policyGroup.type === 'life';
+
+                                    return (
+                                       <div key={policyGroup.type} className="group">
+                                          <div className={`relative overflow-hidden rounded-2xl p-8 border-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer ${isLife
+                                             ? 'bg-gradient-to-br from-pink-50 via-red-50 to-rose-100 border-pink-200 hover:border-pink-400 hover:shadow-pink-100'
+                                             : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 border-blue-200 hover:border-blue-400 hover:shadow-blue-100'
+                                             }`}>
+                                             {/* Background Pattern */}
+                                             <div className="absolute inset-0 opacity-5">
+                                                <div className={`w-full h-full ${isLife ? 'bg-pink-500' : 'bg-blue-500'}`}
+                                                   style={{
+                                                      backgroundImage: `radial-gradient(circle at 20px 20px, currentColor 2px, transparent 2px)`,
+                                                      backgroundSize: '40px 40px'
+                                                   }}
+                                                />
                                              </div>
-                                             <p className="text-gray-600 text-sm mb-2">
-                                                Coverage: ${policy.coverage.coverageAmount.toLocaleString()}
-                                             </p>
-                                             <p className="text-gray-500 text-xs">
-                                                Coverage Types: {getCoverageTypesList(policy)}
-                                             </p>
+
+                                             {/* Content */}
+                                             <div className="relative z-10">
+                                                {/* Icon and Title */}
+                                                <div className="flex items-center gap-4 mb-6">
+                                                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isLife
+                                                      ? 'bg-gradient-to-br from-pink-500 to-red-600 shadow-lg shadow-pink-200'
+                                                      : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-200'
+                                                      }`}>
+                                                      <IconComponent className="w-8 h-8 text-white" />
+                                                   </div>
+                                                   <div>
+                                                      <h3 className="text-2xl font-bold text-gray-900 capitalize mb-1">
+                                                         {policyGroup.type} Insurance
+                                                      </h3>
+                                                      <p className="text-gray-600">
+                                                         {policyGroup.policies.length} Active {policyGroup.policies.length === 1 ? 'Policy' : 'Policies'}
+                                                      </p>
+                                                   </div>
+                                                </div>
+
+                                                {/* Policies List */}
+                                                <div className="space-y-3 mb-6">
+                                                   {policyGroup.policies.slice(0, 2).map((policy, index) => (
+                                                      <div key={policy._id} className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/50">
+                                                         <div className="flex items-center justify-between">
+                                                            <div className="flex-1">
+                                                               <div className="flex items-center gap-2 mb-1">
+                                                                  <span className="text-sm font-semibold text-gray-900">{policy.policyId}</span>
+                                                                  <span className={`text-xs px-2 py-1 rounded-full ${isLife ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
+                                                                     }`}>
+                                                                     Active
+                                                                  </span>
+                                                               </div>
+                                                               <p className="text-sm text-gray-600 mb-1">
+                                                                  Coverage: ${policy.coverage.coverageAmount.toLocaleString()}
+                                                               </p>
+                                                               <p className="text-xs text-gray-500">
+                                                                  {getCoverageTypesList(policy)}
+                                                               </p>
+                                                            </div>
+                                                         </div>
+                                                      </div>
+                                                   ))}
+
+                                                   {policyGroup.policies.length > 2 && (
+                                                      <div className="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-white/30 text-center">
+                                                         <span className="text-sm text-gray-600">
+                                                            +{policyGroup.policies.length - 2} more {policyGroup.policies.length - 2 === 1 ? 'policy' : 'policies'}
+                                                         </span>
+                                                      </div>
+                                                   )}
+                                                </div>
+
+                                                {/* Action Button */}
+                                                <button
+                                                   onClick={() => {
+                                                      // If only one policy of this type, select it directly
+                                                      if (policyGroup.policies.length === 1) {
+                                                         handlePolicySelect(policyGroup.policies[0]);
+                                                      } else {
+                                                         // Show policy selection modal or handle multiple policies
+                                                         // For now, just select the first one
+                                                         handlePolicySelect(policyGroup.policies[0]);
+                                                      }
+                                                   }}
+                                                   className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-105 ${isLife
+                                                      ? 'bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white shadow-lg shadow-pink-200 hover:shadow-pink-300'
+                                                      : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300'
+                                                      }`}
+                                                >
+                                                   Submit {policyGroup.type.charAt(0).toUpperCase() + policyGroup.type.slice(1)} Claim
+                                                </button>
+                                             </div>
+
+                                             {/* Decorative Elements */}
+                                             <div className={`absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-10 ${isLife ? 'bg-pink-500' : 'bg-blue-500'
+                                                }`} />
+                                             <div className={`absolute -bottom-6 -left-6 w-32 h-32 rounded-full opacity-5 ${isLife ? 'bg-red-500' : 'bg-indigo-500'
+                                                }`} />
                                           </div>
                                        </div>
-                                    </button>
-                                 );
-                              })}
+                                    );
+                                 })}
                            </div>
                         )}
                      </div>
@@ -441,290 +650,132 @@ export const ClaimForm = () => {
                               <button
                                  key={option}
                                  onClick={() => handleClaimOptionSelect(option)}
-                                 disabled={loading}
-                                 className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                 className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-center"
                               >
                                  <FileText className="w-8 h-8 text-blue-600 mx-auto mb-3" />
                                  <h3 className="font-medium text-gray-900 capitalize">{option}</h3>
                               </button>
                            ))}
                         </div>
-
-                        {loading && (
-                           <div className="text-center py-8">
-                              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                              <p className="mt-2 text-gray-600">Loading claim form...</p>
-                           </div>
-                        )}
                      </div>
                   )}
 
-
-                  {/* Step 4: Review and Final Submission */}
-                  {step === 4 && questionnaire && (
+                  {/* Step 3: Instructions and Preparation */}
+                  {step === 3 && selectedPolicy && claimOption && (
                      <div className="space-y-8">
                         <div className="text-center mb-8">
-                           <h2 className="text-2xl font-semibold text-gray-900 mb-2">Review & Submit Claim</h2>
-                           <p className="text-gray-600">Review your information, enter claim amount, and submit for HR review</p>
-                           <p className="text-sm text-gray-500 mt-2">Policy: {selectedPolicy.policyId}</p>
+                           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                              <Info className="w-8 h-8 text-blue-600" />
+                           </div>
+                           <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                              {getCurrentInstructions()?.title} - Preparation Guide
+                           </h2>
+                           <p className="text-gray-600 max-w-2xl mx-auto">
+                              {getCurrentInstructions()?.description}
+                           </p>
                         </div>
 
-                        {/* Questionnaire Summary */}
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                           <div className="flex items-center gap-2 mb-4">
-                              <Check className="w-6 h-6 text-green-600" />
-                              <h3 className="text-lg font-semibold text-green-800">Questionnaire Completed</h3>
+                        {/* Required Documents */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-100">
+                           <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                 <FileText className="w-5 h-5 text-white" />
+                              </div>
+                              <h3 className="text-lg font-semibold text-gray-900">Required Documents</h3>
                            </div>
-                           <div className="grid md:grid-cols-3 gap-4 text-sm">
-                              <div>
-                                 <span className="text-gray-600">Total Questions:</span>
-                                 <span className="ml-2 font-medium">{questionnaire.totalQuestions}</span>
-                              </div>
-                              <div>
-                                 <span className="text-gray-600">Answered:</span>
-                                 <span className="ml-2 font-medium text-green-600">{questionnaire.answeredQuestions}</span>
-                              </div>
-                              <div>
-                                 <span className="text-gray-600">Completion:</span>
-                                 <span className="ml-2 font-medium text-green-600">100%</span>
-                              </div>
-                           </div>
-                        </div>
-
-                        {/* Claim Amount Input */}
-                        <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
-                           <h3 className="text-lg font-semibold text-gray-900 mb-4">Claim Amount</h3>
-                           <div className="space-y-4">
-                              <div>
-                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Requested Claim Amount *
-                                 </label>
-                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                                    <input
-                                       type="number"
-                                       min="0"
-                                       step="0.01"
-                                       value={claimAmount}
-                                       onChange={(e) => {
-                                          setClaimAmount(e.target.value);
-                                          if (errors.amount) {
-                                             setErrors(prev => ({ ...prev, amount: '' }));
-                                          }
-                                       }}
-                                       className={`w-full pl-8 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.amount ? 'border-red-500' : 'border-gray-300'
-                                          }`}
-                                       placeholder="0.00"
-                                    />
-                                 </div>
-                                 {errors.amount && (
-                                    <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
-                                       <AlertCircle className="w-4 h-4" />
-                                       {errors.amount}
-                                    </p>
-                                 )}
-                              </div>
-
-                              <div className="bg-blue-50 rounded-lg p-4">
-                                 <p className="text-sm text-blue-700">
-                                    <strong>Policy Coverage:</strong> ${selectedPolicy.coverage.coverageAmount.toLocaleString()}
-                                 </p>
-                                 <p className="text-xs text-blue-600 mt-1">
-                                    Ensure your claim amount is within your policy coverage limits.
-                                 </p>
-                              </div>
-                           </div>
-                        </div>
-
-                        {/* Additional Documents Upload */}
-                        <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
-                           <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Supporting Documents</h3>
-                           <div className="space-y-4">
-                              <p className="text-sm text-gray-600 mb-4">
-                                 Upload any additional documents that support your claim (optional)
-                              </p>
-
-                              <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${errors.documents ? 'border-red-300' : 'border-gray-300'
-                                 }`}>
-                                 <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                 <p className="text-sm text-gray-600 mb-2">Click to upload additional documents</p>
-                                 <input
-                                    type="file"
-                                    multiple
-                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                    onChange={(e) => {
-                                       setAdditionalDocuments(Array.from(e.target.files));
-                                       if (errors.documents) {
-                                          setErrors(prev => ({ ...prev, documents: '' }));
-                                       }
-                                    }}
-                                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                                 />
-                                 {additionalDocuments.length > 0 && (
-                                    <div className="mt-4">
-                                       <p className="text-sm font-medium text-gray-700 mb-2">
-                                          Selected Files ({additionalDocuments.length}):
-                                       </p>
-                                       <div className="max-h-32 overflow-y-auto">
-                                          {additionalDocuments.map((file, index) => (
-                                             <div key={index} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-2">
-                                                <span className="text-sm text-gray-700 truncate">{file.name}</span>
-                                                <span className="text-xs text-gray-500 ml-2">
-                                                   {(file.size / 1024 / 1024).toFixed(1)} MB
-                                                </span>
-                                             </div>
-                                          ))}
-                                       </div>
-                                    </div>
-                                 )}
-                              </div>
-
-                              {errors.documents && (
-                                 <p className="text-red-500 text-sm flex items-center gap-1">
-                                    <AlertCircle className="w-4 h-4" />
-                                    {errors.documents}
-                                 </p>
-                              )}
-
-                              <div className="bg-blue-50 rounded-lg p-4">
-                                 <p className="text-sm text-blue-700">
-                                    <strong>Accepted formats:</strong> PDF, JPG, PNG, DOC, DOCX (Max 10MB per file)
-                                 </p>
-                                 <p className="text-xs text-blue-600 mt-1">
-                                    Examples: Medical certificates, receipts, police reports, repair estimates, etc.
-                                 </p>
-                              </div>
-                           </div>
-                        </div>
-
-                        {/* Summary of Answers */}
-                        <div className="bg-gray-50 rounded-lg p-6">
-                           <h3 className="text-lg font-semibold text-gray-900 mb-4">Answer Summary</h3>
-                           <div className="space-y-4">
-                              {getSections().map((section, sectionIndex) => (
-                                 <div key={sectionIndex} className="border-l-4 border-blue-200 pl-4">
-                                    <h4 className="font-medium text-gray-800 mb-2">{section.title}</h4>
-                                    <div className="space-y-2">
-                                       {section.questions.filter(q => formData[q.questionId]).map((question, qIndex) => (
-                                          <div key={qIndex} className="text-sm">
-                                             <span className="text-gray-600">{question.questionText}:</span>
-                                             <span className="ml-2 text-gray-800">
-                                                {question.questionType === 'boolean'
-                                                   ? (formData[question.questionId] ? 'Yes' : 'No')
-                                                   : question.questionType === 'file'
-                                                      ? `${Array.isArray(formData[question.questionId]) ? formData[question.questionId].length : 1} file(s)`
-                                                      : formData[question.questionId]
-                                                }
-                                             </span>
-                                          </div>
-                                       ))}
-                                    </div>
+                           <p className="text-gray-600 mb-4">Please ensure you have the following documents ready before proceeding:</p>
+                           <div className="grid md:grid-cols-2 gap-3">
+                              {getCurrentInstructions()?.documents?.map((doc, index) => (
+                                 <div key={index} className="flex items-start gap-2 text-sm">
+                                    <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-gray-700">
+                                       {doc.name} {doc.required && <span className="text-red-500">*</span>}
+                                    </span>
                                  </div>
                               ))}
                            </div>
                         </div>
 
-                        {/* Declaration & Consent */}
-                        <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
-                           <h3 className="text-lg font-semibold text-gray-900 mb-4">Declaration & Consent</h3>
-                           <div className="space-y-4 text-sm text-gray-700">
-                              <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
-                                 <p className="font-medium text-yellow-800 mb-2">Please confirm the following:</p>
-                                 <ul className="space-y-2 text-yellow-700">
-                                    <li>• All information provided is true and accurate to the best of my knowledge</li>
-                                    <li>• I understand that false or misleading information may result in claim rejection</li>
-                                    <li>• I authorize the processing of this claim according to company policy</li>
-                                    <li>• I agree to provide additional documentation if requested</li>
-                                 </ul>
+                        {/* Required Information */}
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border border-green-100">
+                           <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                                 <Shield className="w-5 h-5 text-white" />
                               </div>
-
-                              <div className="flex items-center space-x-3 pt-4">
-                                 <input
-                                    type="checkbox"
-                                    id="final-consent"
-                                    checked={formData['final-consent'] || false}
-                                    onChange={(e) => {
-                                       handleInputChange('final-consent', e.target.checked);
-                                       if (errors.consent) {
-                                          setErrors(prev => ({ ...prev, consent: '' }));
-                                       }
-                                    }}
-                                    className={`w-5 h-5 text-blue-600 border rounded focus:ring-blue-500 ${errors.consent ? 'border-red-500' : 'border-gray-300'
-                                       }`}
-                                 />
-                                 <label htmlFor="final-consent" className="text-gray-700">
-                                    <strong>I confirm that all the above statements are true and I consent to submit this claim</strong>
-                                 </label>
-                              </div>
-                              {errors.consent && (
-                                 <p className="text-red-500 text-sm flex items-center gap-1">
-                                    <AlertCircle className="w-4 h-4" />
-                                    {errors.consent}
-                                 </p>
-                              )}
+                              <h3 className="text-lg font-semibold text-gray-900">Information You'll Need</h3>
+                           </div>
+                           <p className="text-gray-600 mb-4">Make sure you have details about the following:</p>
+                           <div className="grid md:grid-cols-2 gap-3">
+                              {getCurrentInstructions()?.information?.map((info, index) => (
+                                 <div key={index} className="flex items-start gap-2 text-sm">
+                                    <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-gray-700">{info}</span>
+                                 </div>
+                              ))}
                            </div>
                         </div>
 
-                        {/* Submission Error */}
-                        {errors.submit && (
-                           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                              <p className="text-red-700 flex items-center gap-2">
-                                 <AlertCircle className="w-5 h-5" />
-                                 {errors.submit}
-                              </p>
+                        {/* Tips and Best Practices */}
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-100">
+                           <div className="flex items-center gap-3 mb-4">
+                              <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
+                                 <Camera className="w-5 h-5 text-white" />
+                              </div>
+                              <h3 className="text-lg font-semibold text-gray-900">Important Tips</h3>
                            </div>
-                        )}
+                           <p className="text-gray-600 mb-4">Follow these guidelines for a smooth claim process:</p>
+                           <div className="space-y-3">
+                              {getCurrentInstructions()?.tips?.map((tip, index) => (
+                                 <div key={index} className="flex items-start gap-2 text-sm">
+                                    <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                       <span className="text-amber-600 font-bold text-xs">{index + 1}</span>
+                                    </div>
+                                    <span className="text-gray-700">{tip}</span>
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
 
                         {/* Action Buttons */}
-                        <div className="flex justify-between pt-6">
+                        <div className="flex justify-between items-center pt-6">
                            <button
                               onClick={goBack}
-                              className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                              className="flex items-center gap-2 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium"
                            >
-                              Back to Questionnaire
+                              <ChevronLeft className="w-4 h-4" />
+                              Back to Claim Types
                            </button>
 
-                           <button
-                              onClick={() => {
-                                 if (submitted) {
-                                    navigate("/employee/claims");
-                                    return;
-                                 }
-
-                                 if (!formData['final-consent']) {
-                                    setErrors({ consent: 'You must provide consent to submit the claim' });
-                                    return;
-                                 }
-                                 if (!claimAmount || parseFloat(claimAmount) <= 0) {
-                                    setErrors({ amount: 'Please enter a valid claim amount' });
-                                    return;
-                                 }
-                                 handleFinalSubmit();
-                              }}
-                              disabled={submitting}
-                              className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                           >
-                              {submitting ? (
-                                 <>
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Submitting...
-                                 </>
-                              ) : submitted ? (
-                                 <>Exit</>
-                              ) : (
-                                 <>
-                                    Submit for HR Review
-                                    <FileText className="w-5 h-5" />
-                                 </>
-                              )}
-                           </button>
+                           <div className="text-right">
+                              <p className="text-sm text-gray-600 mb-3">Ready to proceed?</p>
+                              <button
+                                 onClick={handleProceedFromInstructions}
+                                 disabled={loading}
+                                 className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                              >
+                                 {loading ? (
+                                    <>
+                                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                       Loading Form...
+                                    </>
+                                 ) : (
+                                    <>
+                                       Start Questionnaire
+                                       <ChevronLeft className="w-4 h-4 rotate-180" />
+                                    </>
+                                 )}
+                              </button>
+                           </div>
                         </div>
                      </div>
                   )}
+
+
                </div>
             )}
-            {/* Step 3: Questionnaire */}
-            {step === 3 && questionnaire && (
+
+            {/* Step 4: Questionnaire */}
+            {step === 4 && questionnaire && (
                <Questionnaire
                   claimId={claimId}
                   questionnaire={questionnaire}
@@ -732,8 +783,269 @@ export const ClaimForm = () => {
                   selectedPolicy={selectedPolicy}
                   claimOption={claimOption}
                   onComplete={handleQuestionnaireComplete}
-                  initialFormData={formData}
                />
+            )}
+
+            {/* Step 5: Review and Final Submission */}
+            {step === 5 && questionnaire && (
+               <div className="space-y-8">
+                  <div className="text-center mb-8">
+                     <h2 className="text-2xl font-semibold text-gray-900 mb-2">Review & Submit Claim</h2>
+                     <p className="text-gray-600">Review your information, enter claim amount, and submit for HR review</p>
+                     <p className="text-sm text-gray-500 mt-2">Policy: {selectedPolicy.policyId}</p>
+                  </div>
+
+                  {/* Questionnaire Summary */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                     <div className="flex items-center gap-2 mb-4">
+                        <Check className="w-6 h-6 text-green-600" />
+                        <h3 className="text-lg font-semibold text-green-800">Questionnaire Completed</h3>
+                     </div>
+                     <div className="grid md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                           <span className="text-gray-600">Total Questions:</span>
+                           <span className="ml-2 font-medium">{questionnaire.totalQuestions}</span>
+                        </div>
+                        <div>
+                           <span className="text-gray-600">Answered:</span>
+                           <span className="ml-2 font-medium text-green-600">{questionnaire.answeredQuestions}</span>
+                        </div>
+                        <div>
+                           <span className="text-gray-600">Completion:</span>
+                           <span className="ml-2 font-medium text-green-600">100%</span>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Claim Amount Input */}
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
+                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Claim Amount</h3>
+                     <div className="space-y-4">
+                        <div>
+                           <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Requested Claim Amount *
+                           </label>
+                           <div className="relative">
+                              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                              <input
+                                 type="number"
+                                 min="0"
+                                 step="0.01"
+                                 value={claimAmount}
+                                 onChange={(e) => {
+                                    setClaimAmount(e.target.value);
+                                    if (errors.amount) {
+                                       setErrors(prev => ({ ...prev, amount: '' }));
+                                    }
+                                 }}
+                                 className={`w-full pl-8 pr-3 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.amount ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                 placeholder="0.00"
+                              />
+                           </div>
+                           {errors.amount && (
+                              <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                                 <AlertCircle className="w-4 h-4" />
+                                 {errors.amount}
+                              </p>
+                           )}
+                        </div>
+
+                        <div className="bg-blue-50 rounded-lg p-4">
+                           <p className="text-sm text-blue-700">
+                              <strong>Policy Coverage:</strong> ${selectedPolicy.coverage.coverageAmount.toLocaleString()}
+                           </p>
+                           <p className="text-xs text-blue-600 mt-1">
+                              Ensure your claim amount is within your policy coverage limits.
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Additional Documents Upload */}
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
+                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Supporting Documents</h3>
+                     <div className="space-y-4">
+                        <p className="text-sm text-gray-600 mb-4">
+                           Upload any additional documents that support your claim (optional)
+                        </p>
+
+                        <div className={`border-2 border-dashed rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${errors.documents ? 'border-red-300' : 'border-gray-300'
+                           }`}>
+                           <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                           <p className="text-sm text-gray-600 mb-2">Click to upload additional documents</p>
+                           <input
+                              type="file"
+                              multiple
+                              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                              onChange={(e) => {
+                                 setAdditionalDocuments(Array.from(e.target.files));
+                                 if (errors.documents) {
+                                    setErrors(prev => ({ ...prev, documents: '' }));
+                                 }
+                              }}
+                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                           />
+                           {additionalDocuments.length > 0 && (
+                              <div className="mt-4">
+                                 <p className="text-sm font-medium text-gray-700 mb-2">
+                                    Selected Files ({additionalDocuments.length}):
+                                 </p>
+                                 <div className="max-h-32 overflow-y-auto">
+                                    {additionalDocuments.map((file, index) => (
+                                       <div key={index} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-2">
+                                          <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                                          <span className="text-xs text-gray-500 ml-2">
+                                             {(file.size / 1024 / 1024).toFixed(1)} MB
+                                          </span>
+                                       </div>
+                                    ))}
+                                 </div>
+                              </div>
+                           )}
+                        </div>
+
+                        {errors.documents && (
+                           <p className="text-red-500 text-sm flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4" />
+                              {errors.documents}
+                           </p>
+                        )}
+
+                        <div className="bg-blue-50 rounded-lg p-4">
+                           <p className="text-sm text-blue-700">
+                              <strong>Accepted formats:</strong> PDF, JPG, PNG, DOC, DOCX (Max 10MB per file)
+                           </p>
+                           <p className="text-xs text-blue-600 mt-1">
+                              Examples: Medical certificates, receipts, police reports, repair estimates, etc.
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Summary of Answers */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Answer Summary</h3>
+                     <div className="space-y-4">
+                        {getSections().map((section, sectionIndex) => (
+                           <div key={sectionIndex} className="border-l-4 border-blue-200 pl-4">
+                              <h4 className="font-medium text-gray-800 mb-2">{section.title}</h4>
+                              <div className="space-y-2">
+                                 {section.questions.filter(q => formData[q.questionId]).map((question, qIndex) => (
+                                    <div key={qIndex} className="text-sm">
+                                       <span className="text-gray-600">{question.questionText}:</span>
+                                       <span className="ml-2 text-gray-800">
+                                          {question.questionType === 'boolean'
+                                             ? (formData[question.questionId] ? 'Yes' : 'No')
+                                             : question.questionType === 'file'
+                                                ? `${Array.isArray(formData[question.questionId]) ? formData[question.questionId].length : 1} file(s)`
+                                                : formData[question.questionId]
+                                          }
+                                       </span>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        ))}
+                     </div>
+                  </div>
+
+                  {/* Declaration & Consent */}
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-6">
+                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Declaration & Consent</h3>
+                     <div className="space-y-4 text-sm text-gray-700">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
+                           <p className="font-medium text-yellow-800 mb-2">Please confirm the following:</p>
+                           <ul className="space-y-2 text-yellow-700">
+                              <li>• All information provided is true and accurate to the best of my knowledge</li>
+                              <li>• I understand that false or misleading information may result in claim rejection</li>
+                              <li>• I authorize the processing of this claim according to company policy</li>
+                              <li>• I agree to provide additional documentation if requested</li>
+                           </ul>
+                        </div>
+
+                        <div className="flex items-center space-x-3 pt-4">
+                           <input
+                              type="checkbox"
+                              id="final-consent"
+                              checked={formData['final-consent'] || false}
+                              onChange={(e) => {
+                                 handleInputChange('final-consent', e.target.checked);
+                                 if (errors.consent) {
+                                    setErrors(prev => ({ ...prev, consent: '' }));
+                                 }
+                              }}
+                              className={`w-5 h-5 text-blue-600 border rounded focus:ring-blue-500 ${errors.consent ? 'border-red-500' : 'border-gray-300'
+                                 }`}
+                           />
+                           <label htmlFor="final-consent" className="text-gray-700">
+                              <strong>I confirm that all the above statements are true and I consent to submit this claim</strong>
+                           </label>
+                        </div>
+                        {errors.consent && (
+                           <p className="text-red-500 text-sm flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4" />
+                              {errors.consent}
+                           </p>
+                        )}
+                     </div>
+                  </div>
+
+                  {/* Submission Error */}
+                  {errors.submit && (
+                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-700 flex items-center gap-2">
+                           <AlertCircle className="w-5 h-5" />
+                           {errors.submit}
+                        </p>
+                     </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex justify-between pt-6">
+                     <button
+                        onClick={goBack}
+                        className="bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                     >
+                        Back to Questionnaire
+                     </button>
+
+                     <button
+                        onClick={() => {
+                           if (submitted) {
+                              navigate("/employee/claims");
+                              return;
+                           }
+
+                           if (!formData['final-consent']) {
+                              setErrors({ consent: 'You must provide consent to submit the claim' });
+                              return;
+                           }
+                           if (!claimAmount || parseFloat(claimAmount) <= 0) {
+                              setErrors({ amount: 'Please enter a valid claim amount' });
+                              return;
+                           }
+                           handleFinalSubmit();
+                        }}
+                        disabled={submitting}
+                        className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                     >
+                        {submitting ? (
+                           <>
+                              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Submitting...
+                           </>
+                        ) : submitted ? (
+                           <>Exit</>
+                        ) : (
+                           <>
+                              Submit for HR Review
+                              <FileText className="w-5 h-5" />
+                           </>
+                        )}
+                     </button>
+                  </div>
+               </div>
             )}
 
          </div>

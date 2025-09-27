@@ -67,6 +67,7 @@ export const EmployeeClaims = () => {
       case 'approved': return <CheckCircle size={16} />;
       case 'processing': return <Clock size={16} />;
       case 'draft': return <FileText size={16} />;
+      case 'incomplete': return <AlertCircle size={16} />;
       case 'rejected': return <XCircle size={16} />;
       default: return <FileText size={16} />;
     }
@@ -368,6 +369,39 @@ export const EmployeeClaims = () => {
     return InsuranceApiService.getValidDocumentTypesForClaim(claimType, claimOption);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
+            <p className="mt-4 text-gray-600 dark:text-neutral-300">Loading your claims...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <p className="text-red-600 dark:text-red-400 text-lg mb-2">Error Loading Claims</p>
+            <p className="text-gray-500 dark:text-neutral-400 mb-4">{error}</p>
+            <button
+              onClick={() => fetchClaims()}
+              className="bg-purple-600 dark:bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Document Upload Modal Component
   const DocumentUploadModal = () => {
     if (!showUploadModal || !selectedClaim) return null;
@@ -659,39 +693,6 @@ export const EmployeeClaims = () => {
       </div>
     );
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
-            <p className="mt-4 text-gray-600 dark:text-neutral-300">Loading your claims...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center py-12">
-            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <p className="text-red-600 dark:text-red-400 text-lg mb-2">Error Loading Claims</p>
-            <p className="text-gray-500 dark:text-neutral-400 mb-4">{error}</p>
-            <button
-              onClick={() => fetchClaims()}
-              className="bg-purple-600 dark:bg-purple-500 text-white px-6 py-2 rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-800 transition-colors duration-300">
