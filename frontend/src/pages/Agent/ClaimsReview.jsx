@@ -7,7 +7,7 @@ import {
   AlertCircle, Info, Target, BarChart3, ThumbsUp, ThumbsDown, RotateCcw, Bookmark, BookmarkCheck,
   Settings, Plus, Minus, Save, X, Check, Grid3X3, List, Maximize2, Minimize2, SortAsc, SortDesc,
   Home, Bell, Menu, ChevronDown, ChevronUp, Layers, Square, CheckSquare, Filter as FilterIcon,
-  Layout, Globe, Sliders, ToggleLeft, ToggleRight, Palette, Moon, Sun, ChevronLeft, ChevronsLeft, ChevronsRight
+  Layout, Globe, Sliders, ToggleLeft, ToggleRight, Palette, Moon, Sun, ChevronLeft, ChevronsLeft, ChevronsRight, Mail
 } from 'lucide-react';
 
 const ClaimsReview = () => {
@@ -24,6 +24,10 @@ const ClaimsReview = () => {
   const [modalType, setModalType] = useState('');
   const [selectedClaims, setSelectedClaims] = useState(new Set());
   const [expandedCards, setExpandedCards] = useState(new Set());
+
+  // Coverage analysis state
+  const [coverageAnalysis, setCoverageAnalysis] = useState(null);
+  const [detailedClaimData, setDetailedClaimData] = useState(null);
 
   // View State for toggling between pending and processed
   const [activeView, setActiveView] = useState('pending');
@@ -149,6 +153,88 @@ const ClaimsReview = () => {
     return path.split('.').reduce((current, key) => current?.[key], obj) || '';
   };
 
+  // Employee information helper functions
+  const getEmployeeName = (claim) => {
+    const employee = claim.employeeId;
+    if (!employee) return 'Employee Information Not Available';
+    
+    // Fix: Use correct case for fullName (capital N) and handle incomplete data
+    const firstName = employee.firstName || employee.profile?.firstName;
+    const lastName = employee.lastName || employee.profile?.lastName;
+    const fullName = employee.fullName; // Virtual field from User model (capital N)
+    
+    // If we have meaningful fullName, use it
+    if (fullName && fullName.trim()) return fullName;
+    if (firstName && lastName) return `${firstName} ${lastName}`;
+    if (firstName) return firstName;
+    
+    // Fallback to userId or email-based name for incomplete data
+    if (employee.userId) return `Employee ${employee.userId}`;
+    if (employee.email) {
+      const emailUsername = employee.email.split('@')[0];
+      return `User: ${emailUsername}`;
+    }
+    
+    return 'Employee Name Not Available';
+  };
+
+  const getEmployeeEmail = (claim) => {
+    const employee = claim.employeeId;
+    return employee?.email || employee?.profile?.email || 'Email Not Available';
+  };
+
+  const getEmployeeId = (claim) => {
+    const employee = claim.employeeId;
+    return employee?.employment?.employeeId || 
+           employee?.employeeId || 
+           employee?.userId || 
+           'Employee ID Not Available';
+  };
+
+  const getEmployeeDepartment = (claim) => {
+    const employee = claim.employeeId;
+    
+    // Since profile and employment data are undefined, check all possible locations
+    const department = employee?.employment?.department || 
+                      employee?.department || 
+                      employee?.profile?.department ||
+                      null;
+    
+    // If department is found, return it
+    if (department) return department;
+    
+    // Smart fallbacks since we don't have complete employee data
+    if (employee?.email) {
+      const emailParts = employee.email.split('@')[0].toLowerCase();
+      // Check for department indicators in email
+      if (emailParts.includes('hr') || emailParts.includes('human')) return 'Human Resources';
+      if (emailParts.includes('it') || emailParts.includes('tech')) return 'Information Technology';
+      if (emailParts.includes('sales')) return 'Sales';
+      if (emailParts.includes('finance') || emailParts.includes('accounting')) return 'Finance';
+      if (emailParts.includes('admin')) return 'Administration';
+    }
+    
+    // Check if employee ID has patterns (E00001 = Employee role)
+    if (employee?.userId?.startsWith('E')) {
+      return 'General Employee';
+    }
+    
+    // User-friendly fallback
+    return 'Department Not Available';
+  };
+
+  // Coverage amount helper - prioritize HR forwarded amount
+  const getClaimAmount = (claim) => {
+    // First check for HR forwarded breakdown
+    if (claim.hrForwardingDetails?.coverageBreakdown) {
+      return claim.hrForwardingDetails.coverageBreakdown.reduce(
+        (total, coverage) => total + (coverage.requestedAmount || 0), 0
+      );
+    }
+    // Fallback to original claim amount
+    return claim.claimAmount?.requested || claim.approvedAmount || 0;
+  };
+
   // **FIX: Unique ID Generator**
   const getUniqueClaimId = (claim) => {
     return claim._id || claim.id || claim.claimId || `claim-${Math.random().toString(36).substr(2, 9)}`;
@@ -252,6 +338,34 @@ const ClaimsReview = () => {
       return;
     }
 
+    // Validate against coverage limits if coverage analysis is available
+    if (coverageAnalysis && selectedClaim.hrForwardingDetails?.coverageBreakdown) {
+      let hasOverage = false;
+      const overageDetails = [];
+
+      for (const coverage of selectedClaim.hrForwardingDetails.coverageBreakdown) {
+        const coverageInfo = coverageAnalysis.claimedAmounts.find(c => c.coverageType === coverage.coverageType);
+        if (coverageInfo && coverage.requestedAmount > coverageInfo.remainingAmount) {
+          hasOverage = true;
+          overageDetails.push({
+            type: coverage.coverageType,
+            requested: coverage.requestedAmount,
+            remaining: coverageInfo.remainingAmount,
+            overage: coverage.requestedAmount - coverageInfo.remainingAmount
+          });
+        }
+      }
+
+      if (hasOverage) {
+        let errorMessage = 'Coverage limits exceeded:\n';
+        overageDetails.forEach(detail => {
+          errorMessage += `• ${detail.type.replace('_', ' ')}: Requested $${detail.requested.toLocaleString()}, but only $${detail.remaining.toLocaleString()} remaining (Overage: $${detail.overage.toLocaleString()})\n`;
+        });
+        showToast(errorMessage, 'error');
+        return;
+      }
+    }
+
     setActionLoading(true);
     try {
       const decisionData = {
@@ -263,12 +377,14 @@ const ClaimsReview = () => {
         decisionData.insurerNotes = approveForm.insurerNotes.trim();
       }
 
-      const claimId = selectedClaim._id || selectedClaim.id;
+      // Use MongoDB ObjectId for API calls
+      const mongoClaimId = selectedClaim._id || selectedClaim.id;
+      const customClaimId = selectedClaim.claimId || selectedClaim.claimNumber;
 
-      await insuranceApiService.makeClaimDecision(claimId, decisionData);
+      await insuranceApiService.makeClaimDecision(mongoClaimId, decisionData);
 
       setPendingClaims(prev => prev.filter(claim =>
-        (claim._id || claim.id) !== claimId
+        (claim.claimId || claim.claimNumber || claim._id || claim.id) !== customClaimId
       ));
 
       const updatedClaim = {
@@ -282,7 +398,7 @@ const ClaimsReview = () => {
 
       showToast('Claim approved successfully! 🎉', 'success');
       resetForms();
-      setShowModal(false);
+      closeModal();
 
     } catch (error) {
       console.error('Error approving claim:', error);
@@ -321,12 +437,14 @@ const ClaimsReview = () => {
         decisionData.insurerNotes = rejectForm.insurerNotes.trim();
       }
 
-      const claimId = selectedClaim._id || selectedClaim.id;
+      // Use MongoDB ObjectId for API calls
+      const mongoClaimId = selectedClaim._id || selectedClaim.id;
+      const customClaimId = selectedClaim.claimId || selectedClaim.claimNumber;
 
-      await insuranceApiService.makeClaimDecision(claimId, decisionData);
+      await insuranceApiService.makeClaimDecision(mongoClaimId, decisionData);
 
       setPendingClaims(prev => prev.filter(claim =>
-        (claim._id || claim.id) !== claimId
+        (claim.claimId || claim.claimNumber || claim._id || claim.id) !== customClaimId
       ));
 
       const updatedClaim = {
@@ -340,7 +458,7 @@ const ClaimsReview = () => {
 
       showToast('Claim rejected successfully', 'success');
       resetForms();
-      setShowModal(false);
+      closeModal();
 
     } catch (error) {
       console.error('Error rejecting claim:', error);
@@ -366,12 +484,14 @@ const ClaimsReview = () => {
 
     setActionLoading(true);
     try {
-      const claimId = selectedClaim._id || selectedClaim.id;
+      // Use MongoDB ObjectId for API calls
+      const mongoClaimId = selectedClaim._id || selectedClaim.id;
+      const customClaimId = selectedClaim.claimId || selectedClaim.claimNumber;
 
-      await insuranceApiService.returnClaim(claimId, returnForm.returnReason.trim());
+      await insuranceApiService.returnClaim(mongoClaimId, returnForm.returnReason.trim());
 
       setPendingClaims(prev => prev.filter(claim =>
-        (claim._id || claim.id) !== claimId
+        (claim.claimId || claim.claimNumber || claim._id || claim.id) !== customClaimId
       ));
 
       const updatedClaim = {
@@ -384,7 +504,7 @@ const ClaimsReview = () => {
 
       showToast('Claim returned successfully', 'success');
       resetForms();
-      setShowModal(false);
+      closeModal();
 
     } catch (error) {
       console.error('Error returning claim:', error);
@@ -412,12 +532,13 @@ const ClaimsReview = () => {
     if (claim && type === 'approve') {
       setApproveForm(prev => ({
         ...prev,
-        approvedAmount: claim.claimAmount?.requested?.toString() || ''
+        approvedAmount: getClaimAmount(claim).toString()
       }));
     }
 
     if (claim && (type === 'view' || type === 'questionnaire')) {
-      loadClaimDetails(claim._id || claim.id);
+      // Use claimId (custom ID like LC000001) instead of MongoDB _id
+      loadClaimDetails(claim.claimId || claim.claimNumber || claim.id);
     }
   };
 
@@ -427,17 +548,50 @@ const ClaimsReview = () => {
     setReturnForm({ returnReason: '' });
   };
 
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedClaim(null);
+    setModalType('');
+    setCoverageAnalysis(null);
+    setDetailedClaimData(null);
+    resetForms();
+  };
+
   // ==================== LOAD CLAIM DETAILS ====================
   const loadClaimDetails = async (claimId) => {
     try {
       setActionLoading(true);
+      
+      // Use the custom claimId (e.g., LC000001) instead of MongoDB ObjectId
       const claimResp = await insuranceApiService.getClaimById(claimId);
       let claimData = claimResp?.data || claimResp?.claim || claimResp;
 
+      // Load coverage analysis if policy is available
+      let coverageAnalysis = null;
+      if (claimData?.policy?._id && claimData?.employeeId?._id) {
+        try {
+          const coverageResp = await insuranceApiService.getBeneficiaryClaimedAmounts(
+            claimData.policy._id,
+            claimData.employeeId._id
+          );
+          coverageAnalysis = coverageResp;
+        } catch (coverageError) {
+          console.warn('Could not load coverage analysis:', coverageError);
+        }
+      }
+
       let questionnaireResp = null;
       try {
-        questionnaireResp = await insuranceApiService.getQuestionnaireQuestions(claimId);
-      } catch { }
+        // Use MongoDB ObjectId for questionnaire API, not custom claimId
+        const mongoClaimId = claimData._id;
+        questionnaireResp = await insuranceApiService.getQuestionnaireQuestions(mongoClaimId);
+      } catch (qError) {
+        console.warn('Could not load questionnaire:', qError);
+      }
+
+      // Store the detailed claim data and coverage analysis for UI display
+      setDetailedClaimData(claimData);
+      setCoverageAnalysis(coverageAnalysis);
 
       const claimWithDetails = {
         ...claimData,
@@ -449,6 +603,9 @@ const ClaimsReview = () => {
       };
 
       setSelectedClaim(claimWithDetails);
+      
+      // Return for compatibility with existing code
+      return { claimData, questionnaireData: questionnaireResp, coverageAnalysis };
     } finally {
       setActionLoading(false);
     }
@@ -771,9 +928,9 @@ const paginatedClaims = useMemo(() => {
 
             {/* Financial Amount - Prominent Display */}
             <div className="text-right">
-              <div className="text-xs text-gray-500 font-medium mb-1">CLAIM AMOUNT</div>
+              <div className="text-xs text-gray-500 font-medium mb-1">HR FORWARDED AMOUNT</div>
               <div className="text-4xl font-bold text-emerald-600 mb-1">
-                ${(claim.claimAmount?.requested || claim.approvedAmount || 0).toLocaleString()}
+                ${getClaimAmount(claim).toLocaleString()}
               </div>
               <div className="flex items-center justify-end text-sm text-gray-500">
                 <Calendar className="w-4 h-4 mr-1" />
@@ -795,16 +952,20 @@ const paginatedClaims = useMemo(() => {
               </div>
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200">
                 <p className="text-xl font-bold text-gray-900 mb-2">
-                  {claim.employeeId?.firstName || 'N/A'} {claim.employeeId?.lastName || ''}
+                  {getEmployeeName(claim)}
                 </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-gray-600">
-                    <Building2 className="w-4 h-4" />
-                    <span className="font-medium">{claim.employeeId?.department || 'Not specified'}</span>
+                    <Mail className="w-4 h-4" />
+                    <span className="text-sm">{getEmployeeEmail(claim)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-600">
                     <User className="w-4 h-4" />
-                    <span className="text-sm">ID: {claim.employeeId?.id || claim.employeeId?._id || 'N/A'}</span>
+                    <span className="text-sm">ID: {getEmployeeId(claim)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Building2 className="w-4 h-4" />
+                    <span className="font-medium">{getEmployeeDepartment(claim)}</span>
                   </div>
                 </div>
               </div>
@@ -1313,7 +1474,7 @@ const paginatedClaims = useMemo(() => {
                   </div>
                 </div>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={closeModal}
                   className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                 >
                   <X className="w-6 h-6" />
@@ -1553,8 +1714,8 @@ const paginatedClaims = useMemo(() => {
                     </div>
                   ) : (
                     <>
-                      {/* Employee & Claim Info */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {/* Employee & Basic Claim Info */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-sky-50 rounded-2xl p-6 border border-sky-200">
                           <h3 className="text-xl font-semibold text-sky-800 mb-4 flex items-center gap-2">
                             <User className="w-5 h-5" />
@@ -1564,16 +1725,20 @@ const paginatedClaims = useMemo(() => {
                             <div>
                               <label className="text-sm font-medium text-sky-600">Full Name</label>
                               <p className="text-lg font-semibold text-gray-900">
-                                {selectedClaim.employeeId?.firstName} {selectedClaim.employeeId?.lastName}
+                                {getEmployeeName(selectedClaim)}
                               </p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-sky-600">Department</label>
-                              <p className="text-gray-800">{selectedClaim.employeeId?.department || 'Not specified'}</p>
+                              <label className="text-sm font-medium text-sky-600">Email</label>
+                              <p className="text-gray-800">{getEmployeeEmail(selectedClaim)}</p>
                             </div>
                             <div>
                               <label className="text-sm font-medium text-sky-600">Employee ID</label>
-                              <p className="text-gray-800">{selectedClaim.employeeId?.id || selectedClaim.employeeId?._id}</p>
+                              <p className="text-gray-800">{getEmployeeId(selectedClaim)}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-sky-600">Department</label>
+                              <p className="text-gray-800">{getEmployeeDepartment(selectedClaim)}</p>
                             </div>
                           </div>
                         </div>
@@ -1585,15 +1750,25 @@ const paginatedClaims = useMemo(() => {
                           </h3>
                           <div className="space-y-3">
                             <div>
+                              <label className="text-sm font-medium text-emerald-600">Claim ID</label>
+                              <p className="text-lg font-semibold text-gray-900">{selectedClaim.claimId}</p>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium text-emerald-600">Policy ID</label>
+                              <p className="text-lg font-semibold text-gray-900">
+                                {detailedClaimData?.policy?.policyId || selectedClaim.policyId || 'Loading...'}
+                              </p>
+                            </div>
+                            <div>
                               <label className="text-sm font-medium text-emerald-600">Claim Type</label>
                               <p className="text-lg font-semibold text-gray-900 capitalize">
                                 {selectedClaim.claimType} - {selectedClaim.claimOption}
                               </p>
                             </div>
                             <div>
-                              <label className="text-sm font-medium text-emerald-600">Requested Amount</label>
+                              <label className="text-sm font-medium text-emerald-600">HR Forwarded Amount</label>
                               <p className="text-2xl font-bold text-emerald-600">
-                                ${(selectedClaim.claimAmount?.requested || 0).toLocaleString()}
+                                ${getClaimAmount(selectedClaim).toLocaleString()}
                               </p>
                             </div>
                             <div>
@@ -1604,35 +1779,129 @@ const paginatedClaims = useMemo(() => {
                         </div>
                       </div>
 
-                      {/* HR Approval Info */}
-                      <div className="bg-violet-50 rounded-2xl p-6 border border-violet-200">
-                        <h3 className="text-xl font-semibold text-violet-800 mb-4 flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5" />
-                          HR Review Status
-                        </h3>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                              <label className="text-sm font-medium text-violet-600">HR Status</label>
-                              <p className="text-lg font-semibold text-gray-900">
-                                {selectedClaim.hrStatus === 'approved' || selectedClaim.sentToAgent ? 'Approved & Sent to Agent' : 'Approved'}
-                              </p>
-                            </div>
-                            <div className="flex-1">
-                              <label className="text-sm font-medium text-violet-600">Workflow Step</label>
-                              <p className="text-lg font-semibold text-gray-900">Agent Review</p>
-                            </div>
-                          </div>
-                          {selectedClaim.hrNotes && (
+                      {/* HR Forwarding Details */}
+                      {selectedClaim.hrForwardingDetails && (
+                        <div className="bg-violet-50 rounded-2xl p-6 border border-violet-200">
+                          <h3 className="text-xl font-semibold text-violet-800 mb-4 flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5" />
+                            HR Forwarding Details
+                          </h3>
+                          <div className="space-y-4">
                             <div>
-                              <label className="text-sm font-medium text-violet-600">HR Notes</label>
-                              <p className="text-gray-800 bg-white rounded-lg p-3 border border-violet-200">
-                                {selectedClaim.hrNotes}
-                              </p>
+                              <label className="text-sm font-medium text-violet-600">Coverage Breakdown</label>
+                              <div className="mt-2 space-y-2">
+                                {selectedClaim.hrForwardingDetails.coverageBreakdown?.map((coverage, index) => (
+                                  <div key={index} className="bg-white rounded-lg p-3 border border-violet-200">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-medium text-gray-900">
+                                        {coverage.coverageType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                      </span>
+                                      <span className="font-bold text-violet-600">
+                                        ${coverage.requestedAmount?.toLocaleString()}
+                                      </span>
+                                    </div>
+                                    {coverage.notes && (
+                                      <p className="text-sm text-gray-600 mt-1">{coverage.notes}</p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          )}
+                            {selectedClaim.hrForwardingDetails.hrNotes && (
+                              <div>
+                                <label className="text-sm font-medium text-violet-600">HR Notes</label>
+                                <p className="text-gray-800 bg-white rounded-lg p-3 border border-violet-200 mt-1">
+                                  {selectedClaim.hrForwardingDetails.hrNotes}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* Coverage Analysis */}
+                      {coverageAnalysis && (
+                        <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-200">
+                          <h3 className="text-xl font-semibold text-indigo-800 mb-4 flex items-center gap-2">
+                            <Target className="w-5 h-5" />
+                            Coverage Utilization Analysis
+                          </h3>
+                          <div className="space-y-4">
+                            {coverageAnalysis.claimedAmounts?.map((coverage, index) => {
+                              const utilizationPercentage = coverage.utilizationPercentage || 0;
+                              const hrRequestedForThisCoverage = selectedClaim.hrForwardingDetails?.coverageBreakdown?.find(
+                                c => c.coverageType === coverage.coverageType
+                              );
+                              
+                              return (
+                                <div key={index} className="bg-white rounded-lg p-4 border border-indigo-200">
+                                  <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                      <h4 className="font-semibold text-gray-900">
+                                        {coverage.coverageType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                      </h4>
+                                      <p className="text-sm text-gray-600">
+                                        {utilizationPercentage.toFixed(1)}% utilized
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      {hrRequestedForThisCoverage && (
+                                        <div className="text-sm text-indigo-600 font-medium">
+                                          HR Requested: ${hrRequestedForThisCoverage.requestedAmount?.toLocaleString()}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+                                    <div>
+                                      <div className="text-gray-500">Coverage Limit</div>
+                                      <div className="font-semibold text-gray-900">
+                                        ${coverage.coverageLimit?.toLocaleString()}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-gray-500">Already Claimed</div>
+                                      <div className="font-semibold text-red-600">
+                                        ${coverage.claimedAmount?.toLocaleString()}
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <div className="text-gray-500">Remaining</div>
+                                      <div className="font-semibold text-green-600">
+                                        ${coverage.remainingAmount?.toLocaleString()}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Usage Bar */}
+                                  <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                                    <div 
+                                      className={`h-3 rounded-full transition-all duration-500 ${
+                                        utilizationPercentage >= 90 ? 'bg-red-500' :
+                                        utilizationPercentage >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                                      }`}
+                                      style={{ width: `${Math.min(utilizationPercentage, 100)}%` }}
+                                    />
+                                  </div>
+
+                                  {/* Warning if HR requested amount exceeds remaining */}
+                                  {hrRequestedForThisCoverage && hrRequestedForThisCoverage.requestedAmount > coverage.remainingAmount && (
+                                    <div className="mt-2 p-2 bg-red-100 border border-red-200 rounded-lg">
+                                      <div className="flex items-center gap-2 text-red-700 text-sm">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        <span className="font-medium">
+                                          Warning: Requested amount exceeds remaining coverage by ${(hrRequestedForThisCoverage.requestedAmount - coverage.remainingAmount).toLocaleString()}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Action Buttons - Only for pending claims */}
                       {activeView === 'pending' && (
@@ -1642,7 +1911,7 @@ const paginatedClaims = useMemo(() => {
                               setModalType('approve');
                               setApproveForm(prev => ({
                                 ...prev,
-                                approvedAmount: selectedClaim.claimAmount?.requested?.toString() || ''
+                                approvedAmount: getClaimAmount(selectedClaim).toString()
                               }));
                             }}
                             className="flex items-center gap-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-200 px-6 py-3 rounded-xl font-medium transition-all transform hover:scale-105"
@@ -1693,28 +1962,60 @@ const paginatedClaims = useMemo(() => {
                     <div className="bg-violet-50 rounded-2xl p-6 border border-violet-200">
                       <h3 className="text-xl font-semibold text-violet-800 mb-6">Questionnaire Responses</h3>
                       <div className="space-y-6">
-                        {selectedClaim.questionnaire.questions?.map((question, index) => (
-                          <div key={index} className="bg-white rounded-xl p-6 border border-violet-200">
-                            <div className="flex items-start gap-4">
-                              <div className="p-2 bg-violet-100 rounded-lg border border-violet-200">
-                                <MessageSquare className="w-5 h-5 text-violet-600" />
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-gray-900 mb-3">
-                                  Question {index + 1}: {question.question}
+                        {selectedClaim.questionnaire.sections?.length > 0 ? (
+                          selectedClaim.questionnaire.sections.map((section, sectionIndex) => (
+                            <div key={section.sectionId || sectionIndex} className="bg-white rounded-xl p-6 border border-violet-200">
+                              <div className="mb-4">
+                                <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                                  {section.title}
                                 </h4>
-                                <div className="bg-violet-100 rounded-lg p-4 border border-violet-200">
-                                  <p className="text-gray-800 leading-relaxed">
-                                    {question.answer || 'No response provided'}
-                                  </p>
-                                </div>
+                                {section.description && (
+                                  <p className="text-sm text-gray-600">{section.description}</p>
+                                )}
+                                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-2 ${
+                                  section.isComplete 
+                                    ? 'bg-green-100 text-green-700' 
+                                    : 'bg-yellow-100 text-yellow-700'
+                                }`}>
+                                  {section.isComplete ? 'Complete' : 'Incomplete'}
+                                </span>
                               </div>
+                              
+                              {section.questions?.length > 0 && (
+                                <div className="space-y-4">
+                                  {section.questions.map((question, questionIndex) => (
+                                    <div key={question.questionId || questionIndex} className="bg-gray-50 rounded-lg p-4">
+                                      <div className="flex items-start gap-3">
+                                        <div className="p-1.5 bg-violet-100 rounded-lg border border-violet-200">
+                                          <MessageSquare className="w-4 h-4 text-violet-600" />
+                                        </div>
+                                        <div className="flex-1">
+                                          <h5 className="font-medium text-gray-900 mb-2">
+                                            {question.questionText}
+                                            {question.isRequired && <span className="text-red-500 ml-1">*</span>}
+                                          </h5>
+                                          <div className="bg-white rounded-lg p-3 border border-gray-200">
+                                            <p className="text-gray-800">
+                                              {question.currentAnswer?.value || 'No response provided'}
+                                            </p>
+                                            {question.currentAnswer?.answeredAt && (
+                                              <p className="text-xs text-gray-500 mt-1">
+                                                Answered: {new Date(question.currentAnswer.answeredAt).toLocaleString()}
+                                              </p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )) || (
+                          ))
+                        ) : (
                             <div className="text-center py-8">
                               <MessageSquare className="w-12 h-12 text-violet-400 mx-auto mb-4" />
-                              <p className="text-violet-600">No questionnaire data available</p>
+                              <p className="text-violet-600">No questionnaire sections available</p>
                             </div>
                           )}
                       </div>

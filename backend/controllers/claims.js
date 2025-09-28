@@ -611,15 +611,16 @@ const getQuestionnaireQuestions = asyncWrapper(async (req, res, next) => {
   if (
     claim.employeeId.toString() !== userId.toString() &&
     req.user.role !== "admin" &&
-    req.user.role !== "hr_officer"
+    req.user.role !== "hr_officer" &&
+    req.user.role !== "insurance_agent"
   ) {
     return next(
       createCustomError("You don't have permission to view this questionnaire", 403)
     );
   }
 
-  // Validate claim status - questionnaire should be available when status is "employee"
-  if (claim.claimStatus !== "employee") {
+  // Validate claim status - questionnaire should be available for employee submission and agent review
+  if (claim.claimStatus !== "employee" && claim.claimStatus !== "insurer") {
     return next(
       createCustomError("Questionnaire is not available for this claim status", 400)
     );
