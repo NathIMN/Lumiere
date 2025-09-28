@@ -111,6 +111,16 @@ const QuickActions = ({ onNavigate, stats }) => {
 
 // Statistics Grid Component
 const StatisticsGrid = ({ stats, loading }) => {
+  // Format currency helper
+  const formatCurrency = (amount) => {
+    if (!amount && amount !== 0) return 'Rs. 0';
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   const statCards = [
     {
       title: 'Total Employees',
