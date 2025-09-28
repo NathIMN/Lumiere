@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import notificationService from '../services/notification-service';
 
 // Get API URL with fallback
 const getApiUrl = () => {
@@ -107,6 +108,13 @@ export const AuthProvider = ({ children }) => {
                 token,
               },
             });
+            
+            // Initialize notifications for the authenticated user
+            try {
+              notificationService.connect(token);
+            } catch (notifError) {
+              console.error('Failed to initialize notifications:', notifError);
+            }
           } else {
             // Token is invalid, remove it
             localStorage.removeItem('authToken');
@@ -163,6 +171,13 @@ export const AuthProvider = ({ children }) => {
           },
         });
 
+        // Initialize notifications for the authenticated user
+        try {
+          notificationService.connect(data.token);
+        } catch (notifError) {
+          console.error('Failed to initialize notifications:', notifError);
+        }
+
         return { success: true, user: data.user };
       } else {
         const errorMessage = data.message || 'Login failed';
@@ -195,6 +210,14 @@ export const AuthProvider = ({ children }) => {
   // Logout function - wrapped in useCallback
   const logout = useCallback(() => {
     localStorage.removeItem('authToken');
+    
+    // Disconnect notifications
+    try {
+      notificationService.disconnect();
+    } catch (notifError) {
+      console.error('Failed to disconnect notifications:', notifError);
+    }
+    
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
   }, []);
 

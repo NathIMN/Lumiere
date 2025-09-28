@@ -32,6 +32,7 @@ import {
 
 
 import MessagingPage from "../components/messaging/MessagingPage";
+import NotificationTester from "../components/testing/NotificationTester";
 
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 import AgentOverview from "../pages/Agent/AgentOverview";
@@ -100,6 +101,7 @@ export const AllRoutes = () => {
           <Route path="reports" element={<AdminReports />} />
           <Route path="messaging" element={<MessagingPage userRole="admin" />} />
           <Route path="vapi-test" element={<VapiTestPage />} />
+          <Route path="notification-tester" element={<NotificationTester />} />
         </Route>
 
 

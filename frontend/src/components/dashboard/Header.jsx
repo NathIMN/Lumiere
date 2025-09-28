@@ -1,8 +1,20 @@
 import { useLocation } from "react-router-dom";
 import { Bell, User, Sun, Moon, Menu } from "lucide-react";
+import { useNotifications } from "../../contexts/NotificationContext";
+import NotificationBell from "../common/NotificationBell";
 
 export const Header = ({ onToggleTheme, isDark, isCollapsed, scrolled }) => {
   const location = useLocation();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    hasMore,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    loadMore
+  } = useNotifications();
 
   // Get path parts
   const parts = location.pathname
@@ -54,9 +66,16 @@ export const Header = ({ onToggleTheme, isDark, isCollapsed, scrolled }) => {
         </button>
 
         {/* Notifications */}
-        <button className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-          <Bell className="w-5 h-5 text-gray-700 dark:text-gray-300" />
-        </button>
+        <NotificationBell
+          notifications={notifications}
+          unreadCount={unreadCount}
+          onMarkAsRead={markAsRead}
+          onMarkAllAsRead={markAllAsRead}
+          onDeleteNotification={deleteNotification}
+          onLoadMore={loadMore}
+          hasMore={hasMore}
+          loading={loading}
+        />
 
         {/* Profile */}
         <button className="p-1.5 rounded-full bg-gray-300 dark:bg-gray-600">
