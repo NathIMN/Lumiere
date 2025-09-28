@@ -691,7 +691,7 @@ export const EmployeeClaims = () => {
    }
 
    return (
-      <div className="min-h-screen bg-white dark:bg-neutral-800 transition-colors duration-300">
+      <div className="min-h-screen dark:bg-neutral-800 transition-colors duration-300">
          <DocumentUploadModal />
          <div className="max-w-7xl mx-auto">
 
