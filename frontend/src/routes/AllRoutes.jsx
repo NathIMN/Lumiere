@@ -26,13 +26,17 @@ import {
    HRMessaging,
    HRPolicyUser,
    HRClaimReview,
-   DocumentPool
+   DocumentPool,
+   EmployeeDirectory
 } from "../pages/HR";
 
 
 import MessagingPage from "../components/messaging/MessagingPage";
 
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
+import AgentOverview from "../pages/Agent/AgentOverview";
+import ClaimsReview from "../pages/Agent/ClaimsReview";
+import Questionnaires from "../pages/Agent/Questionnaires";
 
 import {
    EmployeeDashboard,
@@ -117,6 +121,7 @@ export const AllRoutes = () => {
           <Route path="policies" element={<HRPolicyUser/>} />
           <Route path="claims" element={<HRClaimReview/>} />
           <Route path="document" element={<DocumentPool/>} />
+          <Route path="employee_directory" element={<EmployeeDirectory/>} />
         </Route>
                
             
@@ -139,7 +144,7 @@ export const AllRoutes = () => {
                   <Route path=":id" element={<ClaimDetails />} />
                </Route>
                <Route path="policies" element={<EmployeePolicy />} />
-               <Route path="messaging" element={<div>Messaging batchtop</div>} />
+               <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
                <Route path="test" element={<TestingStuff />} />
             </Route>
 
@@ -154,9 +159,9 @@ export const AllRoutes = () => {
                }
             >
                <Route index element={<Navigate to="overview" replace />} />
-               <Route path="overview" element={<div>Agent Overview</div>} />
-               <Route path="clients" element={<div>Manage Clients</div>} />
-               <Route path="reports" element={<div>Agent Reports</div>} />
+               <Route path="overview" element={<AgentOverview />} />
+               <Route path="claims-review" element={<ClaimsReview />} />
+               <Route path="questionnaires" element={<Questionnaires />} />
             </Route>
 
          </Routes>

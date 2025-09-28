@@ -1,0 +1,21 @@
+[
+
+{
+  "email": "wednesday@gmail.com",
+  "password": "RaweePass123!",
+  "role": "admin",
+  "profile": {
+    "firstName": "Wednesday",
+    "lastName": "addams",
+    "dateOfBirth": "1995-01-01",
+    "nic": "951234575V",
+    "phoneNumber": "0701274567",
+    "address": "Sliit Office, Colombo, Sri Lanka"
+  }
+}
+
+
+]
+
+
+
