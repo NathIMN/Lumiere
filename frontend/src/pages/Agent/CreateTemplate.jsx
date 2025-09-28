@@ -25,7 +25,7 @@ import {
   Wand2,
   Zap
 } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+// import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 const CreateTemplate = () => {
   const [template, setTemplate] = useState({

@@ -933,7 +933,7 @@ async request(endpoint, options = {}) {
     * @returns {Promise<Object>} Valid combinations
     */
    async getValidCombinations() {
-      return this.request('/questionnaire-templates/combinations/valid');
+      return this.request('/questionnaireTemplates/combinations/valid');
    }
 
    /**
@@ -941,7 +941,7 @@ async request(endpoint, options = {}) {
     * @returns {Promise<Object>} Missing combinations
     */
    async getMissingCombinations() {
-      return this.request('/questionnaire-templates/combinations/missing');
+      return this.request('/questionnaireTemplates/combinations/missing');
    }
 
    /**
@@ -957,7 +957,7 @@ async request(endpoint, options = {}) {
          Object.entries(params).filter(([_, value]) => value !== undefined && value !== '')
       ).toString();
 
-      const endpoint = queryString ? `/questionnaire-templates?${queryString}` : '/questionnaire-templates';
+      const endpoint = queryString ? `/questionnaireTemplates?${queryString}` : '/questionnaireTemplates';
       return this.request(endpoint);
    }
 
@@ -970,7 +970,7 @@ async request(endpoint, options = {}) {
       if (!templateId) {
          throw new Error('Template ID is required');
       }
-      return this.request(`/questionnaire-templates/${templateId}`);
+      return this.request(`/questionnaireTemplates/${templateId}`);
    }
 
    /**
@@ -1003,7 +1003,7 @@ async request(endpoint, options = {}) {
       if (!templateData) {
          throw new Error('Template data is required');
       }
-      return this.request('/questionnaire-templates', {
+      return this.request('/questionnaireTemplates', {
          method: 'POST',
          body: JSON.stringify(templateData),
       });
@@ -1022,7 +1022,7 @@ async request(endpoint, options = {}) {
       if (!templateData) {
          throw new Error('Template data is required');
       }
-      return this.request(`/questionnaire-templates/${templateId}`, {
+      return this.request(`/questionnaireTemplates/${templateId}`, {
          method: 'PATCH',
          body: JSON.stringify(templateData),
       });
@@ -1037,7 +1037,7 @@ async request(endpoint, options = {}) {
       if (!templateId) {
          throw new Error('Template ID is required');
       }
-      return this.request(`/questionnaire-templates/${templateId}`, {
+      return this.request(`/questionnaireTemplates/${templateId}`, {
          method: 'DELETE',
       });
    }
@@ -1051,7 +1051,7 @@ async request(endpoint, options = {}) {
       if (!templateId) {
          throw new Error('Template ID is required');
       }
-      return this.request(`/questionnaire-templates/${templateId}/hard-delete`, {
+      return this.request(`/questionnaireTemplates/${templateId}/hard-delete`, {
          method: 'DELETE',
       });
    }
@@ -1065,7 +1065,7 @@ async request(endpoint, options = {}) {
       if (!templateId) {
          throw new Error('Template ID is required');
       }
-      return this.request(`/questionnaire-templates/${templateId}/toggle-status`, {
+      return this.request(`/questionnaireTemplates/${templateId}/toggle-status`, {
          method: 'PATCH',
       });
    }
@@ -1079,7 +1079,7 @@ async request(endpoint, options = {}) {
       if (!templateId) {
          throw new Error('Template ID is required');
       }
-      return this.request(`/questionnaire-templates/${templateId}/clone`, {
+      return this.request(`/questionnaireTemplates/${templateId}/clone`, {
          method: 'POST',
       });
    }
@@ -1093,7 +1093,7 @@ async request(endpoint, options = {}) {
     if (!templateData) {
       throw new Error('Template data is required');
     }
-    return this.request('/questionnaire-templates/validate', {
+    return this.request('/questionnaireTemplates/validate', {
       method: 'POST',
       body: JSON.stringify(templateData),
     });

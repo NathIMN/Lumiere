@@ -802,6 +802,47 @@ const ClaimsReview = () => {
 
   // ==================== **FIXED** COMPUTED VALUES ====================
 
+const filteredPendingClaims = useMemo(() => {
+  const from = dateRange.from ? new Date(dateRange.from) : null;
+  const to   = dateRange.to ? new Date(dateRange.to) : null;
+  const minAmt = amountRange.min !== '' ? Number(amountRange.min) : null;
+  const maxAmt = amountRange.max !== '' ? Number(amountRange.max) : null;
+  const idQuery = searchId.trim().toLowerCase();
+
+  const withinDate = (c) => {
+    const d = new Date(c.updatedAt || c.createdAt);
+    if (from && d < from) return false;
+    if (to) { const end = new Date(to); end.setHours(23,59,59,999); if (d > end) return false; }
+    return true;
+  };
+  const withinAmount = (c) => {
+    const amt = Number(c.claimAmount?.requested ?? c.approvedAmount ?? 0);
+    if (minAmt !== null && amt < minAmt) return false;
+    if (maxAmt !== null && amt > maxAmt) return false;
+    return true;
+  };
+  const matchesPriority = (c) => {
+    if (priorityFilter === 'all') return true;
+    return (c.priority || 'medium').toLowerCase() === priorityFilter;
+  };
+  const matchesId = (c) => !idQuery || (c.claimId || '').toLowerCase().includes(idQuery);
+
+  const sorted = [...pendingClaims]
+    .filter((c) => matchesId(c) && matchesPriority(c) && withinDate(c) && withinAmount(c))
+    .sort((a,b) => {
+      if (sortConfig.key === 'amount') {
+        const av = Number(a.claimAmount?.requested ?? a.approvedAmount ?? 0);
+        const bv = Number(b.claimAmount?.requested ?? b.approvedAmount ?? 0);
+        return sortConfig.direction === 'asc' ? av - bv : bv - av;
+      }
+      const at = new Date(a[sortConfig.key] || a.updatedAt || a.createdAt).getTime();
+      const bt = new Date(b[sortConfig.key] || b.updatedAt || b.createdAt).getTime();
+      return sortConfig.direction === 'asc' ? at - bt : bt - at;
+    });
+
+  return sorted;
+}, [pendingClaims, priorityFilter, dateRange, amountRange, sortConfig, searchId]);
+
 const filteredProcessedClaims = useMemo(() => {
   const from = dateRange.from ? new Date(dateRange.from) : null;
   const to   = dateRange.to ? new Date(dateRange.to) : null;
@@ -845,8 +886,8 @@ const filteredProcessedClaims = useMemo(() => {
 }, [processedClaims, statusFilter, dateRange, amountRange, sortConfig, searchId]);
 
 const currentClaims = useMemo(() => (
-  activeView === 'pending' ? pendingClaims : filteredProcessedClaims
-), [activeView, pendingClaims, filteredProcessedClaims]);
+  activeView === 'pending' ? filteredPendingClaims : filteredProcessedClaims
+), [activeView, filteredPendingClaims, filteredProcessedClaims]);
 
 const paginatedClaims = useMemo(() => {
   const start = (currentPage - 1) * itemsPerPage;
@@ -983,11 +1024,11 @@ const paginatedClaims = useMemo(() => {
                 </p>
                 <div className="space-y-2">
                   <div className="text-gray-600">
-                    <span className="font-medium">Policy:</span>
+                    <span className="font-medium">Policy Number:</span>
                   </div>
                   <div className="bg-white rounded-lg p-2 border border-indigo-200">
-                    <span className="text-sm font-mono text-gray-700">
-                      {claim.policy?.id?.substring(0, 30) || '68b929275823458acf2b81b5'}...
+                    <span className="text-sm font-semibold text-gray-700">
+                      {claim.policy?.policyId || claim.policy?.policyNumber || 'Policy ID Not Available'}
                     </span>
                   </div>
                 </div>
@@ -1379,7 +1420,7 @@ const paginatedClaims = useMemo(() => {
                   ? 'bg-sky-100 text-sky-700'
                   : 'bg-gray-200 text-gray-600'
                   }`}>
-                  {pendingClaims.length}
+                  {filteredPendingClaims.length}
                 </span>
               </button>
 
