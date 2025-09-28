@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { User, Shield, Phone, MapPin, CreditCard, Users, Save, X, Edit3, Check, AlertCircle } from 'lucide-react';
-import insuranceApiService from '../../services/insurance-api';
+import UserApiService from '../../services/user-api';
 
-const EmployeeProfileUpdate = () => {
+export const EmployeeProfileUpdate = () => {
   const [profileData, setProfileData] = useState({
     profile: {
       firstName: '',
@@ -36,7 +36,7 @@ const EmployeeProfileUpdate = () => {
     try {
       setIsLoading(true);
       // Assuming there's an API endpoint to get current user profile
-      const response = await insuranceApiService.request('/users/profile');
+      const response = await UserApiService.getProfile('/users/profile');
       
       setProfileData({
         profile: {
@@ -788,4 +788,3 @@ const EmployeeProfileUpdate = () => {
   );
 };
 
-export default EmployeeProfileUpdate;
