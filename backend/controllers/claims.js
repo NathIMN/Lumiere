@@ -1,4 +1,5 @@
 import Claim from "../models/Claim.js";
+import Policy from "../models/Policy.js";
 import asyncWrapper from "../middleware/async.js";
 import { createCustomError } from "../errors/custom-error.js";
 import { uploadClaimDocument, uploadMultipleClaimDocuments } from "./documentUpload.js";
@@ -263,9 +264,64 @@ const makeDecision = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  const claim = await Claim.findById(claimId);
+  const claim = await Claim.findById(claimId).populate('policy');
   if (!claim) {
     return next(createCustomError(`No claim found with id: ${claimId}`, 404));
+  }
+
+  // For approved claims, validate against coverage limits
+  if (status === "approved") {
+    const policy = await Policy.findById(claim.policy);
+    
+    if (!policy) {
+      return next(createCustomError("Policy not found for this claim", 404));
+    }
+
+    // Check if employee is a beneficiary of the policy
+    const isBeneficiary = policy.beneficiaries.some(
+      b => b.toString() === claim.employeeId.toString()
+    );
+
+    if (!isBeneficiary) {
+      return next(createCustomError("Employee is not a beneficiary of this policy", 400));
+    }
+
+    // Validate coverage breakdown from HR forwarding details
+    if (!claim.hrForwardingDetails || !claim.hrForwardingDetails.coverageBreakdown) {
+      return next(createCustomError("Coverage breakdown is required for claim approval", 400));
+    }
+
+    // First, validate total coverage limit for beneficiary
+    const remainingTotalCoverage = policy.getRemainingTotalCoverage(claim.employeeId);
+    if (approvedAmount > remainingTotalCoverage) {
+      return next(createCustomError(
+        `Approved amount ($${approvedAmount.toLocaleString()}) exceeds remaining total coverage ($${remainingTotalCoverage.toLocaleString()}) for this beneficiary`, 
+        400
+      ));
+    }
+
+    // Validate each coverage type against individual limits
+    for (const coverage of claim.hrForwardingDetails.coverageBreakdown) {
+      const { coverageType, requestedAmount } = coverage;
+      
+      // Check if this is a valid coverage type for the policy
+      const validCoverageTypes = policy.policyType === 'life' ? policy.coverage.typeLife : policy.coverage.typeVehicle;
+      if (!validCoverageTypes.includes(coverageType)) {
+        return next(createCustomError(`Invalid coverage type: ${coverageType} for ${policy.policyType} policy`, 400));
+      }
+
+      // For partial approvals, calculate the proportional amount for this coverage type
+      const coverageApprovedAmount = (requestedAmount / claim.claimAmount.requested) * approvedAmount;
+      
+      // Check individual coverage type limit
+      const remainingCoverageLimitForType = policy.getRemainingCoverage(claim.employeeId, coverageType);
+      if (coverageApprovedAmount > remainingCoverageLimitForType) {
+        return next(createCustomError(
+          `Coverage ${coverageType} approved amount ($${coverageApprovedAmount.toLocaleString()}) exceeds remaining limit ($${remainingCoverageLimitForType.toLocaleString()})`, 
+          400
+        ));
+      }
+    }
   }
 
   const decision = {
@@ -277,6 +333,22 @@ const makeDecision = asyncWrapper(async (req, res, next) => {
 
   try {
     await claim.makeDecision(decision, userId);
+
+    // If approved, update the claimed amounts in the policy
+    if (status === "approved") {
+      const policy = await Policy.findById(claim.policy);
+      
+      // Update claimed amounts for each coverage type based on the approved amount proportion
+      for (const coverage of claim.hrForwardingDetails.coverageBreakdown) {
+        const { coverageType, requestedAmount } = coverage;
+        const coverageApprovedAmount = (requestedAmount / claim.claimAmount.requested) * approvedAmount;
+        
+        // Add this amount to the policy's claimed amounts
+        policy.addClaimedAmount(claim.employeeId, coverageType, coverageApprovedAmount);
+      }
+
+      await policy.save();
+    }
 
     res.status(200).json({
       success: true,

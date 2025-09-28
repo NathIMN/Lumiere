@@ -281,13 +281,14 @@ async request(endpoint, options = {}) {
 
    /**
     * Make final decision on claim (Insurance agent only)
+    * Note: Backend now validates approved amounts against coverage limits
     * @param {string} claimId - Claim ID
     * @param {Object} decisionData - Decision data
     * @param {string} decisionData.status - 'approved' or 'rejected'
-    * @param {number} decisionData.approvedAmount - Approved amount (if approved)
+    * @param {number} decisionData.approvedAmount - Approved amount (if approved) - validated against coverage limits
     * @param {string} decisionData.rejectionReason - Rejection reason (if rejected)
     * @param {string} decisionData.insurerNotes - Optional insurer notes
-    * @returns {Promise<Object>} Finalized claim
+    * @returns {Promise<Object>} Finalized claim with automatic claimed amounts tracking
     */
    async makeClaimDecision(claimId, decisionData) {
       if (!claimId) {
@@ -299,6 +300,226 @@ async request(endpoint, options = {}) {
       return this.request(`/claims/${claimId}/decision`, {
          method: 'PATCH',
          body: JSON.stringify(decisionData),
+      });
+   }
+
+   /**
+    * Get enhanced policy claimed amounts summary with total coverage validation
+    * @param {string} policyId - Policy ID
+    * @returns {Promise<Object>} Enhanced claimed amounts summary
+    */
+   async getEnhancedPolicyClaimedAmountsSummary(policyId) {
+      if (!policyId) {
+         throw new Error('Policy ID is required');
+      }
+      return this.request(`/policies/${policyId}/enhanced-claimed-amounts-summary`);
+   }
+
+   /**
+    * Validate policy coverage amount consistency
+    * @param {string} policyId - Policy ID
+    * @returns {Promise<Object>} Validation result
+    */
+   async validatePolicyCoverageConsistency(policyId) {
+      if (!policyId) {
+         throw new Error('Policy ID is required');
+      }
+      return this.request(`/policies/${policyId}/validate-coverage-consistency`);
+   }
+
+   /**
+    * Create policy with auto-calculated coverage amount (enhanced)
+    * @param {Object} policyData - Policy creation data with coverageDetails
+    * @returns {Promise<Object>} Created policy with auto-calculated coverageAmount
+    */
+   async createPolicy(policyData) {
+      if (!policyData) {
+         throw new Error('Policy data is required');
+      }
+
+      // Ensure coverageAmount is always provided (required by model validation)
+      if (!policyData.coverage) {
+         policyData.coverage = {};
+      }
+
+      if (!policyData.coverage.coverageAmount) {
+         if (policyData.coverage.coverageDetails && policyData.coverage.coverageDetails.length > 0) {
+            // Calculate from coverage details
+            const calculatedAmount = policyData.coverage.coverageDetails.reduce(
+               (total, detail) => total + (detail.limit || 0), 0
+            );
+            policyData.coverage.coverageAmount = calculatedAmount > 0 ? calculatedAmount : 1;
+         } else {
+            // Set minimum value - backend pre-save middleware will handle auto-calculation
+            policyData.coverage.coverageAmount = 1;
+         }
+      }
+
+      return this.request('/policies', {
+         method: 'POST',
+         body: JSON.stringify(policyData),
+      });
+   }
+
+   /**
+    * Create life policy with all coverage types initialized
+    * @param {Object} policyData - Policy creation data
+    * @param {Array} customCoverageDetails - Optional custom coverage details (will be merged with defaults)
+    * @returns {Promise<Object>} Created life policy with all 4 coverage types
+    */
+   async createLifePolicyWithAllCoverageTypes(policyData, customCoverageDetails = []) {
+      if (!policyData) {
+         throw new Error('Policy data is required');
+      }
+
+      if (policyData.policyType !== 'life') {
+         throw new Error('This method is only for life insurance policies');
+      }
+
+      // Define all life coverage types with default descriptions and 0 limits
+      const defaultCoverageDetails = [
+         { type: "life_cover", description: "Life insurance and death benefits", limit: 0 },
+         { type: "hospitalization", description: "Hospital stays and medical treatments", limit: 0 },
+         { type: "surgical_benefits", description: "Surgical procedures and related costs", limit: 0 },
+         { type: "outpatient", description: "Outpatient treatments and consultations", limit: 0 },
+         { type: "prescription_drugs", description: "Prescription medications and pharmacy costs", limit: 0 }
+      ];
+
+      // Merge custom coverage details with defaults (custom values override defaults)
+      const mergedCoverageDetails = defaultCoverageDetails.map(defaultDetail => {
+         const customDetail = customCoverageDetails.find(detail => detail.type === defaultDetail.type);
+         return customDetail ? { ...defaultDetail, ...customDetail } : defaultDetail;
+      });
+
+      // Ensure the policy data has all required coverage information
+      const enhancedPolicyData = {
+         ...policyData,
+         coverage: {
+            ...policyData.coverage,
+            typeLife: ["life_cover", "hospitalization", "surgical_benefits", "outpatient", "prescription_drugs"],
+            coverageDetails: mergedCoverageDetails,
+            coverageAmount: this.calculateTotalCoverageAmount(mergedCoverageDetails)
+         }
+      };
+
+      // Note: Backend will still auto-initialize all coverage types even if not provided,
+      // but this method ensures the frontend has explicit control over the coverage details
+      return this.createPolicy(enhancedPolicyData);
+   }
+
+   /**
+    * Create a vehicle policy with all 4 coverage types initialized (collision, liability, comprehensive, personal_accident)
+    * Ensures consistent policy structure even if some coverage limits are 0
+    * @param {Object} policyData - The vehicle policy data
+    * @param {Array} customCoverageDetails - Custom coverage details to override defaults
+    * @returns {Promise} Promise that resolves to created policy
+    */
+   async createVehiclePolicyWithAllCoverageTypes(policyData, customCoverageDetails = []) {
+      if (!policyData) {
+         throw new Error('Policy data is required');
+      }
+
+      if (policyData.policyType !== 'vehicle') {
+         throw new Error('This method is only for vehicle insurance policies');
+      }
+
+      // Define all vehicle coverage types with default descriptions and 0 limits
+      const defaultCoverageDetails = [
+         { type: "collision", description: "Collision damage and repairs", limit: 0 },
+         { type: "liability", description: "Third-party liability coverage", limit: 0 },
+         { type: "comprehensive", description: "Comprehensive vehicle protection", limit: 0 },
+         { type: "personal_accident", description: "Personal accident and injury coverage", limit: 0 }
+      ];
+
+      // Merge custom coverage details with defaults (custom values override defaults)
+      const mergedCoverageDetails = defaultCoverageDetails.map(defaultDetail => {
+         const customDetail = customCoverageDetails.find(detail => detail.type === defaultDetail.type);
+         return customDetail ? { ...defaultDetail, ...customDetail } : defaultDetail;
+      });
+
+      // Ensure the policy data has all required coverage information
+      const enhancedPolicyData = {
+         ...policyData,
+         coverage: {
+            ...policyData.coverage,
+            typeVehicle: ["collision", "liability", "comprehensive", "personal_accident"],
+            coverageDetails: mergedCoverageDetails,
+            coverageAmount: this.calculateTotalCoverageAmount(mergedCoverageDetails)
+         }
+      };
+
+      // Note: Backend will still auto-initialize all coverage types even if not provided,
+      // but this method ensures the frontend has explicit control over the coverage details
+      return this.createPolicy(enhancedPolicyData);
+   }
+
+   /**
+    * Utility method to calculate total coverage amount from coverage details
+    * @param {Array} coverageDetails - Array of coverage detail objects
+    * @returns {number} Total calculated amount
+    */
+   calculateTotalCoverageAmount(coverageDetails) {
+      if (!Array.isArray(coverageDetails)) {
+         return 0;
+      }
+      return coverageDetails.reduce((total, detail) => {
+         return total + (detail.limit || 0);
+      }, 0);
+   }
+
+   /**
+    * Validate coverage details before creating/updating policy
+    * @param {Array} coverageDetails - Coverage details array
+    * @param {number} expectedTotal - Expected total coverage amount
+    * @returns {Object} Validation result
+    */
+   validateCoverageDetails(coverageDetails, expectedTotal = null) {
+      if (!Array.isArray(coverageDetails)) {
+         return {
+            valid: false,
+            error: 'Coverage details must be an array'
+         };
+      }
+
+      const calculatedTotal = this.calculateTotalCoverageAmount(coverageDetails);
+      const hasValidDetails = coverageDetails.every(detail => 
+         detail.type && typeof detail.limit === 'number' && detail.limit > 0
+      );
+
+      const result = {
+         valid: hasValidDetails,
+         calculatedTotal,
+         details: coverageDetails,
+         detailsCount: coverageDetails.length
+      };
+
+      if (expectedTotal !== null) {
+         result.matchesExpected = Math.abs(calculatedTotal - expectedTotal) < 0.01;
+         result.expectedTotal = expectedTotal;
+         result.difference = calculatedTotal - expectedTotal;
+      }
+
+      if (!hasValidDetails) {
+         result.error = 'All coverage details must have valid type and positive limit';
+      }
+
+      return result;
+   }
+
+   /**
+    * Preview claim approval with coverage validation
+    * @param {string} claimId - Claim ID
+    * @param {number} proposedAmount - Proposed approval amount
+    * @returns {Promise<Object>} Validation preview
+    */
+   async previewClaimApproval(claimId, proposedAmount) {
+      if (!claimId || !proposedAmount) {
+         throw new Error('Claim ID and proposed amount are required');
+      }
+      
+      return this.request(`/claims/${claimId}/preview-approval`, {
+         method: 'POST',
+         body: JSON.stringify({ proposedAmount }),
       });
    }
 
@@ -601,6 +822,108 @@ async request(endpoint, options = {}) {
 
       const endpoint = queryString ? `/policies/agent/${agentId}?${queryString}` : `/policies/agent/${agentId}`;
       return this.request(endpoint);
+   }
+
+   // ==================== CLAIMED AMOUNTS TRACKING METHODS ====================
+
+   /**
+    * Get claimed amounts for a specific beneficiary
+    * Employees can check their own, admin/hr/agent can check any
+    * @param {string} policyId - Policy ID
+    * @param {string} beneficiaryId - Beneficiary ID (optional for employees checking their own)
+    * @returns {Promise<Object>} Beneficiary claimed amounts with coverage details
+    */
+   async getBeneficiaryClaimedAmounts(policyId, beneficiaryId = null) {
+      if (!policyId) {
+         throw new Error('Policy ID is required');
+      }
+      
+      const queryParams = beneficiaryId ? `?beneficiaryId=${beneficiaryId}` : '';
+      return this.request(`/policies/${policyId}/claimed-amounts${queryParams}`);
+   }
+
+   /**
+    * Get claimed amounts summary for all beneficiaries (admin/hr/agent only)
+    * @param {string} policyId - Policy ID
+    * @returns {Promise<Object>} Complete policy claimed amounts summary
+    */
+   async getPolicyClaimedAmountsSummary(policyId) {
+      if (!policyId) {
+         throw new Error('Policy ID is required');
+      }
+      return this.request(`/policies/${policyId}/claimed-amounts/summary`);
+   }
+
+   /**
+    * Utility method to check remaining coverage for a beneficiary
+    * @param {string} policyId - Policy ID
+    * @param {string} beneficiaryId - Beneficiary ID
+    * @param {string} coverageType - Specific coverage type (optional)
+    * @returns {Promise<Object>} Remaining coverage information
+    */
+   async checkRemainingCoverage(policyId, beneficiaryId, coverageType = null) {
+      try {
+         const result = await this.getBeneficiaryClaimedAmounts(policyId, beneficiaryId);
+         
+         if (!coverageType) {
+            return result; // Return all coverage types
+         }
+         
+         // Return specific coverage type
+         const coverage = result.claimedAmounts?.find(c => c.coverageType === coverageType);
+         return coverage ? {
+            ...result,
+            claimedAmounts: [coverage]
+         } : null;
+      } catch (error) {
+         console.error('Error checking remaining coverage:', error);
+         throw error;
+      }
+   }
+
+   /**
+    * Utility method to validate if a claim amount is within policy limits
+    * @param {string} policyId - Policy ID
+    * @param {string} beneficiaryId - Beneficiary ID
+    * @param {string} coverageType - Coverage type
+    * @param {number} requestedAmount - Requested claim amount
+    * @returns {Promise<Object>} Validation result
+    */
+   async validateClaimAmount(policyId, beneficiaryId, coverageType, requestedAmount) {
+      try {
+         const coverage = await this.checkRemainingCoverage(policyId, beneficiaryId, coverageType);
+         
+         if (!coverage || !coverage.claimedAmounts.length) {
+            return { 
+               valid: false, 
+               reason: 'Coverage type not found or not available',
+               requestedAmount,
+               coverageType
+            };
+         }
+         
+         const { remainingAmount, coverageLimit, claimedAmount } = coverage.claimedAmounts[0];
+         const valid = requestedAmount <= remainingAmount;
+         
+         return {
+            valid,
+            remainingAmount,
+            requestedAmount,
+            coverageType,
+            coverageLimit,
+            claimedAmount,
+            utilizationAfterClaim: valid ? Math.round(((claimedAmount + requestedAmount) / coverageLimit) * 100) : null,
+            reason: valid ? null : `Requested amount (${requestedAmount}) exceeds remaining coverage (${remainingAmount})`
+         };
+      } catch (error) {
+         console.error('Error validating claim amount:', error);
+         return { 
+            valid: false, 
+            reason: error.message,
+            requestedAmount,
+            coverageType
+         };
+      }
    }
 
    // ==================== QUESTIONNAIRE TEMPLATES METHODS ====================
