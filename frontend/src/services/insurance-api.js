@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 class InsuranceApiService {
@@ -760,20 +761,215 @@ async request(endpoint, options = {}) {
       });
    }
 
-   /**
-    * Validate template structure
-    * @param {Object} templateData - Template data to validate
-    * @returns {Promise<Object>} Validation result
-    */
-   async validateTemplateStructure(templateData) {
-      if (!templateData) {
-         throw new Error('Template data is required');
-      }
-      return this.request('/questionnaire-templates/validate', {
-         method: 'POST',
-         body: JSON.stringify(templateData),
-      });
-   }
+  /**
+   * Validate template structure
+   * @param {Object} templateData - Template data to validate
+   * @returns {Promise<Object>} Validation result
+   */
+  async validateTemplateStructure(templateData) {
+    if (!templateData) {
+      throw new Error('Template data is required');
+    }
+    return this.request('/questionnaire-templates/validate', {
+      method: 'POST',
+      body: JSON.stringify(templateData),
+    });
+  }
+
+  // ==================== 🆕 ANALYTICS & DASHBOARD METHODS ====================
+
+  /**
+   * Get real-time agent analytics
+   * @param {Object} params - Query parameters
+   * @returns {Promise<Object>} Real-time statistics
+   */
+  async getAgentRealTimeStats(params = {}) {
+    const queryString = new URLSearchParams(
+      Object.entries(params).filter(([_, value]) => value !== undefined && value !== '')
+    ).toString();
+    
+    const endpoint = queryString ? `/analytics/agent/realtime?${queryString}` : '/analytics/agent/realtime';
+    return this.request(endpoint);
+  }
+
+  /**
+   * Get agent performance metrics
+   * @param {string} timeRange - Time range (24h, 7d, 30d, 90d)
+   * @returns {Promise<Object>} Performance metrics
+   */
+  async getAgentPerformanceMetrics(timeRange = '24h') {
+    return this.request(`/analytics/agent/performance?timeRange=${timeRange}`);
+  }
+
+  /**
+   * Get agent workload analysis
+   * @returns {Promise<Object>} Workload data
+   */
+  async getAgentWorkloadAnalysis() {
+    return this.request('/analytics/agent/workload');
+  }
+
+  /**
+   * Get efficiency insights for agent
+   * @param {string} timeRange - Time range for analysis
+   * @returns {Promise<Object>} Efficiency data
+   */
+  async getAgentEfficiencyInsights(timeRange = '7d') {
+    return this.request(`/analytics/agent/efficiency?timeRange=${timeRange}`);
+  }
+
+  /**
+   * Get urgent claims requiring immediate attention
+   * @returns {Promise<Array>} List of urgent claims
+   */
+  async getUrgentClaims() {
+    return this.request('/claims/agent/urgent');
+  }
+
+  /**
+   * Get AI-powered recommendations for agent
+   * @returns {Promise<Array>} AI recommendations
+   */
+  async getAIRecommendations() {
+    return this.request('/ai/agent/recommendations');
+  }
+
+  /**
+   * Get active notifications for agent
+   * @returns {Promise<Array>} Active notifications
+   */
+  async getActiveNotifications() {
+    return this.request('/notifications/agent/active');
+  }
+
+  /**
+   * Get predictive analytics
+   * @returns {Promise<Object>} Predictive data
+   */
+  async getPredictiveAnalytics() {
+    return this.request('/analytics/agent/predictions');
+  }
+
+  /**
+   * Get claims statistics for dashboard
+   * @param {string} timeRange - Time range for stats
+   * @returns {Promise<Object>} Claims statistics
+   */
+  async getClaimsStatsDashboard(timeRange = '24h') {
+    return this.request(`/claims/stats/dashboard?timeRange=${timeRange}`);
+  }
+
+  /**
+   * Get agent activity timeline
+   * @param {string} timeRange - Time range for activity
+   * @returns {Promise<Array>} Activity timeline
+   */
+  async getAgentActivityTimeline(timeRange = '24h') {
+    return this.request(`/analytics/agent/timeline?timeRange=${timeRange}`);
+  }
+
+  /**
+   * Bulk approve claims with similar characteristics
+   * @param {Array} claimIds - Array of claim IDs to approve
+   * @param {Object} approvalData - Bulk approval data
+   * @returns {Promise<Object>} Bulk approval result
+   */
+  async bulkApproveClaims(claimIds, approvalData) {
+    if (!Array.isArray(claimIds) || claimIds.length === 0) {
+      throw new Error('Claim IDs array is required');
+    }
+    return this.request('/claims/bulk/approve', {
+      method: 'POST',
+      body: JSON.stringify({ claimIds, ...approvalData }),
+    });
+  }
+
+  /**
+   * Search claims with AI-powered features
+   * @param {Object} searchParams - Search parameters
+   * @returns {Promise<Object>} Search results
+   */
+  async smartSearchClaims(searchParams) {
+    return this.request('/claims/search/smart', {
+      method: 'POST',
+      body: JSON.stringify(searchParams),
+    });
+  }
+
+  /**
+   * Get team chat messages
+   * @returns {Promise<Array>} Chat messages
+   */
+  async getTeamChatMessages() {
+    return this.request('/communications/team/messages');
+  }
+
+  /**
+   * Send message to team chat
+   * @param {Object} messageData - Message data
+   * @returns {Promise<Object>} Sent message
+   */
+  async sendTeamMessage(messageData) {
+    return this.request('/communications/team/send', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  /**
+   * Export dashboard data
+   * @param {Object} exportParams - Export parameters
+   * @returns {Promise<Blob>} Export file
+   */
+  async exportDashboardData(exportParams) {
+    return this.request('/analytics/export/dashboard', {
+      method: 'POST',
+      body: JSON.stringify(exportParams),
+    });
+  }
+
+  /**
+   * Update agent preferences
+   * @param {Object} preferences - User preferences
+   * @returns {Promise<Object>} Updated preferences
+   */
+  async updateAgentPreferences(preferences) {
+    return this.request('/agents/preferences', {
+      method: 'PATCH',
+      body: JSON.stringify(preferences),
+    });
+  }
+
+  /**
+   * Get agent preferences
+   * @returns {Promise<Object>} Agent preferences
+   */
+  async getAgentPreferences() {
+    return this.request('/agents/preferences');
+  }
+
+  /**
+   * Mark notification as read
+   * @param {string} notificationId - Notification ID
+   * @returns {Promise<Object>} Updated notification
+   */
+  async markNotificationAsRead(notificationId) {
+    return this.request(`/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  /**
+   * Get similar claims for bulk processing
+   * @param {string} claimId - Reference claim ID
+   * @returns {Promise<Array>} Similar claims
+   */
+  async getSimilarClaims(claimId) {
+    if (!claimId) {
+      throw new Error('Claim ID is required');
+    }
+    return this.request(`/claims/${claimId}/similar`);
+  }
 
    // ==================== UTILITY METHODS ====================
 

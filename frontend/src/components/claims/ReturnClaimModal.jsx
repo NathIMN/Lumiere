@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import React, { useState } from 'react';
 import { X, ArrowLeft, AlertCircle, MessageSquare } from 'lucide-react';
 import insuranceApiService from '../../services/insurance-api';
@@ -6,6 +7,7 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
   const [returnReason, setReturnReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [debugInfo, setDebugInfo] = useState('');
 
   // Predefined return reasons for quick selection
   const predefinedReasons = [
@@ -42,16 +44,94 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
     }
 
     setIsSubmitting(true);
+    setDebugInfo('Starting return process...');
 
     try {
-      // Fixed API method call - passing returnReason as object with returnReason property
-      await insuranceApiService.returnClaim(claim._id, {
-        returnReason: returnReason.trim()
-      });
-      onSuccess();
+      // Enhanced debugging
+      console.log('=== RETURN CLAIM DEBUG INFO ===');
+      console.log('Claim object:', claim);
+      console.log('Claim ID:', claim._id);
+      console.log('Return reason:', returnReason.trim());
+      console.log('API Service:', insuranceApiService);
+      
+      setDebugInfo('Validating claim data...');
+      
+      // Validate claim object
+      if (!claim || !claim._id) {
+        throw new Error('Invalid claim object - missing ID');
+      }
+
+      setDebugInfo('Preparing API call...');
+
+      // Check if the returnClaim method exists
+      if (!insuranceApiService.returnClaim) {
+        throw new Error('returnClaim method not found in insuranceApiService');
+      }
+
+      console.log('Calling returnClaim with parameters:');
+      console.log('- claimId:', claim._id);
+      console.log('- returnReason:', returnReason.trim());
+      
+      setDebugInfo('Calling API...');
+
+      // Fix: Pass returnReason as string directly, not as object
+      const response = await insuranceApiService.returnClaim(claim._id, returnReason.trim());
+      
+      setDebugInfo('API call successful, processing response...');
+      console.log('Return claim API Response:', response);
+
+      // Call success callback
+      if (onSuccess && typeof onSuccess === 'function') {
+        onSuccess();
+      } else {
+        console.warn('onSuccess callback is not a function or is missing');
+      }
+
+      setDebugInfo('Return process completed successfully');
+
     } catch (error) {
+      console.error('=== RETURN CLAIM ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error message:', error.message);
+      console.error('Error response:', error.response);
+      console.error('Error status:', error.response?.status);
+      console.error('Error data:', error.response?.data);
+
+      setDebugInfo(`Error: ${error.message}`);
+
+      // Enhanced error handling
+      let errorMessage = 'Failed to return claim';
+      
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 404) {
+          errorMessage = 'Claim not found or API endpoint missing';
+        } else if (status === 403) {
+          errorMessage = 'You do not have permission to return this claim';
+        } else if (status === 401) {
+          errorMessage = 'Authentication required - please log in again';
+        } else if (status === 422) {
+          errorMessage = data?.message || 'Invalid data provided';
+        } else if (status === 500) {
+          errorMessage = 'Server error - please contact system administrator';
+        } else if (data?.message) {
+          errorMessage = data.message;
+        } else {
+          errorMessage = `Server error (${status})`;
+        }
+      } else if (error.request) {
+        // Network error
+        errorMessage = 'Network error - please check your connection';
+      } else {
+        // Other error
+        errorMessage = error.message || 'Unknown error occurred';
+      }
+
       setErrors({
-        submit: error.response?.data?.message || 'Failed to return claim'
+        submit: errorMessage
       });
     } finally {
       setIsSubmitting(false);
@@ -81,8 +161,14 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
               Return Claim to Employee
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Claim ID: {claim.claimId} | Employee: {claim.employeeId?.firstName} {claim.employeeId?.lastName}
+              Claim ID: {claim?.claimId || 'N/A'} | Employee: {claim?.employeeId?.firstName || 'N/A'} {claim?.employeeId?.lastName || ''}
             </p>
+            {/* Debug info for development */}
+            {process.env.NODE_ENV === 'development' && debugInfo && (
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                Debug: {debugInfo}
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -108,6 +194,23 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
               </div>
             </div>
           </div>
+
+          {/* Claim Validation Alert */}
+          {(!claim || !claim._id) && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-red-800 dark:text-red-200 mb-2">
+                    Invalid Claim Data
+                  </h3>
+                  <p className="text-red-700 dark:text-red-300 text-sm">
+                    The claim data is invalid or missing. Please close this modal and try again.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick Reason Selection */}
           <div className="space-y-3">
@@ -183,6 +286,23 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
             </div>
           )}
 
+          {/* Debug Information for Development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">
+                Debug Information (Development Only)
+              </h4>
+              <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                <p>Claim ID: {claim?._id || 'Missing'}</p>
+                <p>Claim Object: {claim ? 'Present' : 'Missing'}</p>
+                <p>API Service: {insuranceApiService ? 'Loaded' : 'Missing'}</p>
+                <p>Return Method: {insuranceApiService?.returnClaim ? 'Available' : 'Missing'}</p>
+                <p>onSuccess Callback: {typeof onSuccess === 'function' ? 'Valid' : 'Invalid'}</p>
+                <p>Return Reason Length: {returnReason.trim().length}</p>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
@@ -195,7 +315,7 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
             
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !claim || !claim._id}
               className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
