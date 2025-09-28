@@ -250,10 +250,18 @@ export const HRClaimReview = () => {
   const fetchClaims = async () => {
     try {
       setLoading(true);
+
+      // Clean filters - remove empty values
+    const cleanFilters = Object.keys(filters).reduce((acc, key) => {
+      if (filters[key] && filters[key] !== '') {
+        acc[key] = filters[key];
+      }
+      return acc;
+    }, {});
       
       // Enhanced debugging - log the exact request being sent
       const requestParams = {
-        ...filters,
+        ...cleanFilters,
         page: pagination.page,
         limit: pagination.limit,
         sortBy,

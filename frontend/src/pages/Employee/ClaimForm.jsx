@@ -1,6 +1,6 @@
 // pages/ClaimForm.jsx
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, FileText, Car, Heart, AlertCircle, Plus } from 'lucide-react';
+import { ChevronLeft, FileText, Car, Heart, AlertCircle, Hospital, Pill, Skull, Shield, Flame, CloudLightning } from 'lucide-react';
 import InsuranceApiService from "../../services/insurance-api";
 import { useNavigate } from "react-router-dom";
 import { Questionnaire } from '../../components/forms/Questionnaire';
@@ -25,6 +25,70 @@ export const ClaimForm = () => {
       life: ["hospitalization", "channelling", "medication", "death"],
       vehicle: ["accident", "theft", "fire", "naturalDisaster"]
    };
+
+   const optionIcons = {
+      hospitalization: Hospital,
+      channelling: FileText,
+      medication: Pill,
+      death: Heart, // Changed from Skull - represents life insurance benefit
+      accident: Car,
+      theft: Shield,
+      fire: Flame,
+      naturalDisaster: CloudLightning,
+   };
+
+   // Color schemes for each option
+   const optionColors = {
+      hospitalization: {
+         bg: 'from-emerald-500 to-teal-600',
+         hover: 'hover:shadow-emerald-200',
+         icon: 'text-white',
+         accent: 'bg-emerald-100 text-emerald-700'
+      },
+      channelling: {
+         bg: 'from-blue-500 to-indigo-600',
+         hover: 'hover:shadow-blue-200',
+         icon: 'text-white',
+         accent: 'bg-blue-100 text-blue-700'
+      },
+      medication: {
+         bg: 'from-purple-500 to-violet-600',
+         hover: 'hover:shadow-purple-200',
+         icon: 'text-white',
+         accent: 'bg-purple-100 text-purple-700'
+      },
+      death: {
+         bg: 'from-rose-500 to-pink-600',
+         hover: 'hover:shadow-rose-200',
+         icon: 'text-white',
+         accent: 'bg-rose-100 text-rose-700'
+      },
+      accident: {
+         bg: 'from-orange-500 to-red-600',
+         hover: 'hover:shadow-orange-200',
+         icon: 'text-white',
+         accent: 'bg-orange-100 text-orange-700'
+      },
+      theft: {
+         bg: 'from-slate-500 to-gray-600',
+         hover: 'hover:shadow-slate-200',
+         icon: 'text-white',
+         accent: 'bg-slate-100 text-slate-700'
+      },
+      fire: {
+         bg: 'from-red-500 to-orange-600',
+         hover: 'hover:shadow-red-200',
+         icon: 'text-white',
+         accent: 'bg-red-100 text-red-700'
+      },
+      naturalDisaster: {
+         bg: 'from-indigo-500 to-blue-600',
+         hover: 'hover:shadow-indigo-200',
+         icon: 'text-white',
+         accent: 'bg-indigo-100 text-indigo-700'
+      }
+   };
+
 
    const claimTypeIcons = {
       life: Heart,
@@ -140,7 +204,7 @@ export const ClaimForm = () => {
    };
 
    return (
-      <div className="min-h-screen py-8 px-4">
+      <div className="min-h-screen mb-8 px-4">
          <div className="max-w-4xl mx-auto">
 
             {/* Header */}
@@ -152,8 +216,9 @@ export const ClaimForm = () => {
             {/* Main Content */}
             {step < 4 && (
                <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-8">
-                  <div className="flex justify-between items-center mb-6">
-                     {step > 1 && step !== 4 && (
+
+                  {step > 1 && step !== 4 && (
+                     <div className="flex justify-between items-center mb-6">
                         <button
                            onClick={goBack}
                            className="flex items-center text-gray-600 hover:text-gray-800 transition-colors"
@@ -161,8 +226,9 @@ export const ClaimForm = () => {
                            <ChevronLeft className="w-4 h-4 mr-1" />
                            Back
                         </button>
-                     )}
-                  </div>
+                     </div>
+                  )}
+
 
                   {/* Error display for API errors */}
                   {errors.api && (
@@ -176,7 +242,7 @@ export const ClaimForm = () => {
 
                   {/* Step 1: Policy Selection */}
                   {step === 1 && (
-                     <div className="space-y-6">
+                     <div className="space-y-4">
                         <div className="text-center mb-8">
                            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Select Policy</h2>
                            <p className="text-gray-600">Choose the policy you want to submit a claim for</p>
@@ -218,104 +284,61 @@ export const ClaimForm = () => {
                                     return acc;
                                  }, [])
                                  .map((policyGroup) => {
-                                    const IconComponent = claimTypeIcons[policyGroup.type];
                                     const isLife = policyGroup.type === 'life';
 
                                     return (
-                                       <div key={policyGroup.type} className="group">
-                                          <div className={`relative overflow-hidden rounded-2xl p-8 border-2 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl cursor-pointer ${isLife
-                                             ? 'bg-gradient-to-br from-pink-50 via-red-50 to-rose-100 border-pink-200 hover:border-pink-400 hover:shadow-pink-100'
-                                             : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 border-blue-200 hover:border-blue-400 hover:shadow-blue-100'
-                                             }`}>
+                                       <div
+                                          key={policyGroup.type}
+                                          onClick={() => {
+                                             if (policyGroup.policies.length === 1) {
+                                                handlePolicySelect(policyGroup.policies[0]);
+                                             } else {
+                                                handlePolicySelect(policyGroup.policies[0]);
+                                             }
+                                          }}
+                                          className={`relative overflow-hidden rounded-2xl cursor-pointer transition-all duration-500 hover:scale-[1.03] hover:shadow-xl group ${isLife
+                                             ? 'bg-rose-50 hover:shadow-rose-200'
+                                             : 'bg-blue-50 hover:shadow-blue-200'
+                                             }`}
+                                       >
+                                          {/* Content Container */}
+                                          <div className="relative z-10 p-6 h-full flex flex-col">
+                                             {/* Header with Policy IDs */}
+                                             <div className="mb-6">
+                                                <div className="flex justify-between items-start">
+                                                   <h2 className={`text-2xl font-bold capitalize ${isLife ? 'text-rose-800' : 'text-blue-800'
+                                                      }`}>
+                                                      {policyGroup.type} Insurance
+                                                   </h2>
+                                                   <div className="text-right space-y-1">
+                                                      {policyGroup.policies.slice(0, 3).map((policy) => (
+                                                         <div key={policy._id} className="text-md font-semibold text-gray-700">
+                                                            {policy.policyId}
+                                                         </div>
+                                                      ))}
+                                                      {policyGroup.policies.length > 3 && (
+                                                         <div className="text-xs text-gray-500">
+                                                            +{policyGroup.policies.length - 3} more
+                                                         </div>
+                                                      )}
+                                                   </div>
+                                                </div>
+                                             </div>
 
-                                             {/* Background Pattern */}
-                                             <div className="absolute inset-0 opacity-5">
-                                                <div className={`w-full h-full ${isLife ? 'bg-pink-500' : 'bg-blue-500'}`}
-                                                   style={{
-                                                      backgroundImage: `radial-gradient(circle at 20px 20px, currentColor 2px, transparent 2px)`,
-                                                      backgroundSize: '40px 40px'
-                                                   }}
+                                             {/* Image - Below header */}
+                                             <div className="flex justify-center flex-1 items-center">
+                                                <img
+                                                   src={isLife ? '/life.png' : '/vehicle.png'}
+                                                   alt={`${policyGroup.type} insurance`}
+                                                   className="w-64 h-64 object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-300"
                                                 />
                                              </div>
 
-                                             {/* Content */}
-                                             <div className="relative z-10">
-                                                {/* Icon and Title */}
-                                                <div className="flex items-center gap-4 mb-6">
-                                                   <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 ${isLife
-                                                      ? 'bg-gradient-to-br from-pink-500 to-red-600 shadow-lg shadow-pink-200'
-                                                      : 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-200'
-                                                      }`}>
-                                                      <IconComponent className="w-8 h-8 text-white" />
-                                                   </div>
-                                                   <div>
-                                                      <h3 className="text-2xl font-bold text-gray-900 capitalize mb-1">
-                                                         {policyGroup.type} Insurance
-                                                      </h3>
-                                                      <p className="text-gray-600">
-                                                         {policyGroup.policies.length} Active {policyGroup.policies.length === 1 ? 'Policy' : 'Policies'}
-                                                      </p>
-                                                   </div>
-                                                </div>
-
-                                                {/* Policies List */}
-                                                <div className="space-y-3 mb-6">
-                                                   {policyGroup.policies.slice(0, 2).map((policy, index) => (
-                                                      <div key={policy._id} className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-white/50">
-                                                         <div className="flex items-center justify-between">
-                                                            <div className="flex-1">
-                                                               <div className="flex items-center gap-2 mb-1">
-                                                                  <span className="text-sm font-semibold text-gray-900">{policy.policyId}</span>
-                                                                  <span className={`text-xs px-2 py-1 rounded-full ${isLife ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'
-                                                                     }`}>
-                                                                     Active
-                                                                  </span>
-                                                               </div>
-                                                               <p className="text-sm text-gray-600 mb-1">
-                                                                  Coverage: ${policy.coverage.coverageAmount.toLocaleString()}
-                                                               </p>
-                                                               <p className="text-xs text-gray-500">
-                                                                  {getCoverageTypesList(policy)}
-                                                               </p>
-                                                            </div>
-                                                         </div>
-                                                      </div>
-                                                   ))}
-
-                                                   {policyGroup.policies.length > 2 && (
-                                                      <div className="bg-white/50 backdrop-blur-sm rounded-lg p-3 border border-white/30 text-center">
-                                                         <span className="text-sm text-gray-600">
-                                                            +{policyGroup.policies.length - 2} more {policyGroup.policies.length - 2 === 1 ? 'policy' : 'policies'}
-                                                         </span>
-                                                      </div>
-                                                   )}
-                                                </div>
-
-                                                {/* Action Button */}
-                                                <button
-                                                   onClick={() => {
-                                                      // If only one policy of this type, select it directly
-                                                      if (policyGroup.policies.length === 1) {
-                                                         handlePolicySelect(policyGroup.policies[0]);
-                                                      } else {
-                                                         // For now, just select the first one
-                                                         handlePolicySelect(policyGroup.policies[0]);
-                                                      }
-                                                   }}
-                                                   className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 transform group-hover:scale-105 ${isLife
-                                                      ? 'bg-gradient-to-r from-pink-500 to-red-600 hover:from-pink-600 hover:to-red-700 text-white shadow-lg shadow-pink-200 hover:shadow-pink-300'
-                                                      : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300'
-                                                      }`}
-                                                >
-                                                   Submit {policyGroup.type.charAt(0).toUpperCase() + policyGroup.type.slice(1)} Claim
-                                                </button>
+                                             {/* Hover Indicator */}
+                                             <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                                <div className={`w-3 h-3 rounded-full ${isLife ? 'bg-rose-400' : 'bg-blue-400'
+                                                   } animate-pulse`} />
                                              </div>
-
-                                             {/* Decorative Elements */}
-                                             <div className={`absolute -top-4 -right-4 w-24 h-24 rounded-full opacity-10 ${isLife ? 'bg-pink-500' : 'bg-blue-500'
-                                                }`} />
-                                             <div className={`absolute -bottom-6 -left-6 w-32 h-32 rounded-full opacity-5 ${isLife ? 'bg-red-500' : 'bg-indigo-500'
-                                                }`} />
                                           </div>
                                        </div>
                                     );
@@ -339,17 +362,21 @@ export const ClaimForm = () => {
                         </div>
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                           {claimOptions[selectedPolicy.policyType]?.map((option) => (
-                              <button
-                                 key={option}
-                                 onClick={() => handleClaimOptionSelect(option)}
-                                 className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-center"
-                              >
-                                 <FileText className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                                 <h3 className="font-medium text-gray-900 capitalize">{option}</h3>
-                              </button>
-                           ))}
+                           {claimOptions[selectedPolicy.policyType]?.map((option) => {
+                              const Icon = optionIcons[option]; // Pick correct icon
+                              return (
+                                 <button
+                                    key={option}
+                                    onClick={() => handleClaimOptionSelect(option)}
+                                    className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-center"
+                                 >
+                                    {Icon && <Icon className="w-8 h-8 text-blue-600 mx-auto mb-3" />}
+                                    <h3 className="font-medium text-gray-900 capitalize">{option}</h3>
+                                 </button>
+                              );
+                           })}
                         </div>
+
                      </div>
                   )}
 

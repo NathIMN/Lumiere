@@ -1,4 +1,5 @@
-import React from 'react';
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from 'react';
 import { 
   Eye, 
   Users, 
@@ -15,9 +16,12 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Pause
+  Pause,
+  UserPlus,
+  UserMinus,
+  MoreVertical
 } from 'lucide-react';
-import { formatDate, formatCurrency } from '../../utils/formatters';
+import { formatDate, formatCurrency } from '../../utils/policyFormatters';
 
 export const PolicyUsersList = ({ 
   policies, 
@@ -26,8 +30,25 @@ export const PolicyUsersList = ({
   onViewDetails,
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  onAddBeneficiary,
+  onRemoveBeneficiary,
+  onRefresh
 }) => {
+  const [dropdownOpen, setDropdownOpen] = useState(null);
+
+  // Move useEffect to the top, before any early returns
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownOpen && !event.target.closest('.relative')) {
+        setDropdownOpen(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [dropdownOpen]);
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'active': return 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900';
@@ -73,291 +94,26 @@ export const PolicyUsersList = ({
     return daysDiff <= 30 && daysDiff > 0;
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-          {[...Array(6)].map((_, index) => (
-            <div key={index} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-6 animate-pulse">
-              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
-              <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-2/3 mb-4"></div>
-              <div className="flex gap-2">
-                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded flex-1"></div>
-                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const handleAddBeneficiary = (policy) => {
+    if (onAddBeneficiary) {
+      onAddBeneficiary(policy._id || policy.id);
+    }
+    setDropdownOpen(null);
+  };
 
-  if (!policies || policies.length === 0) {
-    return (
-      <div className="p-12 text-center">
-        <div className="bg-gray-100 dark:bg-gray-700 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-          <Users className="h-8 w-8 text-gray-400" />
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          No policies found
-        </h3>
-        <p className="text-gray-500 dark:text-gray-400">
-          No policies match your current filters. Try adjusting your search criteria.
-        </p>
-      </div>
-    );
-  }
+  const handleRemoveBeneficiary = (policy) => {
+    if (onRemoveBeneficiary) {
+      onRemoveBeneficiary(policy._id || policy.id);
+    }
+    setDropdownOpen(null);
+  };
 
-  const GridView = () => (
-    <div className="p-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {policies.map((policy) => (
-          <div
-            key={policy._id}
-            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-600"
-          >
-            {/* Policy Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                {getTypeIcon(policy.policyType)}
-                <h3 className="font-semibold text-gray-900 dark:text-white">
-                  {policy.policyId}
-                </h3>
-              </div>
-              <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
-                {getStatusIcon(policy.status)}
-                <span className="ml-1 capitalize">{policy.status}</span>
-              </div>
-            </div>
-
-            {/* Policy Type & Category */}
-            <div className="flex items-center gap-4 mb-3">
-              <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                <span className="capitalize font-medium">{policy.policyType}</span>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                {getCategoryIcon(policy.policyCategory)}
-                <span className="capitalize">{policy.policyCategory}</span>
-              </div>
-            </div>
-
-            {/* Coverage & Premium */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Coverage</p>
-                <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                  {formatCurrency(policy.coverage.coverageAmount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Premium</p>
-                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {formatCurrency(policy.premium.amount)}
-                  <span className="text-xs text-gray-500 font-normal">
-                    /{policy.premium.frequency}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Insurance Agent */}
-            <div className="mb-4">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Insurance Agent</p>
-              <div className="flex items-center gap-2">
-                <UserCheck className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
-                </span>
-              </div>
-            </div>
-
-            {/* Beneficiaries */}
-            <div className="mb-4">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Beneficiaries</p>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {policy.beneficiaries?.length || 0} users
-                </span>
-              </div>
-            </div>
-
-            {/* Validity */}
-            <div className="mb-4">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Valid Until</p>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  {formatDate(policy.validity.endDate)}
-                </span>
-                {isExpiringSoon(policy.validity.endDate) && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-900">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Expiring Soon
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <button
-              onClick={() => onViewDetails(policy)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              View Details
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const ListView = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead className="bg-gray-50 dark:bg-gray-700">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Policy
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Type & Category
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Coverage
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Premium
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Agent
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Beneficiaries
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Status
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Validity
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-          {policies.map((policy) => (
-            <tr key={policy._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-              {/* Policy */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center gap-3">
-                  {getTypeIcon(policy.policyType)}
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {policy.policyId}
-                    </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Created {formatDate(policy.createdAt)}
-                    </div>
-                  </div>
-                </div>
-              </td>
-
-              {/* Type & Category */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="space-y-1">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">
-                    {policy.policyType} Insurance
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-                    {getCategoryIcon(policy.policyCategory)}
-                    <span className="capitalize">{policy.policyCategory}</span>
-                  </div>
-                </div>
-              </td>
-
-              {/* Coverage */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                  {formatCurrency(policy.coverage.coverageAmount)}
-                </div>
-                {policy.coverage.deductible > 0 && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Deductible: {formatCurrency(policy.coverage.deductible)}
-                  </div>
-                )}
-              </td>
-
-              {/* Premium */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  {formatCurrency(policy.premium.amount)}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                  {policy.premium.frequency}
-                </div>
-              </td>
-
-              {/* Agent */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {policy.insuranceAgent?.email}
-                </div>
-              </td>
-
-              {/* Beneficiaries */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {policy.beneficiaries?.length || 0}
-                  </span>
-                </div>
-              </td>
-
-              {/* Status */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
-                  {getStatusIcon(policy.status)}
-                  <span className="ml-1 capitalize">{policy.status}</span>
-                </span>
-              </td>
-
-              {/* Validity */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900 dark:text-white">
-                  {formatDate(policy.validity.endDate)}
-                </div>
-                {isExpiringSoon(policy.validity.endDate) && (
-                  <div className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Expiring Soon
-                  </div>
-                )}
-              </td>
-
-              {/* Actions */}
-              <td className="px-6 py-4 whitespace-nowrap">
-                <button
-                  onClick={() => onViewDetails(policy)}
-                  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 font-medium flex items-center gap-1"
-                >
-                  <Eye className="h-4 w-4" />
-                  View
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  const handleViewDetails = (policy) => {
+    if (onViewDetails) {
+      onViewDetails(policy);
+    }
+    setDropdownOpen(null);
+  };
 
   // Pagination Component
   const Pagination = () => {
@@ -437,6 +193,398 @@ export const PolicyUsersList = ({
       </div>
     );
   };
+
+  // Early returns after hooks
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className={view === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-4"></div>
+              <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-2/3 mb-4"></div>
+              <div className="flex gap-2">
+                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded flex-1"></div>
+                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!policies || policies.length === 0) {
+    return (
+      <div className="p-12 text-center">
+        <div className="bg-gray-100 dark:bg-gray-700 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+          <Users className="h-8 w-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          No policies found
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400">
+          No policies match your current filters. Try adjusting your search criteria.
+        </p>
+      </div>
+    );
+  }
+
+  const GridView = () => (
+    <div className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {policies.map((policy) => (
+          <div
+            key={policy._id || policy.id}
+            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow border border-gray-200 dark:border-gray-600 relative"
+          >
+            {/* Policy Header */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                {getTypeIcon(policy.policyType)}
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  {policy.policyId}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
+                  {getStatusIcon(policy.status)}
+                  <span className="ml-1 capitalize">{policy.status}</span>
+                </div>
+                
+                {/* Actions Dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(dropdownOpen === policy._id ? null : policy._id)}
+                    className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  
+                  {dropdownOpen === policy._id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-600">
+                      <div className="py-1">
+                        <button
+                          onClick={() => handleViewDetails(policy)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleAddBeneficiary(policy)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add Beneficiary
+                        </button>
+                        <button
+                          onClick={() => handleRemoveBeneficiary(policy)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Remove Beneficiary
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Policy Type & Category */}
+            <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                <span className="capitalize font-medium">{policy.policyType}</span>
+              </div>
+              <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                {getCategoryIcon(policy.policyCategory)}
+                <span className="capitalize">{policy.policyCategory}</span>
+              </div>
+            </div>
+
+            {/* Coverage & Premium */}
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Coverage</p>
+                <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                  {formatCurrency(policy.coverage?.coverageAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Premium</p>
+                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                  {formatCurrency(policy.premium?.amount)}
+                  <span className="text-xs text-gray-500 font-normal">
+                    /{policy.premium?.frequency}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Insurance Agent */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Insurance Agent</p>
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-gray-400" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
+                </span>
+              </div>
+            </div>
+
+            {/* Beneficiaries */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Beneficiaries</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {policy.beneficiaries?.length || 0} users
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleAddBeneficiary(policy)}
+                    className="p-1 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900 rounded"
+                    title="Add Beneficiary"
+                  >
+                    <UserPlus className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => handleRemoveBeneficiary(policy)}
+                    className="p-1 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                    title="Remove Beneficiary"
+                  >
+                    <UserMinus className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Validity */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Valid Until</p>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {formatDate(policy.validity?.endDate)}
+                </span>
+                {isExpiringSoon(policy.validity?.endDate) && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-900">
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Expiring Soon
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Main Action Button */}
+            <button
+              onClick={() => handleViewDetails(policy)}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              View Details
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const ListView = () => (
+    <div className="overflow-x-auto">
+      <table className="w-full">
+        <thead className="bg-gray-50 dark:bg-gray-700">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Policy
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Type & Category
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Coverage
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Premium
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Agent
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Beneficiaries
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Status
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Validity
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          {policies.map((policy) => (
+            <tr key={policy._id || policy.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              {/* Policy */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center gap-3">
+                  {getTypeIcon(policy.policyType)}
+                  <div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {policy.policyId}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Created {formatDate(policy.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              {/* Type & Category */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                    {policy.policyType} Insurance
+                  </div>
+                  <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+                    {getCategoryIcon(policy.policyCategory)}
+                    <span className="capitalize">{policy.policyCategory}</span>
+                  </div>
+                </div>
+              </td>
+
+              {/* Coverage */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                  {formatCurrency(policy.coverage?.coverageAmount)}
+                </div>
+                {policy.coverage?.deductible > 0 && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Deductible: {formatCurrency(policy.coverage?.deductible)}
+                  </div>
+                )}
+              </td>
+
+              {/* Premium */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  {formatCurrency(policy.premium?.amount)}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                  {policy.premium?.frequency}
+                </div>
+              </td>
+
+              {/* Agent */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {policy.insuranceAgent?.email}
+                </div>
+              </td>
+
+              {/* Beneficiaries */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      {policy.beneficiaries?.length || 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleAddBeneficiary(policy)}
+                      className="p-1 text-green-600 hover:text-green-700 hover:bg-green-100 dark:hover:bg-green-900 rounded"
+                      title="Add Beneficiary"
+                    >
+                      <UserPlus className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveBeneficiary(policy)}
+                      className="p-1 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                      title="Remove Beneficiary"
+                    >
+                      <UserMinus className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              </td>
+
+              {/* Status */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(policy.status)}`}>
+                  {getStatusIcon(policy.status)}
+                  <span className="ml-1 capitalize">{policy.status}</span>
+                </span>
+              </td>
+
+              {/* Validity */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900 dark:text-white">
+                  {formatDate(policy.validity?.endDate)}
+                </div>
+                {isExpiringSoon(policy.validity?.endDate) && (
+                  <div className="text-xs text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Expiring Soon
+                  </div>
+                )}
+              </td>
+
+              {/* Actions */}
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(dropdownOpen === policy._id ? null : policy._id)}
+                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </button>
+                  
+                  {dropdownOpen === policy._id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-600">
+                      <div className="py-1">
+                        <button
+                          onClick={() => handleViewDetails(policy)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleAddBeneficiary(policy)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-green-700 dark:text-green-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add Beneficiary
+                        </button>
+                        <button
+                          onClick={() => handleRemoveBeneficiary(policy)}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Remove Beneficiary
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div>

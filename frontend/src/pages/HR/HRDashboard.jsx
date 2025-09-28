@@ -28,6 +28,7 @@ const hrLinks = [
   { path: "claims", label: "Claim Review", icon: MountainSnow },
   { path: "policies", label: "Policy Users", icon: UserRoundCheck },
   { path: "document", label: "Document Pool", icon: FolderOpen },
+   { path: "employee_directory", label: "Employees", icon: Users },
 ];
 
   const color = "#37d449";
@@ -46,7 +47,7 @@ const hrLinks = [
   };
 
   return (
-  <div className="hr-dashboard flex bg-neutral-300 dark:bg-neutral-800 h-screen">
+  <div className="hr-dashboard flex bg-gray-100 dark:bg-neutral-800 h-screen">
 
     {/* Sidebar */}
   <SideBar links={hrLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed} color={color}/> 
