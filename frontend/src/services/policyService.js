@@ -105,6 +105,7 @@ export const policyService = {
 
   // Add beneficiary to policy (HR can do this)
   addBeneficiary: async (id, beneficiaryId) => {
+   console.log("blaaa : ", id)
     return await apiRequest(`/${id}/beneficiaries/add`, {
       method: 'PATCH',
       body: JSON.stringify({ beneficiaryId }),

@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Search, 
-  User, 
-  Mail, 
-  Building, 
   UserPlus, 
   UserMinus, 
-  Check, 
-  AlertTriangle, 
-  Loader2,
-  Users
+  User, 
+  Mail, 
+  Phone, 
+  Users,
+  AlertCircle,
+  CheckCircle,
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
+import userApiService from '../../services/user-api';
+import policyService from '../../services/policyService';
 
 export const BeneficiaryManagementModal = ({ 
   isOpen, 
@@ -21,304 +24,440 @@ export const BeneficiaryManagementModal = ({
   onRemoveBeneficiary, 
   mode // 'add' or 'remove'
 }) => {
+  // States
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [availableUsers, setAvailableUsers] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [currentBeneficiaries, setCurrentBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [notification, setNotification] = useState(null);
 
-  const searchUsers = (term) => {
+  // Show notification
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  // Search employees for adding beneficiaries
+  const searchEmployees = async (searchQuery) => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const response = await userApiService.getUsers({
+        role: 'employee',
+        search: searchQuery,
+        limit: 20
+      });
+
+      let employees = [];
+      // Handle your API response structure: { success: true, count: 6, users: [...] }
+      if (response?.users) {
+        employees = response.users;
+      } else if (response?.data) {
+        employees = Array.isArray(response.data) ? response.data : [response.data];
+      } else if (Array.isArray(response)) {
+        employees = response;
+      }
+
+      // Filter out users who are already beneficiaries
+      const existingBeneficiaryIds = currentBeneficiaries.map(b => b._id || b.id);
+      const filteredEmployees = employees.filter(emp => 
+        !existingBeneficiaryIds.includes(emp._id || emp.id)
+      );
+
+      setSearchResults(filteredEmployees);
+    } catch (error) {
+      console.error('Error searching employees:', error);
+      showNotification('Failed to search employees: ' + error.message, 'error');
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Load current beneficiaries
+  const loadCurrentBeneficiaries = async () => {
+    if (!policy?.beneficiaries) {
+      setCurrentBeneficiaries([]);
+      return;
+    }
+
     setLoading(true);
     try {
-      let users = [];
-      
-      if (mode === 'remove') {
-        // For remove mode, show current beneficiaries
-        users = policy.beneficiaries || [];
-      } else {
-        // For add mode, you need to provide user data from your existing system
-        users = [];
-      }
+      // If beneficiaries are already populated objects, use them directly
+      if (policy.beneficiaries.length > 0 && typeof policy.beneficiaries[0] === 'object') {
+        setCurrentBeneficiaries(policy.beneficiaries);
+      } else if (policy.beneficiaries.length > 0) {
+        // If beneficiaries are just IDs, we need to fetch user details
+        const beneficiaryPromises = policy.beneficiaries.map(async (beneficiaryId) => {
+          try {
+            const response = await userApiService.getUsers({ id: beneficiaryId });
+            return response?.data || response;
+          } catch (error) {
+            console.error(`Error fetching beneficiary ${beneficiaryId}:`, error);
+            return null;
+          }
+        });
 
-      // Filter by search term if provided
-      if (term) {
-        const searchTerm = term.toLowerCase();
-        users = users.filter(user => 
-          user.firstName?.toLowerCase().includes(searchTerm) ||
-          user.lastName?.toLowerCase().includes(searchTerm) ||
-          user.email?.toLowerCase().includes(searchTerm) ||
-          user.employeeId?.toLowerCase().includes(searchTerm)
-        );
+        const beneficiaryDetails = await Promise.all(beneficiaryPromises);
+        setCurrentBeneficiaries(beneficiaryDetails.filter(b => b !== null));
+      } else {
+        setCurrentBeneficiaries([]);
       }
-      
-      setAvailableUsers(users);
-      setError('');
-    } catch (err) {
-      console.error('Error filtering users:', err);
-      setError('Failed to load users: ' + err.message);
-      setAvailableUsers([]);
+    } catch (error) {
+      console.error('Error loading beneficiaries:', error);
+      showNotification('Failed to load current beneficiaries', 'error');
+      setCurrentBeneficiaries([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedUsers([]);
-      setError('');
-      searchUsers(searchTerm);
-    }
-  }, [isOpen, searchTerm, mode, policy]);
+  // Handle adding beneficiary
+  const handleAddBeneficiary = async (employee) => {
+    if (!employee || !policy) return;
 
-  const handleUserToggle = (user) => {
-    setSelectedUsers(prev => {
-      const isSelected = prev.find(u => (u._id || u.id) === (user._id || user.id));
-      if (isSelected) {
-        return prev.filter(u => (u._id || u.id) !== (user._id || user.id));
-      } else {
-        return [...prev, user];
-      }
-    });
-  };
-
-  const handleSave = async () => {
-    if (selectedUsers.length === 0) return;
-    
-    setSaving(true);
-    setError('');
+    setActionLoading(true);
     try {
-      const policyId = policy._id || policy.id;
+      console.log("iygeowye : ",policy._id);
+      await policyService.addBeneficiary(policy._id, employee._id);
       
-      if (mode === 'add') {
-        // Add beneficiaries one by one
-        for (const user of selectedUsers) {
-          await onAddBeneficiary(policyId, user._id || user.id);
-        }
-      } else {
-        // Remove beneficiaries one by one
-        for (const user of selectedUsers) {
-          await onRemoveBeneficiary(policyId, user._id || user.id);
-        }
-      }
+      // Update local state
+      setCurrentBeneficiaries(prev => [...prev, employee]);
+      setSearchResults(prev => prev.filter(emp => (emp._id || emp.id) !== (employee._id || employee.id)));
+      setSelectedUser(null);
+      setSearchTerm('');
       
-      setSelectedUsers([]);
-      onClose();
-    } catch (err) {
-      console.error(`Error ${mode}ing beneficiaries:`, err);
-      setError(err.message || `Failed to ${mode} beneficiaries`);
+      showNotification(`Successfully added ${employee.firstName} ${employee.lastName} as beneficiary`);
+    } catch (error) {
+      console.error('Error adding beneficiary:', error);
+      showNotification('Failed to add beneficiary: ' + error.message, 'error');
     } finally {
-      setSaving(false);
+      setActionLoading(false);
     }
   };
 
-  const handleClose = () => {
-    setSelectedUsers([]);
-    setSearchTerm('');
-    setError('');
-    onClose();
+  // Handle removing beneficiary
+  const handleRemoveBeneficiary = async (beneficiary) => {
+    if (!beneficiary || !policy) return;
+
+    setActionLoading(true);
+    try {
+      await policyService.removeBeneficiary(policy.policyId || policy._id, beneficiary._id || beneficiary.id);
+      
+      // Update local state
+      setCurrentBeneficiaries(prev => 
+        prev.filter(b => (b._id || b.id) !== (beneficiary._id || beneficiary.id))
+      );
+      
+      showNotification(`Successfully removed ${beneficiary.firstName} ${beneficiary.lastName} as beneficiary`);
+    } catch (error) {
+      console.error('Error removing beneficiary:', error);
+      showNotification('Failed to remove beneficiary: ' + error.message, 'error');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  if (!isOpen || !policy) return null;
+  // Effects
+  useEffect(() => {
+    if (isOpen && policy) {
+      loadCurrentBeneficiaries();
+    }
+  }, [isOpen, policy]);
+
+  useEffect(() => {
+    if (mode === 'add') {
+      const debounceTimer = setTimeout(() => {
+        searchEmployees(searchTerm);
+      }, 300);
+
+      return () => clearTimeout(debounceTimer);
+    }
+  }, [searchTerm, mode]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setSearchResults([]);
+      setSelectedUser(null);
+      setNotification(null);
+    }
+  }, [isOpen]);
+
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <div 
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-          onClick={handleClose}
-        ></div>
-        
-        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="fixed inset-0 bg-black/50  backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl h-[700px] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-3">
+            {mode === 'add' ? (
+              <UserPlus className="h-6 w-6 text-blue-600" />
+            ) : (
+              <UserMinus className="h-6 w-6 text-red-600" />
+            )}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {mode === 'add' ? 'Add Beneficiaries' : 'Remove Beneficiaries'}
-              </h3>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {mode === 'add' ? 'Add Beneficiary' : 'Remove Beneficiary'}
+              </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Policy: {policy.policyId || policy.policyNumber} • Current beneficiaries: {policy.beneficiaries?.length || 0}
+                Policy: {policy?.policyId} • {policy?.policyType === 'life' ? 'Life' : 'Vehicle'} Insurance
               </p>
             </div>
-            <button 
-              onClick={handleClose} 
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-            >
-              <X className="h-5 w-5" />
-            </button>
           </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-hidden flex flex-col p-6">
-            {/* Search */}
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, or employee ID..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                {loading && (
-                  <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
+        {/* Notification */}
+        {notification && (
+          <div className={`p-4 m-4 rounded-lg border ${
+            notification.type === 'error' 
+              ? 'bg-red-50 border-red-200 text-red-800' 
+              : 'bg-green-50 border-green-200 text-green-800'
+          }`}>
+            <div className="flex items-center gap-2">
+              {notification.type === 'error' ? (
+                <AlertCircle className="h-4 w-4" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              <span className="text-sm font-medium">{notification.message}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 p-6 overflow-y-auto min-h-0">
+          {mode === 'add' ? (
+            // Add Beneficiary Mode
+            <div className="space-y-6">
+              {/* Current Beneficiaries Info */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Current Beneficiaries: {currentBeneficiaries.length}
+                  </span>
+                </div>
+                {currentBeneficiaries.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {currentBeneficiaries.map(beneficiary => (
+                      <span 
+                        key={beneficiary._id || beneficiary.id}
+                        className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded-md"
+                      >
+                        {beneficiary.firstName} {beneficiary.lastName}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <div className="flex items-center">
-                  <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
-                  <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              {/* Search */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Search Employees
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, or employee ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {searchLoading && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <RefreshCw className="h-4 w-4 text-gray-400 animate-spin" />
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Selection Summary */}
-            {selectedUsers.length > 0 && (
-              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-center">
-                  <Check className="h-4 w-4 text-blue-600 mr-2" />
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected to {mode}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Add Mode Notice */}
-            {mode === 'add' && availableUsers.length === 0 && (
-              <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                <div className="flex items-center">
-                  <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    To add beneficiaries, integrate this with your existing user data or user management system.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Users List */}
-            <div className="flex-1 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-              {loading && availableUsers.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-3 text-gray-400" />
-                  <p className="text-sm text-gray-500">Loading...</p>
-                </div>
-              ) : availableUsers.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Users className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {mode === 'add' 
-                      ? 'No users available. Integrate with your user management system.' 
-                      : 'No beneficiaries to remove'
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {availableUsers.map((user) => {
-                    const userId = user._id || user.id;
-                    const isSelected = selectedUsers.find(u => (u._id || u.id) === userId);
-                    
-                    return (
-                      <div
-                        key={userId}
-                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
-                          isSelected ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' : ''
-                        }`}
-                        onClick={() => handleUserToggle(user)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="bg-gray-100 dark:bg-gray-600 p-2 rounded-full">
-                              <User className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+              {/* Search Results */}
+              {searchTerm && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Search Results ({searchResults.length})
+                  </h3>
+                  {searchResults.length > 0 ? (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {searchResults.map(employee => (
+                        <div
+                          key={employee._id || employee.id}
+                          className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                              <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {user.firstName} {user.lastName}
-                              </p>
-                              <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                                <div className="flex items-center">
-                                  <Mail className="h-3 w-3 mr-1" />
-                                  {user.email}
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                {employee.profile?.firstName || employee.firstName} {employee.profile?.lastName || employee.lastName}
+                              </h4>
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <div className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {employee.email}
                                 </div>
-                                {user.employeeId && (
-                                  <div className="flex items-center">
-                                    <Building className="h-3 w-3 mr-1" />
-                                    {user.employeeId}
+                                {(employee.profile?.phoneNumber || employee.phone) && (
+                                  <div className="flex items-center gap-1">
+                                    <Phone className="h-3 w-3" />
+                                    {employee.profile?.phoneNumber || employee.phone}
                                   </div>
                                 )}
                               </div>
-                              {user.employment && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {user.employment.position} - {user.employment.department}
-                                </p>
-                              )}
+                              <div className="text-xs text-gray-400 mt-1">
+                                {employee.userId} • {employee.employment?.department || 'N/A'}
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center">
-                            {isSelected && (
-                              <div className="bg-blue-100 dark:bg-blue-900 p-1 rounded-full mr-2">
-                                <Check className="h-3 w-3 text-blue-600 dark:text-blue-300" />
-                              </div>
+                          <button
+                            onClick={() => handleAddBeneficiary(employee)}
+                            disabled={actionLoading}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {actionLoading ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <UserPlus className="h-4 w-4" />
                             )}
-                            <input
-                              type="checkbox"
-                              checked={!!isSelected}
-                              onChange={() => handleUserToggle(user)}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                          </div>
+                            Add
+                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  ) : searchTerm && !searchLoading ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                      <p>No employees found matching "{searchTerm}"</p>
+                      <p className="text-sm">Try searching with a different term</p>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
-          </div>
+          ) : (
+            // Remove Beneficiary Mode
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Current Beneficiaries ({currentBeneficiaries.length})
+                </h3>
+                
+                {loading ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, index) => (
+                      <div key={index} className="animate-pulse">
+                        <div className="flex items-center p-4 border border-gray-200 rounded-lg">
+                          <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                            <div className="h-3 bg-gray-300 rounded w-3/4"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : currentBeneficiaries.length > 0 ? (
+                  <div className="space-y-3">
+                    {currentBeneficiaries.map(beneficiary => (
+                      <div
+                        key={beneficiary._id || beneficiary.id}
+                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                            <User className="h-5 w-5 text-red-600 dark:text-red-400" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900 dark:text-white">
+                              {beneficiary.profile?.firstName || beneficiary.firstName} {beneficiary.profile?.lastName || beneficiary.lastName}
+                            </h4>
+                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Mail className="h-3 w-3" />
+                                {beneficiary.email}
+                              </div>
+                              {(beneficiary.profile?.phoneNumber || beneficiary.phone) && (
+                                <div className="flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {beneficiary.profile?.phoneNumber || beneficiary.phone}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {beneficiary.userId} • {beneficiary.employment?.department || 'N/A'}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveBeneficiary(beneficiary)}
+                          disabled={actionLoading}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {actionLoading ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      No Beneficiaries
+                    </h3>
+                    <p>This policy doesn't have any beneficiaries yet.</p>
+                    <button
+                      onClick={() => {
+                        // Switch to add mode if needed
+                        onClose();
+                      }}
+                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Add Beneficiaries
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
-          {/* Footer */}
-          <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md transition-colors"
-            >
-              Cancel
-            </button>
-            
-            <button
-              onClick={handleSave}
-              disabled={selectedUsers.length === 0 || saving}
-              className={`px-6 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 ${
-                mode === 'add'
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-red-600 hover:bg-red-700 text-white'
-              }`}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  {mode === 'add' ? (
-                    <UserPlus className="h-4 w-4" />
-                  ) : (
-                    <UserMinus className="h-4 w-4" />
-                  )}
-                  <span>
-                    {mode === 'add' ? 'Add' : 'Remove'} ({selectedUsers.length})
-                  </span>
-                </>
-              )}
-            </button>
+        {/* Footer */}
+        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-sm text-gray-500">
+            {mode === 'add' 
+              ? 'Search and select an employee to add as a beneficiary'
+              : 'Select beneficiaries to remove from this policy'
+            }
           </div>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+          >
+            Done
+          </button>
         </div>
       </div>
     </div>

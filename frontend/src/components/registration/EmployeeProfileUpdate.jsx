@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Shield, Phone, MapPin, CreditCard, Users, Save, X, Edit3, Check, AlertCircle } from 'lucide-react';
 import UserApiService from '../../services/user-api';
 
-export const EmployeeProfileUpdate = () => {
+const EmployeeProfileUpdate = () => {
   const [profileData, setProfileData] = useState({
     profile: {
       firstName: '',
@@ -788,3 +788,4 @@ export const EmployeeProfileUpdate = () => {
   );
 };
 
+export default EmployeeProfileUpdate;
