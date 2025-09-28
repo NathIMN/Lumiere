@@ -35,7 +35,10 @@ import {
 
 import insuranceApiService from '../../services/insurance-api';
 import reportsApiService  from '../../services/reports-api';
-
+import { PolicyUsersList } from '../../components/policy/PolicyUsersList';
+import { BeneficiaryManagementModal } from '../../components/policy/BeneficiaryManagementModal';
+import { PolicyDetailsModal } from '../../components/policy/PolicyDetailsModal';
+import { EnhancedGridActionBar } from '../../components/policy/EnhancedActionBars';
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -326,24 +329,6 @@ const ReportsPanel = ({ filters, onClose, showNotification }) => {
         border: 'border-blue-200 dark:border-blue-800',
         icon: 'text-blue-600 dark:text-blue-400',
         button: 'bg-blue-600 hover:bg-blue-700 text-white'
-      },
-      green: {
-        bg: 'bg-green-50 dark:bg-green-900/20',
-        border: 'border-green-200 dark:border-green-800',
-        icon: 'text-green-600 dark:text-green-400',
-        button: 'bg-green-600 hover:bg-green-700 text-white'
-      },
-      orange: {
-        bg: 'bg-orange-50 dark:bg-orange-900/20',
-        border: 'border-orange-200 dark:border-orange-800',
-        icon: 'text-orange-600 dark:text-orange-400',
-        button: 'bg-orange-600 hover:bg-orange-700 text-white'
-      },
-      purple: {
-        bg: 'bg-purple-50 dark:bg-purple-900/20',
-        border: 'border-purple-200 dark:border-purple-800',
-        icon: 'text-purple-600 dark:text-purple-400',
-        button: 'bg-purple-600 hover:bg-purple-700 text-white'
       }
     };
     return colors[color] || colors.blue;
@@ -405,40 +390,6 @@ const ReportsPanel = ({ filters, onClose, showNotification }) => {
         )}
       </div>
 
-      {/* Active Filters Display */}
-      {(filters.policyType || filters.policyCategory || filters.status || dateRange.startDate || dateRange.endDate) && (
-        <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Active Filters:</h4>
-          <div className="flex flex-wrap gap-2 text-sm">
-            {filters.policyType && (
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
-                Type: {filters.policyType === 'life' ? 'Life' : 'Vehicle'}
-              </span>
-            )}
-            {filters.policyCategory && (
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
-                Category: {filters.policyCategory === 'individual' ? 'Individual' : 'Group'}
-              </span>
-            )}
-            {filters.status && (
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
-                Status: {filters.status.charAt(0).toUpperCase() + filters.status.slice(1)}
-              </span>
-            )}
-            {dateRange.startDate && (
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
-                From: {formatDate(dateRange.startDate)}
-              </span>
-            )}
-            {dateRange.endDate && (
-              <span className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 rounded-md">
-                To: {formatDate(dateRange.endDate)}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Report Types Grid */}
       <div className="grid grid-cols-1 gap-4">
         {reportTypes.map((report) => {
@@ -484,22 +435,6 @@ const ReportsPanel = ({ filters, onClose, showNotification }) => {
             </div>
           );
         })}
-      </div>
-
-      {/* Report Info */}
-      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <div className="flex items-start gap-2">
-          <FileText className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <p className="font-medium mb-1">Report Information:</p>
-            <ul className="space-y-1 text-xs">
-              <li>• Reports are generated in PDF format and will be downloaded automatically</li>
-              <li>• Current filters and search terms will be applied to the reports</li>
-              <li>• Date range filter applies to policy creation/update dates</li>
-              <li>• Large reports may take a few moments to generate</li>
-            </ul>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -808,6 +743,12 @@ export const HRPolicyUser = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [notification, setNotification] = useState(null);
+  
+  // Modal states
+  const [selectedPolicy, setSelectedPolicy] = useState(null);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [showBeneficiaryModal, setShowBeneficiaryModal] = useState(false);
+  const [beneficiaryModalMode, setBeneficiaryModalMode] = useState('add'); // 'add' or 'remove'
 
   // Notification helper
   const showNotification = (message, type = 'success') => {
@@ -910,7 +851,7 @@ export const HRPolicyUser = () => {
     fetchStats();
   }, [fetchStats]);
 
-  // Handlers
+  // Enhanced handlers
   const updateFilter = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -922,55 +863,104 @@ export const HRPolicyUser = () => {
     setCurrentPage(1);
   };
 
-  const handleViewPolicy = async (policyId) => {
+  const handleViewPolicy = async (policyData) => {
     try {
-      const response = await insuranceApiService.getPolicyById(policyId);
-      console.log('Policy details response:', response);
-      showNotification('Policy details would be displayed in a modal', 'success');
+      let policy = null;
+      
+      if (typeof policyData === 'string') {
+        const response = await insuranceApiService.getPolicyById(policyData);
+        policy = response.data || response;
+      } else if (policyData && (policyData._id || policyData.id)) {
+        policy = policyData;
+      } else {
+        throw new Error('Invalid policy data provided');
+      }
+
+      setSelectedPolicy(policy);
+      setShowPolicyModal(true);
+      
     } catch (error) {
-      console.error('Error fetching policy details:', error);
+      console.error('Error viewing policy:', error);
       showNotification('Failed to load policy details: ' + error.message, 'error');
     }
   };
 
   const handleAddBeneficiary = async (policyId) => {
     try {
-      const beneficiaryId = prompt('Enter beneficiary User ID to add:');
+      // Find the policy from current policies list
+      const policy = policies.find(p => (p._id || p.id) === policyId);
       
-      if (beneficiaryId && beneficiaryId.trim()) {
-        const response = await insuranceApiService.addPolicyBeneficiary(policyId, beneficiaryId.trim());
-        
-        if (response && response.success !== false) {
-          showNotification('Beneficiary added successfully');
-          fetchPolicies(); // Refresh the list
-        } else {
-          throw new Error('Failed to add beneficiary');
-        }
+      if (!policy) {
+        // If not found, fetch it
+        const response = await insuranceApiService.getPolicyById(policyId);
+        setSelectedPolicy(response.data || response);
+      } else {
+        setSelectedPolicy(policy);
       }
+      
+      setBeneficiaryModalMode('add');
+      setShowBeneficiaryModal(true);
+      
     } catch (error) {
-      console.error('Error adding beneficiary:', error);
-      showNotification('Failed to add beneficiary: ' + error.message, 'error');
+      console.error('Error preparing to add beneficiary:', error);
+      showNotification('Failed to load policy for beneficiary management: ' + error.message, 'error');
     }
   };
 
   const handleRemoveBeneficiary = async (policyId) => {
     try {
-      const beneficiaryId = prompt('Enter beneficiary User ID to remove:');
+      // Find the policy from current policies list
+      const policy = policies.find(p => (p._id || p.id) === policyId);
       
-      if (beneficiaryId && beneficiaryId.trim()) {
-        const response = await insuranceApiService.removePolicyBeneficiary(policyId, beneficiaryId.trim());
-        
-        if (response && response.success !== false) {
-          showNotification('Beneficiary removed successfully');
-          fetchPolicies(); // Refresh the list
-        } else {
-          throw new Error('Failed to remove beneficiary');
-        }
+      if (!policy) {
+        // If not found, fetch it
+        const response = await insuranceApiService.getPolicyById(policyId);
+        setSelectedPolicy(response.data || response);
+      } else {
+        setSelectedPolicy(policy);
       }
+      
+      setBeneficiaryModalMode('remove');
+      setShowBeneficiaryModal(true);
+      
     } catch (error) {
-      console.error('Error removing beneficiary:', error);
-      showNotification('Failed to remove beneficiary: ' + error.message, 'error');
+      console.error('Error preparing to remove beneficiary:', error);
+      showNotification('Failed to load policy for beneficiary management: ' + error.message, 'error');
     }
+  };
+
+  // Enhanced beneficiary management functions for the modal
+  const handleModalAddBeneficiary = async (policyId, beneficiaryId) => {
+    const response = await insuranceApiService.addPolicyBeneficiary(policyId, beneficiaryId);
+    
+    if (response && response.success !== false) {
+      return response;
+    } else {
+      throw new Error(response?.message || 'Failed to add beneficiary');
+    }
+  };
+
+  const handleModalRemoveBeneficiary = async (policyId, beneficiaryId) => {
+    const response = await insuranceApiService.removePolicyBeneficiary(policyId, beneficiaryId);
+    
+    if (response && response.success !== false) {
+      return response;
+    } else {
+      throw new Error(response?.message || 'Failed to remove beneficiary');
+    }
+  };
+
+  const handleBeneficiaryModalClose = () => {
+    setShowBeneficiaryModal(false);
+    setSelectedPolicy(null);
+    // Refresh policies to show updated beneficiary counts
+    fetchPolicies();
+    fetchStats();
+    showNotification(
+      beneficiaryModalMode === 'add' 
+        ? 'Beneficiaries updated successfully' 
+        : 'Beneficiaries removed successfully'
+    );
   };
 
   const handleRefresh = () => {
@@ -1140,102 +1130,18 @@ export const HRPolicyUser = () => {
             onRemoveBeneficiary={handleRemoveBeneficiary}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loading ? (
-              [...Array(6)].map((_, index) => (
-                <div key={index} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border animate-pulse">
-                  <div className="space-y-4">
-                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
-                    <div className="space-y-2">
-                      <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                      <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : policies.length > 0 ? (
-              policies.map((policy) => {
-                const expiryStatus = formatExpiryStatus(policy.validity?.endDate);
-                
-                return (
-                  <div key={policy._id} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {policy.policyNumber || policy.policyId}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                          {policy.policyType} Insurance • {policy.policyCategory}
-                        </p>
-                      </div>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-md ${
-                        policy.status === 'active' ? 'bg-green-100 text-green-800' :
-                        policy.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {policy.status ? policy.status.charAt(0).toUpperCase() + policy.status.slice(1) : 'Unknown'}
-                      </span>
-                    </div>
-
-                    {/* Coverage Information */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Coverage:</span>
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          {formatCurrency(policy.coverage?.coverageAmount)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Premium:</span>
-                        <span className="text-sm text-gray-900 dark:text-white">
-                          {formatCurrency(policy.premium?.amount)} / {policy.premium?.frequency}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Agent & Validity */}
-                    <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                      <div>
-                        <span className="font-medium">Agent:</span> {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
-                      </div>
-                      <div>
-                        <span className="font-medium">Valid Until:</span> {formatDate(policy.validity?.endDate)}
-                      </div>
-                      <div className={`text-xs ${expiryStatus.color}`}>
-                        {expiryStatus.text}
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <button
-                          onClick={() => handleViewPolicy(policy._id)}
-                          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                        >
-                          View Details
-                        </button>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">
-                            {policy.beneficiaries?.length || 0} beneficiaries
-                          </span>
-                          <button
-                            onClick={() => handleAddBeneficiary(policy._id)}
-                            className="text-green-600 hover:text-green-700"
-                          >
-                            <UserPlus className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="col-span-full text-center py-12">
-                <AlertTriangle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No policies found</h3>
-                <p className="text-gray-500">Try adjusting your filters or search terms.</p>
-              </div>
-            )}
-          </div>
+          <PolicyUsersList
+            policies={policies}
+            loading={loading}
+            view="grid"
+            onViewDetails={handleViewPolicy}
+            onAddBeneficiary={handleAddBeneficiary}
+            onRemoveBeneficiary={handleRemoveBeneficiary}
+            onRefresh={handleRefresh}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 
@@ -1283,6 +1189,30 @@ export const HRPolicyUser = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Policy Details Modal */}
+      {showPolicyModal && selectedPolicy && (
+        <PolicyDetailsModal
+          policy={selectedPolicy}
+          isOpen={showPolicyModal}
+          onClose={() => {
+            setShowPolicyModal(false);
+            setSelectedPolicy(null);
+          }}
+        />
+      )}
+
+      {/* Beneficiary Management Modal */}
+      {showBeneficiaryModal && selectedPolicy && (
+        <BeneficiaryManagementModal
+          isOpen={showBeneficiaryModal}
+          onClose={handleBeneficiaryModalClose}
+          policy={selectedPolicy}
+          onAddBeneficiary={handleModalAddBeneficiary}
+          onRemoveBeneficiary={handleModalRemoveBeneficiary}
+          mode={beneficiaryModalMode}
+        />
       )}
     </div>
   );
