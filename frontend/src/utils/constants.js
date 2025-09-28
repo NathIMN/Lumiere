@@ -27,20 +27,13 @@ export const initialFormData = {
     joinDate: getCurrentDate(),
     salary: ''
   },
-  dependents: [],
   bankDetails: {
     accountHolderName: '',
     bankName: '',
     branchName: '',
     accountNumber: ''
   },
-  insuranceProvider: {
-    companyName: '',
-    agentId: '',
-    licenseNumber: '',
-    contactEmail: '',
-    contactPhone: ''
-  }
+  dependents: [],
 };
 
 export const employmentTypes = [

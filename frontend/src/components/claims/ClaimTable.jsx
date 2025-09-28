@@ -440,7 +440,7 @@ export const ClaimTable = ({
         </tbody>
       </table>
 
-      {/* Summary Footer */}
+      {/* Summary Footer - Updated to include Rejected count */}
       <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
         <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center space-x-6">
@@ -459,6 +459,10 @@ export const ClaimTable = ({
             <div className="flex items-center space-x-2">
               <div className="h-3 w-3 bg-green-400 rounded-full"></div>
               <span>Approved: {claims.filter(c => c.claimStatus === 'approved').length}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="h-3 w-3 bg-red-400 rounded-full"></div>
+              <span>Rejected: {claims.filter(c => c.claimStatus === 'rejected').length}</span>
             </div>
           </div>
           

@@ -82,6 +82,7 @@ export const validateForm = (formData) => {
     }
     
     // Bank details validation
+    if (formData.role === 'employee') {
     if (!formData.bankDetails.accountHolderName) {
       errors.accountHolderName = 'Account holder name is required';
     }
@@ -96,9 +97,41 @@ export const validateForm = (formData) => {
     
     if (!formData.bankDetails.accountNumber) {
       errors.accountNumber = 'Account number is required';
-    } else if (!/^\d+$/.test(formData.bankDetails.accountNumber)) {
-      errors.accountNumber = 'Account number must contain only numbers';
+    } else if (!/^\d{8,20}$/.test(formData.bankDetails.accountNumber)) {
+      errors.accountNumber = 'Account number must be between 8 and 20 digits';
     }
+  }
+    
+   // Add this new helper function after existing validateNIC function
+const validateBankAccount = (accountNumber) => {
+  if (!accountNumber) return { isValid: false, message: 'Account number is required' };
+  
+  const cleanNumber = accountNumber.replace(/\D/g, '');
+  
+  if (!/^\d+$/.test(cleanNumber)) {
+    return { isValid: false, message: 'Account number must contain only numbers' };
+  }
+  
+  if (cleanNumber.length < 8) {
+    return { isValid: false, message: 'Account number must be at least 8 digits' };
+  }
+  
+  if (cleanNumber.length > 12) {
+    return { isValid: false, message: 'Account number cannot exceed 12 digits' };
+  }
+  
+  return { isValid: true, message: 'Valid account number' };
+};
+
+// Update the bank account validation in validateForm function
+if (!formData.bankDetails.accountNumber) {
+  errors.accountNumber = 'Account number is required';
+} else {
+  const accountValidation = validateBankAccount(formData.bankDetails.accountNumber);
+  if (!accountValidation.isValid) {
+    errors.accountNumber = accountValidation.message;
+  }
+}
   }
   
   if (formData.role === 'insurance_agent') {

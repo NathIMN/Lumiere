@@ -54,14 +54,12 @@ export const ClaimModal = ({
     return `Rs. ${amount.toLocaleString("en-LK")}`;
   };
 
-  // Fixed function to show "Today", "Yesterday", "X days ago" format
   const calculateDaysInSystem = (submittedDate) => {
     if (!submittedDate) return "Unknown";
 
     const submitted = new Date(submittedDate);
     const now = new Date();
 
-    // Reset time to midnight for accurate day comparison
     const submittedDateOnly = new Date(
       submitted.getFullYear(),
       submitted.getMonth(),
@@ -73,11 +71,9 @@ export const ClaimModal = ({
       now.getDate()
     );
 
-    // Calculate the difference in days
     const diffTime = nowDateOnly.getTime() - submittedDateOnly.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Handle different scenarios
     if (diffDays === 0) {
       return "Today";
     } else if (diffDays === 1) {
@@ -125,10 +121,8 @@ export const ClaimModal = ({
     }));
   };
 
-  // HR can only take action on claims with 'hr' status
   const canTakeHRAction = claim.claimStatus === "hr";
 
-  // FIXED: Check coverage breakdown in both possible locations
   const hasCoverageBreakdown =
     (claim.coverageBreakdown &&
       Array.isArray(claim.coverageBreakdown) &&
@@ -137,12 +131,10 @@ export const ClaimModal = ({
       Array.isArray(claim.hrForwardingDetails.coverageBreakdown) &&
       claim.hrForwardingDetails.coverageBreakdown.length > 0);
 
-  // Document handlers using DocumentApiService
   const handleViewDocument = async (doc) => {
     try {
       console.log("View document called with:", doc);
 
-      // Better document ID extraction
       const documentId =
         doc._id ||
         doc.id ||
@@ -158,6 +150,7 @@ export const ClaimModal = ({
         alert("Document ID is not available. Cannot view document.");
         return;
       }
+
       const downloadLink = await documentApiService.createDownloadLink(
         documentId
       );
@@ -174,7 +167,6 @@ export const ClaimModal = ({
     try {
       console.log("Download document called with:", doc);
 
-      // Better document ID extraction
       const documentId =
         doc._id ||
         doc.id ||
@@ -211,7 +203,6 @@ export const ClaimModal = ({
     }
   };
 
-  // Update the renderQuestionnaireResponse function to better handle file answers
   const renderQuestionnaireResponse = (response) => {
     const { answer } = response;
 
@@ -219,24 +210,21 @@ export const ClaimModal = ({
       return <span className="text-gray-400 italic">Not answered</span>;
     }
 
-    // Handle file type answers with improved document handling
     if (answer.fileValue) {
-      // Debug the fileValue structure
       console.log("File answer structure:", answer.fileValue);
 
-      // Better document ID extraction
       const documentId =
         typeof answer.fileValue === "string"
-          ? answer.fileValue // Handle case where fileValue is the ID string
+          ? answer.fileValue
           : answer.fileValue._id || answer.fileValue.id;
 
-      // Debug the extracted ID
       console.log("Extracted document ID:", documentId);
 
       if (!documentId) {
         console.error("Invalid file value structure:", answer.fileValue);
         return <div className="text-red-600">Error: Document ID not found</div>;
       }
+
       const isDownloading = downloadingDocs.has(documentId);
 
       return (
@@ -295,7 +283,6 @@ export const ClaimModal = ({
       );
     }
 
-    // Handle other answer types (unchanged)
     if (answer.textValue) return answer.textValue;
     if (answer.numberValue !== null && answer.numberValue !== undefined)
       return answer.numberValue.toString();
@@ -310,16 +297,14 @@ export const ClaimModal = ({
     return <span className="text-gray-400 italic">No response</span>;
   };
 
-  // FIXED: Corrected the typo and improved the function
   const groupQuestionnaireBySection = () => {
     let responses = [];
 
     if (claim.questionnaire?.sections) {
-      // FIXED: Changed 'response' to 'responses' - this was the main bug
       responses = claim.questionnaire.sections
         .sort((a, b) => (a.order || 0) - (b.order || 0))
         .flatMap((section) =>
-          (section.responses || []) // FIXED: This was 'section.response' before
+          (section.responses || [])
             .sort((a, b) => (a.order || 0) - (b.order || 0))
             .filter((response) => response.isAnswered)
             .map((response) => ({
@@ -336,7 +321,6 @@ export const ClaimModal = ({
       return [];
     }
 
-    // Group by section if section info exists
     if (responses.length > 0 && responses[0].section) {
       const sections = {};
       responses.forEach((response) => {
@@ -361,9 +345,7 @@ export const ClaimModal = ({
     }
   };
 
-  // FIXED: Updated to handle both possible coverage breakdown locations
   const renderCoverageBreakdown = () => {
-    // Check both possible locations for coverage breakdown
     const coverageData =
       claim.coverageBreakdown || claim.hrForwardingDetails?.coverageBreakdown;
 
@@ -439,7 +421,6 @@ export const ClaimModal = ({
                   </div>
                 )}
 
-                {/* Show when this coverage item was created */}
                 {coverage.createdAt && (
                   <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
                     <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
@@ -451,7 +432,6 @@ export const ClaimModal = ({
               </div>
             ))}
 
-            {/* Enhanced Total Summary */}
             <div className="bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-900/20 border border-blue-300 dark:border-blue-600 rounded-lg p-4 mt-4">
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-blue-900 dark:text-blue-200">
@@ -470,7 +450,6 @@ export const ClaimModal = ({
                 </span>
               </div>
 
-              {/* FIXED: Show forwarded information - check both possible locations */}
               {(claim.forwardedAt ||
                 claim.hrForwardingDetails?.forwardedAt) && (
                 <div className="flex justify-between items-center mt-2 text-sm">
@@ -486,7 +465,6 @@ export const ClaimModal = ({
                 </div>
               )}
 
-              {/* Coverage breakdown vs original amount comparison */}
               {calculateTotal() !== (claim.claimAmount?.requested || 0) && (
                 <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-600 rounded text-sm text-amber-800 dark:text-amber-200">
                   <div className="flex items-center space-x-1">
@@ -509,7 +487,6 @@ export const ClaimModal = ({
   const tabs = [
     { id: "overview", label: "Overview", icon: Eye },
     { id: "questionnaire", label: "Questionnaire", icon: FileText },
-    // { id: 'documents', label: 'Documents', icon: Download },
     { id: "history", label: "Activity", icon: History },
   ];
 
@@ -529,7 +506,6 @@ export const ClaimModal = ({
             >
               {getStatusText(claim.claimStatus)}
             </span>
-            {/* Show if claim has coverage breakdown */}
             {hasCoverageBreakdown && (
               <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800">
                 Coverage Detailed
@@ -561,7 +537,6 @@ export const ClaimModal = ({
                 >
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>
-                  {/* Show coverage indicator on overview tab */}
                   {tab.id === "overview" && hasCoverageBreakdown && (
                     <span className="inline-flex items-center justify-center w-2 h-2 bg-green-500 rounded-full"></span>
                   )}
@@ -759,27 +734,35 @@ export const ClaimModal = ({
                 </div>
               )}
 
-              {/* FIXED: Rejection Reason Section - Now prominently displayed in Overview */}
-              {claim.claimStatus === "rejected" && claim.rejectionReason && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    Rejection Details
-                  </h3>
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-red-800 dark:text-red-200 mb-2">
-                          Claim Rejected by Insurer
-                        </p>
-                        <p className="text-red-700 dark:text-red-300">
-                          <strong>Reason:</strong> {claim.rejectionReason}
-                        </p>
-                        {claim.updatedAt && (
-                          <p className="text-red-600 dark:text-red-400 text-sm mt-2">
-                            Rejected on: {formatDate(claim.updatedAt)}
+              {/* Rejection Reason Section */}
+              {claim.claimStatus === "rejected" && (
+                <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg p-6 mb-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
+                        Claim Rejected by Insurer
+                      </h3>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                            Rejection Reason:
                           </p>
-                        )}
+                          <p className="mt-1 text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/40 p-3 rounded-md">
+                            {claim.rejectionReason || "No reason provided"}
+                          </p>
+                        </div>
+                        <div className="flex items-center text-sm text-red-600 dark:text-red-400">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Rejected on: {formatDate(claim.updatedAt)}
+                        </div>
+                        <div className="text-sm text-red-600 dark:text-red-400">
+                          <Info className="h-4 w-4 inline mr-2" />
+                          Original claim amount:{" "}
+                          {formatCurrency(claim.claimAmount?.requested)}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -803,7 +786,7 @@ export const ClaimModal = ({
                 </div>
               )}
 
-              {/* FIXED: HR Notes - check both possible locations */}
+              {/* HR Notes */}
               {(claim.hrNotes || claim.hrForwardingDetails?.hrNotes) && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -870,7 +853,6 @@ export const ClaimModal = ({
           {/* Questionnaire Tab */}
           {selectedTab === "questionnaire" && (
             <div className="space-y-6">
-              {/* FIXED: Check for questionnaire data in multiple possible locations */}
               {claim.questionnaire?.sections?.some((s) =>
                 s.responses?.some((r) => r.isAnswered)
               ) || claim.questionnaire?.responses?.some((r) => r.isAnswered) ? (
@@ -1005,117 +987,10 @@ export const ClaimModal = ({
             </div>
           )}
 
-          {/* Documents Tab */}
-          {selectedTab === "documents" && (
-            <div className="space-y-6">
-              {claim.documents && claim.documents.length > 0 ? (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                    Supporting Documents ({claim.documents.length})
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {claim.documents.map((doc, index) => {
-                      const documentId = doc._id || doc.id;
-                      const isDownloading = downloadingDocs.has(documentId);
-
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600"
-                        >
-                          <div className="flex items-center space-x-3">
-                            <FileText className="h-6 w-6 text-blue-600" />
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-white">
-                                {doc.originalName ||
-                                  doc.filename ||
-                                  "Unknown file"}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Uploaded:{" "}
-                                {formatDate(doc.uploadedAt || doc.createdAt)}
-                              </p>
-                              {doc.size && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Size: {(doc.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                              )}
-                              {doc.docType && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Type: {doc.docType}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleViewDocument(doc)}
-                              className="text-green-600 hover:text-green-700 dark:text-green-400 p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
-                              title="View document"
-                              disabled={isDownloading || !documentId}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDownloadDocument(doc)}
-                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={
-                                isDownloading
-                                  ? "Downloading..."
-                                  : "Download document"
-                              }
-                              disabled={isDownloading || !documentId}
-                            >
-                              {isDownloading ? (
-                                <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <Download className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Show warning if some documents don't have IDs */}
-                  {claim.documents.some((doc) => !doc._id && !doc.id) && (
-                    <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                      <div className="flex items-start space-x-3">
-                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                        <div>
-                          <p className="text-amber-800 dark:text-amber-200 font-medium">
-                            Note
-                          </p>
-                          <p className="text-amber-700 dark:text-amber-300 text-sm">
-                            Some documents may not be downloadable due to
-                            missing document IDs. Contact system administrator
-                            if you need access to these documents.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Download className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    No Documents
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    No supporting documents have been uploaded for this claim.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Activity/History Tab */}
           {selectedTab === "history" && (
             <div className="space-y-6">
-              {/* Coverage Breakdown History - Show if exists */}
+              {/* Coverage Breakdown History */}
               {hasCoverageBreakdown && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -1139,7 +1014,6 @@ export const ClaimModal = ({
                       )}
                     </div>
 
-                    {/* Display each coverage item */}
                     <div className="space-y-3">
                       {(
                         claim.coverageBreakdown ||
@@ -1233,7 +1107,7 @@ export const ClaimModal = ({
                 </div>
               )}
 
-              {/* HR Notes History - Show if exists */}
+              {/* HR Notes History */}
               {(claim.hrNotes || claim.hrForwardingDetails?.hrNotes) && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -1398,82 +1272,104 @@ export const ClaimModal = ({
                     </div>
                   )}
 
-                  {/* FIXED: Enhanced Rejection Timeline Entry with Reason */}
+                  {/* Enhanced Rejection Timeline Entry */}
                   {claim.claimStatus === "rejected" && (
-                    <div className="flex items-start space-x-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                      <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div className="flex items-start space-x-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-2 border-red-200 dark:border-red-800">
+                      <XCircle className="h-6 w-6 text-red-600 mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-medium text-red-800 dark:text-red-200">
-                          Claim Rejected
-                        </p>
-                        <p className="text-sm text-red-600 dark:text-red-300">
-                          {formatDate(claim.updatedAt)}
-                        </p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-semibold text-red-800 dark:text-red-200">
+                            Claim Rejected by Insurer
+                          </p>
+                          <span className="text-sm text-red-600 dark:text-red-400">
+                            {formatDate(claim.updatedAt)}
+                          </span>
+                        </div>
+
                         {claim.rejectionReason && (
-                          <div className="mt-2 p-3 bg-red-100 dark:bg-red-900/40 border border-red-200 dark:border-red-700 rounded-md">
-                            <p className="text-sm text-red-700 dark:text-red-300 font-medium mb-1">
-                              Rejection Reason:
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                              Rejection Details:
                             </p>
-                            <p className="text-sm text-red-600 dark:text-red-400">
-                              {claim.rejectionReason}
-                            </p>
+                            <div className="bg-red-100/50 dark:bg-red-900/40 p-3 rounded-md border border-red-200 dark:border-red-700">
+                              <p className="text-red-600 dark:text-red-400">
+                                {claim.rejectionReason}
+                              </p>
+                            </div>
                           </div>
                         )}
+
+                        <div className="mt-3 flex items-center gap-4 text-sm text-red-600 dark:text-red-400">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1" />
+                            <span>
+                              {calculateDaysInSystem(claim.submittedAt)} in
+                              system
+                            </span>
+                          </div>
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            <span>
+                              Original amount:{" "}
+                              {formatCurrency(claim.claimAmount?.requested)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
-              </div>
 
-              {/* Summary Information */}
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                  Summary
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Days in system:
-                    </p>
-                    <p className="font-medium text-gray-900 dark:text-white">
-                      {calculateDaysInSystem(claim.submittedAt)}
-                    </p>
+                {/* Summary Information */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
+                    Summary
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Days in system:
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {calculateDaysInSystem(claim.submittedAt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Current status:
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-white capitalize">
+                        {getStatusText(claim.claimStatus)}
+                      </p>
+                    </div>
+                    {hasCoverageBreakdown && (
+                      <>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            Coverage items:
+                          </p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {
+                              (
+                                claim.coverageBreakdown ||
+                                claim.hrForwardingDetails?.coverageBreakdown ||
+                                []
+                              ).length
+                            }{" "}
+                            types detailed
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            HR processing:
+                          </p>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            Complete with breakdown
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Current status:
-                    </p>
-                    <p className="font-medium text-gray-900 dark:text-white capitalize">
-                      {getStatusText(claim.claimStatus)}
-                    </p>
-                  </div>
-                  {hasCoverageBreakdown && (
-                    <>
-                      <div>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          Coverage items:
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {
-                            (
-                              claim.coverageBreakdown ||
-                              claim.hrForwardingDetails?.coverageBreakdown ||
-                              []
-                            ).length
-                          }{" "}
-                          types detailed
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          HR processing:
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          Complete with breakdown
-                        </p>
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
@@ -1518,25 +1414,25 @@ export const ClaimModal = ({
                 {claim.claimStatus === "draft" &&
                   "This claim is still in draft status with the employee."}
               </span>
-              {/* Show coverage breakdown indicator */}
               {hasCoverageBreakdown && (
                 <span className="ml-2 px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
                   Coverage Details Available
                 </span>
               )}
-              {/* Show rejection reason indicator */}
-              {claim.claimStatus === "rejected" && claim.rejectionReason && (
-                <span className="ml-2 px-2 py-1 rounded text-xs bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200">
-                  Rejection Reason Available
-                </span>
+              {!canTakeHRAction && claim.claimStatus === "rejected" && (
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <XCircle className="h-4 w-4 text-red-500" />
+                  <span>
+                    This claim has been rejected by the insurer
+                    {claim.rejectionReason && (
+                      <span className="ml-2 px-2 py-1 rounded text-xs bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200 border border-red-200 dark:border-red-700">
+                        Rejection Reason Available
+                      </span>
+                    )}
+                  </span>
+                </div>
               )}
             </div>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
-            >
-              Close
-            </button>
           </div>
         )}
       </div>

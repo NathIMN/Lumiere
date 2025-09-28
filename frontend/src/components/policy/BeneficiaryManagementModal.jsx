@@ -1,31 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  Search, 
-  UserPlus, 
-  UserMinus, 
-  User, 
-  Mail, 
-  Phone, 
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Search,
+  UserPlus,
+  UserMinus,
+  User,
+  Mail,
+  Phone,
   Users,
   AlertCircle,
   CheckCircle,
   RefreshCw,
-  Trash2
-} from 'lucide-react';
-import userApiService from '../../services/user-api';
-import policyService from '../../services/policyService';
+  Trash2,
+} from "lucide-react";
+import userApiService from "../../services/user-api";
+import policyService from "../../services/policyService";
 
-export const BeneficiaryManagementModal = ({ 
-  isOpen, 
-  onClose, 
-  policy, 
-  onAddBeneficiary, 
-  onRemoveBeneficiary, 
-  mode // 'add' or 'remove'
+export const BeneficiaryManagementModal = ({
+  isOpen,
+  onClose,
+  policy,
+  onAddBeneficiary,
+  onRemoveBeneficiary,
+  mode, // 'add' or 'remove'
 }) => {
   // States
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [currentBeneficiaries, setCurrentBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -35,12 +36,12 @@ export const BeneficiaryManagementModal = ({
   const [notification, setNotification] = useState(null);
 
   // Show notification
-  const showNotification = (message, type = 'success') => {
+  const showNotification = (message, type = "success") => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Search employees for adding beneficiaries
+  // Search employees for adding beneficiaries - FIXED
   const searchEmployees = async (searchQuery) => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -49,10 +50,13 @@ export const BeneficiaryManagementModal = ({
 
     setSearchLoading(true);
     try {
+      // Enhanced search parameters to include employee ID search
       const response = await userApiService.getUsers({
-        role: 'employee',
+        role: "employee",
         search: searchQuery,
-        limit: 20
+        limit: 20,
+        // Add specific fields to search in
+        searchFields: ["firstName", "lastName", "email", "userId", "employeeId"]
       });
 
       let employees = [];
@@ -60,21 +64,43 @@ export const BeneficiaryManagementModal = ({
       if (response?.users) {
         employees = response.users;
       } else if (response?.data) {
-        employees = Array.isArray(response.data) ? response.data : [response.data];
+        employees = Array.isArray(response.data)
+          ? response.data
+          : [response.data];
       } else if (Array.isArray(response)) {
         employees = response;
       }
 
+      // Additional client-side filtering for employee ID search
+      if (searchQuery.trim()) {
+        employees = employees.filter(emp => {
+          const searchLower = searchQuery.toLowerCase();
+          const firstName = (emp.profile?.firstName || emp.firstName || '').toLowerCase();
+          const lastName = (emp.profile?.lastName || emp.lastName || '').toLowerCase();
+          const email = (emp.email || '').toLowerCase();
+          const userId = (emp.userId || '').toLowerCase();
+          const employeeId = (emp.employeeId || '').toLowerCase();
+          
+          return firstName.includes(searchLower) ||
+                 lastName.includes(searchLower) ||
+                 email.includes(searchLower) ||
+                 userId.includes(searchLower) ||
+                 employeeId.includes(searchLower);
+        });
+      }
+
       // Filter out users who are already beneficiaries
-      const existingBeneficiaryIds = currentBeneficiaries.map(b => b._id || b.id);
-      const filteredEmployees = employees.filter(emp => 
-        !existingBeneficiaryIds.includes(emp._id || emp.id)
+      const existingBeneficiaryIds = currentBeneficiaries.map(
+        (b) => b._id || b.id
+      );
+      const filteredEmployees = employees.filter(
+        (emp) => !existingBeneficiaryIds.includes(emp._id || emp.id)
       );
 
       setSearchResults(filteredEmployees);
     } catch (error) {
-      console.error('Error searching employees:', error);
-      showNotification('Failed to search employees: ' + error.message, 'error');
+      console.error("Error searching employees:", error);
+      showNotification("Failed to search employees: " + error.message, "error");
       setSearchResults([]);
     } finally {
       setSearchLoading(false);
@@ -91,28 +117,38 @@ export const BeneficiaryManagementModal = ({
     setLoading(true);
     try {
       // If beneficiaries are already populated objects, use them directly
-      if (policy.beneficiaries.length > 0 && typeof policy.beneficiaries[0] === 'object') {
+      if (
+        policy.beneficiaries.length > 0 &&
+        typeof policy.beneficiaries[0] === "object"
+      ) {
         setCurrentBeneficiaries(policy.beneficiaries);
       } else if (policy.beneficiaries.length > 0) {
         // If beneficiaries are just IDs, we need to fetch user details
-        const beneficiaryPromises = policy.beneficiaries.map(async (beneficiaryId) => {
-          try {
-            const response = await userApiService.getUsers({ id: beneficiaryId });
-            return response?.data || response;
-          } catch (error) {
-            console.error(`Error fetching beneficiary ${beneficiaryId}:`, error);
-            return null;
+        const beneficiaryPromises = policy.beneficiaries.map(
+          async (beneficiaryId) => {
+            try {
+              const response = await userApiService.getUsers({
+                id: beneficiaryId,
+              });
+              return response?.data || response;
+            } catch (error) {
+              console.error(
+                `Error fetching beneficiary ${beneficiaryId}:`,
+                error
+              );
+              return null;
+            }
           }
-        });
+        );
 
         const beneficiaryDetails = await Promise.all(beneficiaryPromises);
-        setCurrentBeneficiaries(beneficiaryDetails.filter(b => b !== null));
+        setCurrentBeneficiaries(beneficiaryDetails.filter((b) => b !== null));
       } else {
         setCurrentBeneficiaries([]);
       }
     } catch (error) {
-      console.error('Error loading beneficiaries:', error);
-      showNotification('Failed to load current beneficiaries', 'error');
+      console.error("Error loading beneficiaries:", error);
+      showNotification("Failed to load current beneficiaries", "error");
       setCurrentBeneficiaries([]);
     } finally {
       setLoading(false);
@@ -125,19 +161,25 @@ export const BeneficiaryManagementModal = ({
 
     setActionLoading(true);
     try {
-      console.log("iygeowye : ",policy._id);
+      console.log("Adding beneficiary : ", policy._id);
       await policyService.addBeneficiary(policy._id, employee._id);
-      
+
       // Update local state
-      setCurrentBeneficiaries(prev => [...prev, employee]);
-      setSearchResults(prev => prev.filter(emp => (emp._id || emp.id) !== (employee._id || employee.id)));
+      setCurrentBeneficiaries((prev) => [...prev, employee]);
+      setSearchResults((prev) =>
+        prev.filter(
+          (emp) => (emp._id || emp.id) !== (employee._id || employee.id)
+        )
+      );
       setSelectedUser(null);
-      setSearchTerm('');
-      
-      showNotification(`Successfully added ${employee.firstName} ${employee.lastName} as beneficiary`);
+      setSearchTerm("");
+
+      showNotification(
+        `Successfully added ${employee.firstName} ${employee.lastName} as beneficiary`
+      );
     } catch (error) {
-      console.error('Error adding beneficiary:', error);
-      showNotification('Failed to add beneficiary: ' + error.message, 'error');
+      console.error("Error adding beneficiary:", error);
+      showNotification("Failed to add beneficiary: " + error.message, "error");
     } finally {
       setActionLoading(false);
     }
@@ -149,17 +191,40 @@ export const BeneficiaryManagementModal = ({
 
     setActionLoading(true);
     try {
-      await policyService.removeBeneficiary(policy.policyId || policy._id, beneficiary._id || beneficiary.id);
-      
+      // Make sure we're using the correct policy ID
+      // Get policy ID and beneficiary ID
+      const policyId = policy._id;
+      const beneficiaryId = beneficiary._id;
+
+      console.log("Removing beneficiary:", {
+        policyId,
+        beneficiaryId,
+        policy,
+        beneficiary: beneficiary.firstName + " " + beneficiary.lastName,
+      });
+
+      await policyService.removeBeneficiary(policyId, beneficiaryId);
+
       // Update local state
-      setCurrentBeneficiaries(prev => 
-        prev.filter(b => (b._id || b.id) !== (beneficiary._id || beneficiary.id))
+      setCurrentBeneficiaries((prevBeneficiaries) =>
+        prevBeneficiaries.filter((b) => b._id !== beneficiaryId)
       );
-      
-      showNotification(`Successfully removed ${beneficiary.firstName} ${beneficiary.lastName} as beneficiary`);
+
+      // Show success notification
+      showNotification(
+        `Successfully removed ${beneficiary.firstName} ${beneficiary.lastName} as beneficiary`
+      );
+
+      // Notify parent component if callback exists
+      if (onRemoveBeneficiary) {
+        onRemoveBeneficiary(beneficiaryId);
+      }
     } catch (error) {
-      console.error('Error removing beneficiary:', error);
-      showNotification('Failed to remove beneficiary: ' + error.message, 'error');
+      console.error("Failed to remove beneficiary:", error);
+      showNotification(
+        `Failed to remove beneficiary: ${error.message || "Unknown error"}`,
+        "error"
+      );
     } finally {
       setActionLoading(false);
     }
@@ -173,19 +238,19 @@ export const BeneficiaryManagementModal = ({
   }, [isOpen, policy]);
 
   useEffect(() => {
-    if (mode === 'add') {
+    if (mode === "add") {
       const debounceTimer = setTimeout(() => {
         searchEmployees(searchTerm);
       }, 300);
 
       return () => clearTimeout(debounceTimer);
     }
-  }, [searchTerm, mode]);
+  }, [searchTerm, mode, currentBeneficiaries]); // Added currentBeneficiaries as dependency
 
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setSearchTerm('');
+      setSearchTerm("");
       setSearchResults([]);
       setSelectedUser(null);
       setNotification(null);
@@ -195,22 +260,23 @@ export const BeneficiaryManagementModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50  backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl h-[700px] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
-            {mode === 'add' ? (
+            {mode === "add" ? (
               <UserPlus className="h-6 w-6 text-blue-600" />
             ) : (
               <UserMinus className="h-6 w-6 text-red-600" />
             )}
             <div>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {mode === 'add' ? 'Add Beneficiary' : 'Remove Beneficiary'}
+                {mode === "add" ? "Add Beneficiary" : "Remove Beneficiary"}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Policy: {policy?.policyId} • {policy?.policyType === 'life' ? 'Life' : 'Vehicle'} Insurance
+                Policy: {policy?.policyId} •{" "}
+                {policy?.policyType === "life" ? "Life" : "Vehicle"} Insurance
               </p>
             </div>
           </div>
@@ -224,25 +290,29 @@ export const BeneficiaryManagementModal = ({
 
         {/* Notification */}
         {notification && (
-          <div className={`p-4 m-4 rounded-lg border ${
-            notification.type === 'error' 
-              ? 'bg-red-50 border-red-200 text-red-800' 
-              : 'bg-green-50 border-green-200 text-green-800'
-          }`}>
+          <div
+            className={`p-4 m-4 rounded-lg border ${
+              notification.type === "error"
+                ? "bg-red-50 border-red-200 text-red-800"
+                : "bg-green-50 border-green-200 text-green-800"
+            }`}
+          >
             <div className="flex items-center gap-2">
-              {notification.type === 'error' ? (
+              {notification.type === "error" ? (
                 <AlertCircle className="h-4 w-4" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              <span className="text-sm font-medium">{notification.message}</span>
+              <span className="text-sm font-medium">
+                {notification.message}
+              </span>
             </div>
           </div>
         )}
 
         {/* Content */}
         <div className="flex-1 p-6 overflow-y-auto min-h-0">
-          {mode === 'add' ? (
+          {mode === "add" ? (
             // Add Beneficiary Mode
             <div className="space-y-6">
               {/* Current Beneficiaries Info */}
@@ -255,8 +325,8 @@ export const BeneficiaryManagementModal = ({
                 </div>
                 {currentBeneficiaries.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {currentBeneficiaries.map(beneficiary => (
-                      <span 
+                    {currentBeneficiaries.map((beneficiary) => (
+                      <span
                         key={beneficiary._id || beneficiary.id}
                         className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded-md"
                       >
@@ -276,7 +346,7 @@ export const BeneficiaryManagementModal = ({
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search by name, email, or employee ID..."
+                    placeholder="Search by name, email, employee ID, or user ID..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -297,7 +367,7 @@ export const BeneficiaryManagementModal = ({
                   </h3>
                   {searchResults.length > 0 ? (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {searchResults.map(employee => (
+                      {searchResults.map((employee) => (
                         <div
                           key={employee._id || employee.id}
                           className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -308,22 +378,28 @@ export const BeneficiaryManagementModal = ({
                             </div>
                             <div>
                               <h4 className="font-medium text-gray-900 dark:text-white">
-                                {employee.profile?.firstName || employee.firstName} {employee.profile?.lastName || employee.lastName}
+                                {employee.profile?.firstName ||
+                                  employee.firstName}{" "}
+                                {employee.profile?.lastName ||
+                                  employee.lastName}
                               </h4>
                               <div className="flex items-center gap-4 text-sm text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
                                   {employee.email}
                                 </div>
-                                {(employee.profile?.phoneNumber || employee.phone) && (
+                                {(employee.profile?.phoneNumber ||
+                                  employee.phone) && (
                                   <div className="flex items-center gap-1">
                                     <Phone className="h-3 w-3" />
-                                    {employee.profile?.phoneNumber || employee.phone}
+                                    {employee.profile?.phoneNumber ||
+                                      employee.phone}
                                   </div>
                                 )}
                               </div>
                               <div className="text-xs text-gray-400 mt-1">
-                                {employee.userId} • {employee.employment?.department || 'N/A'}
+                                Employee ID: {employee.userId || employee.employeeId || 'N/A'} •{" "}
+                                {employee.employment?.department || "N/A"}
                               </div>
                             </div>
                           </div>
@@ -346,7 +422,9 @@ export const BeneficiaryManagementModal = ({
                     <div className="text-center py-8 text-gray-500">
                       <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                       <p>No employees found matching "{searchTerm}"</p>
-                      <p className="text-sm">Try searching with a different term</p>
+                      <p className="text-sm">
+                        Try searching with a different term
+                      </p>
                     </div>
                   ) : null}
                 </div>
@@ -359,7 +437,7 @@ export const BeneficiaryManagementModal = ({
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                   Current Beneficiaries ({currentBeneficiaries.length})
                 </h3>
-                
+
                 {loading ? (
                   <div className="space-y-3">
                     {[...Array(3)].map((_, index) => (
@@ -376,7 +454,7 @@ export const BeneficiaryManagementModal = ({
                   </div>
                 ) : currentBeneficiaries.length > 0 ? (
                   <div className="space-y-3">
-                    {currentBeneficiaries.map(beneficiary => (
+                    {currentBeneficiaries.map((beneficiary) => (
                       <div
                         key={beneficiary._id || beneficiary.id}
                         className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -387,22 +465,28 @@ export const BeneficiaryManagementModal = ({
                           </div>
                           <div>
                             <h4 className="font-medium text-gray-900 dark:text-white">
-                              {beneficiary.profile?.firstName || beneficiary.firstName} {beneficiary.profile?.lastName || beneficiary.lastName}
+                              {beneficiary.profile?.firstName ||
+                                beneficiary.firstName}{" "}
+                              {beneficiary.profile?.lastName ||
+                                beneficiary.lastName}
                             </h4>
                             <div className="flex items-center gap-4 text-sm text-gray-500">
                               <div className="flex items-center gap-1">
                                 <Mail className="h-3 w-3" />
                                 {beneficiary.email}
                               </div>
-                              {(beneficiary.profile?.phoneNumber || beneficiary.phone) && (
+                              {(beneficiary.profile?.phoneNumber ||
+                                beneficiary.phone) && (
                                 <div className="flex items-center gap-1">
                                   <Phone className="h-3 w-3" />
-                                  {beneficiary.profile?.phoneNumber || beneficiary.phone}
+                                  {beneficiary.profile?.phoneNumber ||
+                                    beneficiary.phone}
                                 </div>
                               )}
                             </div>
                             <div className="text-xs text-gray-400 mt-1">
-                              {beneficiary.userId} • {beneficiary.employment?.department || 'N/A'}
+                              Employee ID: {beneficiary.userId || beneficiary.employeeId || 'N/A'} •{" "}
+                              {beneficiary.employment?.department || "N/A"}
                             </div>
                           </div>
                         </div>
@@ -447,10 +531,9 @@ export const BeneficiaryManagementModal = ({
         {/* Footer */}
         <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
           <div className="text-sm text-gray-500">
-            {mode === 'add' 
-              ? 'Search and select an employee to add as a beneficiary'
-              : 'Select beneficiaries to remove from this policy'
-            }
+            {mode === "add"
+              ? "Search and select an employee to add as a beneficiary"
+              : "Select beneficiaries to remove from this policy"}
           </div>
           <button
             onClick={onClose}

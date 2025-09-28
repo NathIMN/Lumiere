@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // pages/ClaimForm.jsx
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FileText, Car, Heart, AlertCircle, Hospital, Pill, Skull, Shield, Flame, CloudLightning } from 'lucide-react';

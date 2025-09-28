@@ -1,18 +1,18 @@
-import React, { useState } from 'react';
-import { Shield } from 'lucide-react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import SteppedProgress from '../../components/common/SteppedProgress';
+/* eslint-disable no-unused-vars */
+import React, { useState } from "react";
+import { Shield } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import SteppedProgress from "../../components/common/SteppedProgress";
 import BasicInformation from "../../components/registration/BasicInformation";
 import PersonalInformation from "../../components/registration/PersonalInformation";
 import EmploymentDetails from "../../components/registration/EmploymentDetails";
 import BankDetails from "../../components/registration/BankDetails";
 import Dependents from "../../components/registration/Dependents";
-import InsuranceProviderDetails from '../../components/registration/InsuaranceProviderDetails';
-import EmployeeProfileUpdate from '../../components/registration/EmployeeProfileUpdate';
+import InsuranceProviderDetails from "../../components/registration/InsuaranceProviderDetails";
 
-import { validateForm } from '../../utils/validation';
-import { initialFormData } from '../../utils/constants';
-import userApiService from '../../services/user-api';
+import { validateForm } from "../../utils/validation";
+import { initialFormData } from "../../utils/constants";
+import userApiService from "../../services/user-api";
 
 export const Registration = () => {
   const [formData, setFormData] = useState(initialFormData);
@@ -28,12 +28,12 @@ export const Registration = () => {
     let processedValue = value;
 
     // Apply validation based on type
-    if (validationType === 'name') {
+    if (validationType === "name") {
       const nameRegex = /^[a-zA-Z\s]*$/;
       if (!nameRegex.test(value)) {
         return; // Don't update if invalid
       }
-    } else if (validationType === 'phone') {
+    } else if (validationType === "phone") {
       const phoneRegex = /^[0-9]*$/;
       if (!phoneRegex.test(value)) {
         return; // Don't update if invalid
@@ -41,143 +41,215 @@ export const Registration = () => {
     }
 
     if (section) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         [section]: {
           ...prev[section],
-          [name]: processedValue
-        }
+          [name]: processedValue,
+        },
       }));
     } else {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        [name]: processedValue
+        [name]: processedValue,
       }));
     }
 
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
-    
+
     // Special handling for confirm password validation
-    if (name === 'confirmPassword' && errors.confirmPassword) {
-      setErrors(prev => ({
+    if (name === "confirmPassword" && errors.confirmPassword) {
+      setErrors((prev) => ({
         ...prev,
-        confirmPassword: ''
+        confirmPassword: "",
       }));
     }
-    
+
     // Clear confirm password error when password changes
-    if (name === 'password' && errors.confirmPassword) {
-      setErrors(prev => ({
+    if (name === "password" && errors.confirmPassword) {
+      setErrors((prev) => ({
         ...prev,
-        confirmPassword: ''
+        confirmPassword: "",
       }));
     }
   };
 
   const addDependent = () => {
-    const spouseCount = formData.dependents.filter(dep => dep.relationship === 'spouse').length;
-    
-    setFormData(prev => ({
+    const currentDependents = formData.dependents || [];
+    const spouseCount = currentDependents.filter(
+      (dep) => dep.relationship === "spouse"
+    ).length;
+
+    if (spouseCount > 0 && currentDependents.length >= 5) {
+      alert("Maximum 5 dependents allowed (1 spouse + 4 children)");
+      return;
+    }
+
+    const newDependent = {
+      name: "",
+      relationship: spouseCount === 0 ? "spouse" : "child",
+      dateOfBirth: "",
+      nic: "",
+    };
+
+    setFormData((prev) => ({
       ...prev,
-      dependents: [...prev.dependents, {
-        name: '',
-        relationship: spouseCount > 0 ? 'child' : 'spouse',
-        dateOfBirth: '',
-        nic: ''
-      }]
+      dependents: [...(prev.dependents || []), newDependent],
     }));
+
+    console.log("Dependent added:", newDependent); // Debug log
   };
 
   const removeDependent = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      dependents: prev.dependents.filter((_, i) => i !== index)
+      dependents: prev.dependents.filter((_, i) => i !== index),
     }));
   };
 
   const updateDependent = (index, field, value, validationType = null) => {
-    let processedValue = value;
-    
-    // Apply validation for dependent fields
-    if (validationType === 'name') {
+    console.log("Updating dependent:", { index, field, value, validationType }); // Debug log
+
+    // Validation
+    if (validationType === "name") {
       const nameRegex = /^[a-zA-Z\s]*$/;
-      if (!nameRegex.test(value)) {
-        return; // Don't update if invalid
-      }
+      if (!nameRegex.test(value)) return;
     }
 
-    setFormData(prev => ({
-      ...prev,
-      dependents: prev.dependents.map((dep, i) => 
-        i === index ? { ...dep, [field]: processedValue } : dep
-      )
-    }));
+    if (validationType === "nic") {
+      const nicRegex = /^[0-9Vv]*$/;
+      if (!nicRegex.test(value)) return;
+    }
+
+    setFormData((prev) => {
+      const dependents = [...(prev.dependents || [])];
+      if (!dependents[index]) {
+        dependents[index] = {
+          name: "",
+          relationship:
+            dependents.filter((d) => d?.relationship === "spouse").length === 0
+              ? "spouse"
+              : "child",
+          dateOfBirth: "",
+          nic: "",
+        };
+      }
+      dependents[index] = {
+        ...dependents[index],
+        [field]: value,
+      };
+      return {
+        ...prev,
+        dependents,
+      };
+    });
+
+    // Clear any errors
+    if (errors[`dependent${index}_${field}`]) {
+      setErrors((prev) => ({
+        ...prev,
+        [`dependent${index}_${field}`]: "",
+      }));
+    }
   };
 
   const validateCurrentStep = () => {
     const validationErrors = validateForm(formData);
-    
+
     let stepErrors = {};
-    
+
     switch (currentStep) {
       case 1:
         // Basic Information validation
-        ['email', 'password', 'confirmPassword'].forEach(field => {
+        ["email", "password", "confirmPassword"].forEach((field) => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
           }
         });
         break;
-        
+
       case 2:
         // Personal Information validation
-        ['firstName', 'lastName', 'dateOfBirth', 'nic', 'phoneNumber', 'address'].forEach(field => {
+        [
+          "firstName",
+          "lastName",
+          "dateOfBirth",
+          "nic",
+          "phoneNumber",
+          "address",
+        ].forEach((field) => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
           }
         });
         break;
-        
+
       case 3:
         // Employment Details validation
-        ['department', 'designation', 'salary'].forEach(field => {
+        ["department", "designation", "salary"].forEach((field) => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
           }
         });
         break;
-        
+
       case 4:
         // Bank Details validation
-        ['accountHolderName', 'bankName', 'branchName', 'accountNumber'].forEach(field => {
-          if (validationErrors[field]) {
-            stepErrors[field] = validationErrors[field];
-          }
-        });
+        if (!formData.bankDetails) {
+          stepErrors.bankDetails = "Bank details are required";
+        } else {
+          [
+            "accountHolderName",
+            "bankName",
+            "branchName",
+            "accountNumber",
+          ].forEach((field) => {
+            if (!formData.bankDetails[field]) {
+              stepErrors[field] = `${
+                field.charAt(0).toUpperCase() + field.slice(1)
+              } is required`;
+            }
+          });
+        }
         break;
-        
+
       case 5:
-        // Dependents validation (optional step - no required fields)
+        // Make dependents validation optional
+        if (formData.dependents?.length > 0) {
+          formData.dependents.forEach((dep, index) => {
+            if (!dep.name) {
+              stepErrors[`dependent${index}_name`] = "Name is required";
+            }
+            if (!dep.dateOfBirth) {
+              stepErrors[`dependent${index}_dateOfBirth`] =
+                "Date of birth is required";
+            }
+            if (dep.relationship === "spouse" && !dep.nic) {
+              stepErrors[`dependent${index}_nic`] =
+                "NIC is required for spouse";
+            }
+          });
+        }
         break;
     }
-    
+
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
   };
 
   const handleNext = () => {
+    console.log("Validating step:", currentStep); // Debug log
     if (validateCurrentStep()) {
-      // Mark current step as completed
+      console.log("Step validated successfully"); // Debug log
       if (!completedSteps.includes(currentStep)) {
-        setCompletedSteps(prev => [...prev, currentStep]);
+        setCompletedSteps((prev) => [...prev, currentStep]);
       }
-      
       if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
       }
@@ -192,74 +264,90 @@ export const Registration = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
+    // First validate all fields
     const validationErrors = validateForm(formData);
     setErrors(validationErrors);
-    
+
     if (Object.keys(validationErrors).length > 0) {
+      alert("Please fill in all required fields correctly");
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Create user data in the exact format your API expects
       const userData = {
         email: formData.email,
         password: formData.password,
-        role: 'employee',
+        role: "employee",
         profile: {
-          firstName: formData.profile?.firstName || '',
-          lastName: formData.profile?.lastName || '',
-          dateOfBirth: formData.profile?.dateOfBirth || '',
-          nic: formData.profile?.nic || '',
-          phoneNumber: formData.profile?.phoneNumber || '',
-          address: formData.profile?.address || ''
+          firstName: formData.profile?.firstName || "",
+          lastName: formData.profile?.lastName || "",
+          dateOfBirth: formData.profile?.dateOfBirth || "",
+          nic: formData.profile?.nic || "",
+          phoneNumber: formData.profile?.phoneNumber || "",
+          address: formData.profile?.address || "",
         },
         employment: {
-          department: formData.employment?.department || '',
-          designation: formData.employment?.designation || '',
-          employmentType: formData.employment?.employmentType || 'permanent',
-          joinDate: formData.employment?.joinDate || new Date().toISOString().split('T')[0],
-          salary: Number(formData.employment?.salary) || 0
+          department: formData.employment?.department || "",
+          designation: formData.employment?.designation || "",
+          employmentType: formData.employment?.employmentType || "permanent",
+          joinDate:
+            formData.employment?.joinDate ||
+            new Date().toISOString().split("T")[0],
+          salary: Number(formData.employment?.salary) || 0,
         },
         bankDetails: {
-          accountHolderName: formData.bankDetails?.accountHolderName || '',
-          bankName: formData.bankDetails?.bankName || '',
-          branchName: formData.bankDetails?.branchName || '',
-          accountNumber: formData.bankDetails?.accountNumber || ''
-        }
+          accountHolderName: formData.bankDetails?.accountHolderName || "",
+          bankName: formData.bankDetails?.bankName || "",
+          branchName: formData.bankDetails?.branchName || "",
+          accountNumber: formData.bankDetails?.accountNumber || "",
+        },
       };
 
       // Only add dependents if they exist and are complete
       if (formData.dependents && formData.dependents.length > 0) {
         userData.dependents = formData.dependents
-          .filter(dep => dep.name && dep.relationship && dep.dateOfBirth)
-          .map(dep => ({
+          .filter((dep) => dep.name && dep.relationship && dep.dateOfBirth)
+          .map((dep) => ({
             name: dep.name,
             relationship: dep.relationship,
             dateOfBirth: dep.dateOfBirth,
-            nic: dep.nic || ''
+            nic: dep.nic || "",
           }));
       }
 
       // Register the user
       const response = await userApiService.register(userData);
-      
-      console.log('Registration successful:', response);
-      alert('Employee registered successfully!');
-      
+
+      // alert("Employee registered successfully!");
+
+      // Store in localStorage for reference
+      try {
+        localStorage.setItem(
+          "lastRegisteredEmployee",
+          JSON.stringify({
+            email: userData.email,
+            name: `${userData.profile.firstName} ${userData.profile.lastName}`,
+            timestamp: new Date().toISOString(),
+          })
+        );
+      } catch (storageError) {
+        console.warn("Failed to store in localStorage:", storageError);
+      }
+
       // Reset form
       setFormData(initialFormData);
       setCurrentStep(1);
       setCompletedSteps([]);
-      
+
       // Optionally redirect or refresh the page to show the new employee
       // window.location.reload(); // Uncomment if needed to refresh the employee list
-      
     } catch (error) {
-      console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+      console.error("Registration error:", error);
+      alert("Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -269,43 +357,46 @@ export const Registration = () => {
     switch (currentStep) {
       case 1:
         return (
-          <BasicInformation 
-            formData={formData} 
-            errors={errors} 
-            onChange={handleInputChange} 
+          <BasicInformation
+            formData={formData}
+            errors={errors}
+            onChange={handleInputChange}
           />
         );
       case 2:
         return (
-          <PersonalInformation 
-            formData={formData.profile || {}} 
-            errors={errors} 
-            onChange={handleInputChange} 
+          <PersonalInformation
+            formData={formData.profile || {}}
+            errors={errors}
+            onChange={handleInputChange}
           />
         );
       case 3:
         return (
-          <EmploymentDetails 
-            formData={formData.employment || {}} 
-            errors={errors} 
-            onChange={handleInputChange} 
+          <EmploymentDetails
+            formData={formData.employment || {}}
+            errors={errors}
+            onChange={handleInputChange}
           />
         );
       case 4:
         return (
-          <BankDetails 
-            formData={formData.bankDetails || {}} 
-            errors={errors} 
-            onChange={handleInputChange} 
+          <BankDetails
+            formData={formData.bankDetails || {}}
+            errors={errors}
+            onChange={handleInputChange}
           />
         );
       case 5:
         return (
-          <Dependents 
-            dependents={formData.dependents || []}
+          <Dependents
+            dependents={formData.dependents || []} // Provide default empty array
             onAdd={addDependent}
             onRemove={removeDependent}
-            onUpdate={updateDependent}
+            onUpdate={(index, field, value, validationType) => {
+              updateDependent(index, field, value, validationType);
+            }}
+            errors={errors}
           />
         );
       default:
@@ -324,12 +415,17 @@ export const Registration = () => {
                 <Shield className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Employee Registration</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Employee Registration
+            </h1>
             <p className="text-gray-600">Insurance Claim Management System</p>
           </div>
 
           {/* Stepped Progress */}
-          <SteppedProgress currentStep={currentStep} completedSteps={completedSteps} />
+          <SteppedProgress
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+          />
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Current Step Content */}
@@ -343,8 +439,8 @@ export const Registration = () => {
                 disabled={currentStep === 1}
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
                   currentStep === 1
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-600 text-white hover:bg-gray-700 hover:shadow-lg transform hover:-translate-y-0.5'
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-600 text-white hover:bg-gray-700 hover:shadow-lg transform hover:-translate-y-0.5"
                 }`}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -369,9 +465,9 @@ export const Registration = () => {
                   type="submit"
                   disabled={isSubmitting}
                   className={`px-8 py-3 rounded-lg font-medium text-white transition-all ${
-                    isSubmitting 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : 'bg-green-600 hover:bg-green-700 hover:shadow-lg transform hover:-translate-y-0.5'
+                    isSubmitting
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700 hover:shadow-lg transform hover:-translate-y-0.5"
                   }`}
                 >
                   {isSubmitting ? (
@@ -380,7 +476,7 @@ export const Registration = () => {
                       Registering...
                     </div>
                   ) : (
-                    'Register Employee'
+                    "Register Employee"
                   )}
                 </button>
               )}
@@ -390,8 +486,11 @@ export const Registration = () => {
           {/* Footer */}
           <div className="text-center mt-8 text-gray-500">
             <p className="text-sm">
-              Already have an account? 
-              <a href="#" className="text-blue-600 hover:text-blue-800 font-medium ml-1">
+              Already have an account?
+              <a
+                href="#"
+                className="text-blue-600 hover:text-blue-800 font-medium ml-1"
+              >
                 Sign in here
               </a>
             </p>

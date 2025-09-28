@@ -20,12 +20,9 @@ export const ClaimFilters = ({
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
-  const [hasAdvancedChanges, setHasAdvancedChanges] = useState(false);
 
-  // Update useEffect to track advanced changes
   useEffect(() => {
     setLocalFilters(filters);
-    setHasAdvancedChanges(false);
   }, [filters]);
 
   // Split filter handling between immediate and advanced
@@ -35,88 +32,99 @@ export const ClaimFilters = ({
     onFilterChange(updatedFilters);
   };
 
-  // Helper function to get date for filter
-  const getDateForFilter = (filterValue) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    switch (filterValue) {
-      case "today": {
-        return today.toISOString();
-      }
-      case "3": {
-        const threeDaysAgo = new Date(today);
-        threeDaysAgo.setDate(today.getDate() - 3);
-        threeDaysAgo.setHours(0, 0, 0, 0);
-        return threeDaysAgo.toISOString();
-      }
-      default: {
-        return "";
-      }
-    }
-  };
-
   const handleAdvancedChange = (field, value) => {
-    const updatedFilters = { ...localFilters, [field]: value };
+    let updatedFilters = { ...localFilters };
 
+    if (field === "employeeId") {
+    // Clean up the employee ID value and handle both ID and name search
+    const searchValue = value.trim().toLowerCase();
+    updatedFilters = {
+      ...updatedFilters,
+      employeeId: searchValue
+    };
+  }
+
+    // Handle date range filters based on daysOld
     if (field === "daysOld") {
       const today = new Date();
-
-      if (value === "today") {
-        // Set start to beginning of today
-        const startOfToday = new Date(today);
-        startOfToday.setHours(0, 0, 0, 0);
-        updatedFilters.startDate = startOfToday.toISOString();
-
-        // Set end to end of today
+      
+      if (value === "") {
+        // Clear the date range when daysOld is cleared
+        updatedFilters = {
+          ...updatedFilters,
+          daysOld: "",
+          startDate: "",
+          endDate: ""
+        };
+      } else {
         const endOfToday = new Date(today);
         endOfToday.setHours(23, 59, 59, 999);
-        updatedFilters.endDate = endOfToday.toISOString();
-
-        setLocalFilters(updatedFilters);
-        setHasAdvancedChanges(true);
-        return;
-      } else if (value === "3") {
-        // Set start to 3 days ago
-        const threeDaysAgo = new Date(today);
-        threeDaysAgo.setDate(today.getDate() - 3);
-        threeDaysAgo.setHours(0, 0, 0, 0);
-        updatedFilters.startDate = threeDaysAgo.toISOString();
-
-        // Set end to end of today
-        const endOfToday = new Date(today);
-        endOfToday.setHours(23, 59, 59, 999);
-        updatedFilters.endDate = endOfToday.toISOString();
+        
+        if (value === "today") {
+          const startOfToday = new Date(today);
+          startOfToday.setHours(0, 0, 0, 0);
+          updatedFilters = {
+            ...updatedFilters,
+            daysOld: value,
+            startDate: startOfToday.toISOString(),
+            endDate: endOfToday.toISOString()
+          };
+        } else if (value === "3") {
+          const threeDaysAgo = new Date(today);
+          threeDaysAgo.setDate(today.getDate() - 3);
+          threeDaysAgo.setHours(0, 0, 0, 0);
+          updatedFilters = {
+            ...updatedFilters,
+            daysOld: value,
+            startDate: threeDaysAgo.toISOString(),
+            endDate: endOfToday.toISOString()
+          };
+        }
       }
-    } else if (field === "hasHRNotes" || field === "hasReturnReason") {
-      // Convert string to boolean for boolean filters
-      updatedFilters[field] =
-        value === "true" ? true : value === "false" ? false : "";
+    } 
+    // Handle boolean filters correctly
+    else if (field === "hasHRNotes" || field === "hasReturnReason") {
+      if (value === "") {
+        updatedFilters[field] = "";
+      } else {
+        updatedFilters[field] = value === "true";
+      }
     }
+    // Handle all other filters
+    else {
+      updatedFilters[field] = value;
+    }
+
     setLocalFilters(updatedFilters);
-    setHasAdvancedChanges(true);
   };
 
   const applyAdvancedFilters = () => {
     const filtersToApply = { ...localFilters };
 
-    // Handle both manual date selection and daysOld filter
-    if (filtersToApply.startDate) {
+    // Handle manual date selection
+    if (filtersToApply.startDate && !filtersToApply.daysOld) {
       const startDate = new Date(filtersToApply.startDate);
       startDate.setHours(0, 0, 0, 0);
       filtersToApply.startDate = startDate.toISOString();
     }
 
-    if (filtersToApply.endDate) {
+    if (filtersToApply.endDate && !filtersToApply.daysOld) {
       const endDate = new Date(filtersToApply.endDate);
       endDate.setHours(23, 59, 59, 999);
       filtersToApply.endDate = endDate.toISOString();
     }
+
+    // Clean up empty values
+    Object.keys(filtersToApply).forEach(key => {
+      if (filtersToApply[key] === "" || filtersToApply[key] === null || filtersToApply[key] === undefined) {
+        delete filtersToApply[key];
+      }
+    });
+
+    console.log('Applying filters:', filtersToApply);
     onFilterChange(filtersToApply);
-    setHasAdvancedChanges(false);
   };
 
-  // Add this function to handle date range validation
   const validateDateRange = () => {
     if (localFilters.startDate && localFilters.endDate) {
       if (new Date(localFilters.startDate) > new Date(localFilters.endDate)) {
@@ -142,12 +150,11 @@ export const ClaimFilters = ({
     };
     setLocalFilters(clearedFilters);
     onFilterChange(clearedFilters);
-    setHasAdvancedChanges(false);
   };
 
   const hasActiveFilters = () => {
     return Object.entries(localFilters).some(([key, value]) => {
-      if (value === null) return false;
+      if (value === null || value === undefined || value === "") return false;
       if (typeof value === "boolean") return true;
       return value && value !== "";
     });
@@ -158,7 +165,6 @@ export const ClaimFilters = ({
   };
 
   const handleReset = () => {
-    // Create a default filters object with empty values
     const defaultFilters = {
       claimStatus: "",
       claimType: "",
@@ -168,13 +174,11 @@ export const ClaimFilters = ({
       searchTerm: "",
       hrAction: "",
       urgency: "",
-      hasReturnReason: null,
-      hasHRNotes: null,
+      hasReturnReason: "",
+      hasHRNotes: "",
       daysOld: "",
     };
     setLocalFilters(defaultFilters);
-    setHasAdvancedChanges(false);
-    // Apply the reset to parent component
     onFilterChange(defaultFilters);
   };
 
@@ -319,7 +323,11 @@ export const ClaimFilters = ({
                 <div>
                   <input
                     type="date"
-                    value={localFilters.startDate || ""}
+                    value={
+                      localFilters.startDate
+                        ? localFilters.startDate.split('T')[0]
+                        : ""
+                    }
                     onChange={(e) =>
                       handleAdvancedChange("startDate", e.target.value)
                     }
@@ -334,7 +342,11 @@ export const ClaimFilters = ({
                 <div>
                   <input
                     type="date"
-                    value={localFilters.endDate || ""}
+                    value={
+                      localFilters.endDate
+                        ? localFilters.endDate.split('T')[0]
+                        : ""
+                    }
                     onChange={(e) =>
                       handleAdvancedChange("endDate", e.target.value)
                     }
@@ -406,7 +418,13 @@ export const ClaimFilters = ({
                   Return Status
                 </label>
                 <select
-                  value={String(localFilters.hasReturnReason ?? "")}
+                  value={
+                    localFilters.hasReturnReason === true 
+                      ? "true" 
+                      : localFilters.hasReturnReason === false 
+                        ? "false" 
+                        : ""
+                  }
                   onChange={(e) =>
                     handleAdvancedChange("hasReturnReason", e.target.value)
                   }
@@ -424,7 +442,13 @@ export const ClaimFilters = ({
                   HR Notes Status
                 </label>
                 <select
-                  value={String(localFilters.hasHRNotes ?? "")}
+                  value={
+                    localFilters.hasHRNotes === true 
+                      ? "true" 
+                      : localFilters.hasHRNotes === false 
+                        ? "false" 
+                        : ""
+                  }
                   onChange={(e) =>
                     handleAdvancedChange("hasHRNotes", e.target.value)
                   }
@@ -443,35 +467,25 @@ export const ClaimFilters = ({
             <div className="flex items-center space-x-4">
               <button
                 onClick={applyAdvancedFilters}
-                disabled={!hasAdvancedChanges || !validateDateRange()}
-                className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2
-                  ${
-                    hasAdvancedChanges && validateDateRange()
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
-                  }`}
+                disabled={!validateDateRange()}
+                className={`px-4 py-2 rounded-md transition-colors flex items-center space-x-2 ${
+                  validateDateRange()
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-gray-200 dark:bg-gray-700 text-gray-500 cursor-not-allowed"
+                }`}
               >
                 <Filter className="h-4 w-4" />
                 <span>Apply Filters</span>
-                {hasAdvancedChanges && (
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                )}
               </button>
               <button
                 onClick={handleReset}
-                disabled={!hasAdvancedChanges}
-                className={`text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 ${
-                  !hasAdvancedChanges ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 Reset Changes
               </button>
             </div>
 
-            {hasAdvancedChanges && (
+            {hasPendingChanges() && (
               <span className="text-sm text-orange-600 dark:text-orange-400">
                 You have unsaved filter changes
               </span>
@@ -558,14 +572,12 @@ export const ClaimFilters = ({
                 Age:{" "}
                 {localFilters.daysOld === "today"
                   ? "Today"
-                  : localFilters.daysOld === "yesterday"
-                  ? "Yesterday"
-                  : localFilters.daysOld === "older"
-                  ? "30+ days"
+                  : localFilters.daysOld === "3"
+                  ? "Last 3 days"
                   : `${localFilters.daysOld} days`}
                 <button
                   onClick={() => {
-                    const newFilters = { ...localFilters, daysOld: "" };
+                    const newFilters = { ...localFilters, daysOld: "", startDate: "", endDate: "" };
                     setLocalFilters(newFilters);
                     onFilterChange(newFilters);
                   }}
@@ -611,14 +623,15 @@ export const ClaimFilters = ({
 
             {(localFilters.startDate || localFilters.endDate) && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
-                Date: {localFilters.startDate || "Start"} to{" "}
-                {localFilters.endDate || "End"}
+                Date: {localFilters.startDate ? localFilters.startDate.split('T')[0] : "Start"} to{" "}
+                {localFilters.endDate ? localFilters.endDate.split('T')[0] : "End"}
                 <button
                   onClick={() => {
                     const newFilters = {
                       ...localFilters,
                       startDate: "",
                       endDate: "",
+                      daysOld: ""
                     };
                     setLocalFilters(newFilters);
                     onFilterChange(newFilters);
@@ -663,7 +676,7 @@ export const ClaimFilters = ({
                   : "Showing all claims"}
                 {hasPendingChanges() && (
                   <span className="ml-2 text-orange-600 dark:text-orange-400">
-                    • Unsaved changes - click Apply Filters
+                    • Click Apply Filters to search
                   </span>
                 )}
               </span>
