@@ -75,8 +75,36 @@ const BankDetails = ({ formData, errors, onChange }) => {
             onChange={(e) => onChange(e, 'bankDetails', 'accountNumber')}
             onKeyDown={(e) => handleKeyPress(e, 'accountNumber')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.accountNumber ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter account number"
+            placeholder="Enter account number (8-20 digits)"
+            maxLength="20"
           />
+          {(() => {
+            const accountNumber = formData.accountNumber || '';
+            const length = accountNumber.length;
+            const isValid = length >= 8 && length <= 20 && /^\d+$/.test(accountNumber);
+            const isInProgress = length > 0 && length < 8;
+            
+            let statusColor = 'text-gray-500';
+            let statusText = 'Account number must be 8-20 digits';
+            
+            if (isValid) {
+              statusColor = 'text-green-600';
+              statusText = `✓ Valid account number (${length}/20 digits)`;
+            } else if (isInProgress) {
+              statusColor = 'text-yellow-600';
+              statusText = `${length}/20 digits (minimum 8 required, ${8 - length} more needed)`;
+            } else if (length > 20) {
+              statusColor = 'text-red-600';
+              statusText = `Too long (${length}/20 digits, ${length - 20} over limit)`;
+            } else if (length > 0 && !/^\d+$/.test(accountNumber)) {
+              statusColor = 'text-red-600';
+              statusText = 'Only digits are allowed';
+            }
+            
+            return (
+              <p className={`${statusColor} text-xs mt-1`}>{statusText}</p>
+            );
+          })()}
           {errors.accountNumber && <p className="text-red-500 text-sm mt-1">{errors.accountNumber}</p>}
         </div>
       </div>

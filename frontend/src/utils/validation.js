@@ -73,6 +73,16 @@ export const validateForm = (formData) => {
     
     if (!formData.employment.joinDate) {
       errors.joinDate = 'Join date is required';
+    } else {
+      // Validate join date is not in the future (account for timezone issues)
+      const joinDate = new Date(formData.employment.joinDate);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1); // Set to yesterday to avoid timezone issues
+      yesterday.setHours(23, 59, 59, 999); // End of yesterday
+      
+      if (joinDate > yesterday) {
+        errors.joinDate = 'Join date cannot be in the future';
+      }
     }
     
     if (!formData.employment.salary) {
@@ -96,8 +106,8 @@ export const validateForm = (formData) => {
     
     if (!formData.bankDetails.accountNumber) {
       errors.accountNumber = 'Account number is required';
-    } else if (!/^\d+$/.test(formData.bankDetails.accountNumber)) {
-      errors.accountNumber = 'Account number must contain only numbers';
+    } else if (!/^\d{8,20}$/.test(formData.bankDetails.accountNumber)) {
+      errors.accountNumber = 'Account number must be 8-20 digits';
     }
   }
   

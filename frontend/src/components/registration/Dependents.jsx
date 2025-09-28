@@ -7,7 +7,13 @@ const relationships = [
 ];
 
 const handleKeyPress = (e, type) => {
-  const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
+  const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
+  
+  // Prevent Enter key from submitting the form
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    return;
+  }
   
   // Always allow control keys
   if (isControlKey) {
@@ -132,6 +138,7 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                       type="date"
                       value={dependent.dateOfBirth}
                       onChange={(e) => onUpdate(index, 'dateOfBirth', e.target.value)}
+                      onKeyDown={(e) => handleKeyPress(e, 'date')}
                       min="1970-01-01"
                       max="2025-12-31"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -144,6 +151,7 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                       type="text"
                       value={dependent.nic}
                       onChange={(e) => handleNicChange(e, index, onUpdate)}
+                      onKeyDown={(e) => handleKeyPress(e, 'nic')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter NIC (e.g., 123456789V or 123456789012)"
                     />
