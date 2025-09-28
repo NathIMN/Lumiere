@@ -18,6 +18,8 @@ export const ReviewAndSubmit = ({
    const [showSuccessModal, setShowSuccessModal] = useState(false);
    const navigate = useNavigate();
 
+   const MAX_AMOUNT = 10000000;
+const MIN_AMOUNT = 0;     
    // Helper function to get sections from questionnaire for final step display
    const getSections = () => {
       if (!questionnaire?.sections) {
@@ -255,16 +257,33 @@ export const ReviewAndSubmit = ({
                   </div>
                   <div className="bg-gray-50 rounded-xl p-6">
                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Total Claim Amount (USD) <span className="text-red-500">*</span>
+                        Total Claim Amount (LKR) <span className="text-red-500">*</span>
                      </label>
-                     <input
-                        type="number"
-                        value={claimAmount}
-                        onChange={(e) => setClaimAmount(e.target.value)}
-                        placeholder="Enter total claim amount"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        disabled={submitting}
-                     />
+<input
+  type="number"
+  value={claimAmount}
+  onChange={(e) => {
+    const val = e.target.value;
+
+    if (val === "") {
+      setClaimAmount("");
+      return;
+    }
+
+    let num = Number(val);
+
+    // Clamp between min and max
+    if (num < MIN_AMOUNT) num = MIN_AMOUNT;
+    if (num > MAX_AMOUNT) num = MAX_AMOUNT;
+
+    setClaimAmount(num);
+  }}
+  placeholder="Enter total claim amount"
+  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  disabled={submitting}
+  min={MIN_AMOUNT}
+  max={MAX_AMOUNT}
+/>
                      <p className="text-xs text-gray-500 mt-2">
                         Enter the total amount you are claiming for this incident
                      </p>

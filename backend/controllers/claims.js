@@ -650,6 +650,7 @@ const getQuestionnaireQuestions = asyncWrapper(async (req, res, next) => {
           questionText: response.questionText,
           questionType: response.questionType,
           isRequired: response.isRequired,
+          validation: response.validation,
           order: response.order,
           currentAnswer: response.isAnswered ? {
             value: response.answer.textValue || 

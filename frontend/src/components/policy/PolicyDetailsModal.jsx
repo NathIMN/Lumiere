@@ -91,6 +91,7 @@ export const PolicyDetailsModal = ({ policy, isOpen, onClose }) => {
               {getTypeIcon(policy.policyType)}
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  
                   Policy Details - {policy.policyId}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -167,6 +168,7 @@ export const PolicyDetailsModal = ({ policy, isOpen, onClose }) => {
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500 dark:text-gray-400">Coverage Amount</span>
                       <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                        {console.log("qoudg ",policy.coverage)}
                         {formatCurrency(policy.coverage.coverageAmount)}
                       </span>
                     </div>

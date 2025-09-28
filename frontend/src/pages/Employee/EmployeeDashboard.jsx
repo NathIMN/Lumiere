@@ -21,7 +21,7 @@ export const EmployeeDashboard = () => {
       { path: "messaging", label: "Messaging", icon: MessageSquareMore },
    ];
 
-   const color = "#ff7a66";
+   const color = "#800020";
 
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);

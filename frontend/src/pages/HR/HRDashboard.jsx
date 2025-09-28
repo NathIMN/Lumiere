@@ -31,7 +31,7 @@ const hrLinks = [
    { path: "employee_directory", label: "Employees", icon: Users },
 ];
 
-  const color = "#37d449";
+const color = "#800020";
 
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);
