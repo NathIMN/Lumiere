@@ -28,7 +28,25 @@ const createPolicy = asyncWrapper(async (req, res, next) => {
     }
   }
 
-  const policy = await Policy.create(req.body);
+  // Prepare policy data with proper coverageAmount handling
+  const policyData = { ...req.body };
+  
+  // Ensure coverageAmount is provided (required by model)
+  // The pre-save middleware will auto-calculate it if coverageDetails exist
+  if (!policyData.coverage?.coverageAmount) {
+    if (policyData.coverage?.coverageDetails?.length > 0) {
+      // Calculate from coverage details
+      policyData.coverage.coverageAmount = policyData.coverage.coverageDetails.reduce(
+        (total, detail) => total + (detail.limit || 0), 0
+      );
+    } else {
+      // Set minimum value, will be auto-calculated by pre-save middleware
+      if (!policyData.coverage) policyData.coverage = {};
+      policyData.coverage.coverageAmount = 1; // Temporary, will be recalculated
+    }
+  }
+
+  const policy = await Policy.create(policyData);
   
   // Populate references for response
   await policy.populate([
@@ -620,6 +638,213 @@ const getPoliciesByAgent = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Get claimed amounts for a specific beneficiary (employee can check their own, admin/hr/agent can check any)
+const getBeneficiaryClaimedAmounts = asyncWrapper(async (req, res, next) => {
+  const { id: policyId } = req.params;
+  const { beneficiaryId } = req.query;
+  const { userId, role } = req.user;
+
+  const policy = await Policy.findById(policyId).populate([
+    { path: "beneficiaries", select: "firstName lastName email employeeId" }
+  ]);
+
+  if (!policy) {
+    return next(createCustomError(`No policy with id: ${policyId}`, 404));
+  }
+
+  // Check permissions - employees can only check their own amounts
+  if (role === "employee" || role === "executive") {
+    if (!beneficiaryId || beneficiaryId !== userId.toString()) {
+      return next(createCustomError("You can only check your own claimed amounts", 403));
+    }
+  }
+
+  const targetBeneficiaryId = beneficiaryId || userId;
+
+  // Check if user is a beneficiary of this policy
+  const isBeneficiary = policy.beneficiaries.some(
+    b => b._id.toString() === targetBeneficiaryId.toString()
+  );
+
+  if (!isBeneficiary) {
+    return next(createCustomError("User is not a beneficiary of this policy", 404));
+  }
+
+  // Get all coverage types for this policy
+  const coverageTypes = policy.policyType === 'life' ? policy.coverage.typeLife : policy.coverage.typeVehicle;
+  
+  // Build response with claimed amounts and limits
+  const claimedAmounts = coverageTypes.map(coverageType => {
+    const claimed = policy.getClaimedAmountForBeneficiary(targetBeneficiaryId, coverageType);
+    const limit = policy.getCoverageLimit(coverageType);
+    const remaining = limit - claimed;
+
+    return {
+      coverageType,
+      claimedAmount: claimed,
+      coverageLimit: limit,
+      remainingAmount: Math.max(0, remaining),
+      utilizationPercentage: limit > 0 ? Math.round((claimed / limit) * 100) : 0
+    };
+  });
+
+  res.status(200).json({
+    success: true,
+    policyId: policy.policyId,
+    policyType: policy.policyType,
+    beneficiaryId: targetBeneficiaryId,
+    claimedAmounts,
+    totalCoverageAmount: policy.coverage.coverageAmount
+  });
+});
+
+// Get claimed amounts summary for all beneficiaries (admin/hr/agent only)
+const getPolicyClaimedAmountsSummary = asyncWrapper(async (req, res, next) => {
+  const { id: policyId } = req.params;
+  const { role } = req.user;
+
+  // Check permissions
+  if (!["admin", "hr_officer", "insurance_agent"].includes(role)) {
+    return next(createCustomError("Access denied. Admin, HR, or Insurance Agent role required", 403));
+  }
+
+  const policy = await Policy.findById(policyId).populate([
+    { path: "beneficiaries", select: "firstName lastName email employeeId" }
+  ]);
+
+  if (!policy) {
+    return next(createCustomError(`No policy with id: ${policyId}`, 404));
+  }
+
+  const coverageTypes = policy.policyType === 'life' ? policy.coverage.typeLife : policy.coverage.typeVehicle;
+  
+  // Build summary for each beneficiary
+  const beneficiariesSummary = policy.beneficiaries.map(beneficiary => {
+    const claimedAmounts = coverageTypes.map(coverageType => {
+      const claimed = policy.getClaimedAmountForBeneficiary(beneficiary._id, coverageType);
+      const limit = policy.getCoverageLimit(coverageType);
+      
+      return {
+        coverageType,
+        claimedAmount: claimed,
+        coverageLimit: limit,
+        remainingAmount: Math.max(0, limit - claimed),
+        utilizationPercentage: limit > 0 ? Math.round((claimed / limit) * 100) : 0
+      };
+    });
+
+    const totalClaimed = claimedAmounts.reduce((sum, c) => sum + c.claimedAmount, 0);
+    const totalLimit = claimedAmounts.reduce((sum, c) => sum + c.coverageLimit, 0);
+
+    return {
+      beneficiary: {
+        id: beneficiary._id,
+        name: `${beneficiary.firstName} ${beneficiary.lastName}`,
+        email: beneficiary.email,
+        employeeId: beneficiary.employeeId
+      },
+      claimedAmounts,
+      totalClaimed,
+      totalLimit,
+      totalUtilizationPercentage: totalLimit > 0 ? Math.round((totalClaimed / totalLimit) * 100) : 0
+    };
+  });
+
+  res.status(200).json({
+    success: true,
+    policyId: policy.policyId,
+    policyType: policy.policyType,
+    beneficiariesCount: policy.beneficiaries.length,
+    beneficiariesSummary
+  });
+});
+
+// Validate policy coverage amount consistency
+const validatePolicyCoverageConsistency = asyncWrapper(async (req, res, next) => {
+  const { id: policyId } = req.params;
+
+  const policy = await Policy.findById(policyId);
+  if (!policy) {
+    return next(createCustomError(`No policy with id: ${policyId}`, 404));
+  }
+
+  const validation = policy.validateCoverageConsistency();
+
+  res.status(200).json({
+    success: true,
+    policyId: policy.policyId,
+    validation: {
+      ...validation,
+      needsSync: !validation.isConsistent,
+      coverageDetails: policy.coverage.coverageDetails.map(detail => ({
+        type: detail.type,
+        limit: detail.limit
+      }))
+    }
+  });
+});
+
+// Get enhanced claimed amounts summary with total coverage validation
+const getEnhancedClaimedAmountsSummary = asyncWrapper(async (req, res, next) => {
+  const { id: policyId } = req.params;
+
+  const policy = await Policy.findById(policyId).populate('beneficiaries', 'profile.firstName profile.lastName email employment.employeeId');
+  if (!policy) {
+    return next(createCustomError(`No policy with id: ${policyId}`, 404));
+  }
+
+  const summary = {
+    policyId: policy.policyId,
+    totalCoverageAmount: policy.coverage.coverageAmount,
+    calculatedCoverageAmount: policy.calculateTotalCoverageAmount(),
+    isConsistent: policy.validateCoverageConsistency().isConsistent,
+    beneficiaries: []
+  };
+
+  // Calculate utilization for each beneficiary
+  for (const beneficiary of policy.beneficiaries) {
+    const beneficiaryData = {
+      beneficiaryId: beneficiary._id,
+      name: `${beneficiary.profile.firstName} ${beneficiary.profile.lastName}`,
+      email: beneficiary.email,
+      employeeId: beneficiary.employment?.employeeId,
+      coverageTypes: [],
+      totalClaimed: policy.getTotalClaimedForBeneficiary(beneficiary._id),
+      totalRemaining: policy.getRemainingTotalCoverage(beneficiary._id),
+      utilizationPercentage: 0
+    };
+
+    // Calculate utilization percentage
+    if (policy.coverage.coverageAmount > 0) {
+      beneficiaryData.utilizationPercentage = Math.round(
+        (beneficiaryData.totalClaimed / policy.coverage.coverageAmount) * 100
+      );
+    }
+
+    // Get details for each coverage type
+    for (const coverageDetail of policy.coverage.coverageDetails) {
+      const claimed = policy.getClaimedAmountForBeneficiary(beneficiary._id, coverageDetail.type);
+      const remaining = policy.getRemainingCoverage(beneficiary._id, coverageDetail.type);
+      const typeUtilization = coverageDetail.limit > 0 ? Math.round((claimed / coverageDetail.limit) * 100) : 0;
+
+      beneficiaryData.coverageTypes.push({
+        type: coverageDetail.type,
+        limit: coverageDetail.limit,
+        claimed: claimed,
+        remaining: remaining,
+        utilizationPercentage: typeUtilization
+      });
+    }
+
+    summary.beneficiaries.push(beneficiaryData);
+  }
+
+  res.status(200).json({
+    success: true,
+    summary
+  });
+});
+
 export {
   createPolicy,
   getAllPolicies,
@@ -639,4 +864,8 @@ export {
   getPolicyUsage,
   bulkUpdateStatus,
   getPoliciesByAgent,
+  getBeneficiaryClaimedAmounts,
+  getPolicyClaimedAmountsSummary,
+  validatePolicyCoverageConsistency,
+  getEnhancedClaimedAmountsSummary,
 };
