@@ -11,7 +11,6 @@ import {
    Briefcase,
    Users,
    RefreshCw,
-   Download,
    Eye,
    X,
    ChevronDown,
@@ -771,11 +770,6 @@ export const EmployeeDirectory = () => {
                         <RefreshCw className="h-4 w-4" />
                         <span>Refresh</span>
                      </button>
-                     <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                        <Download className="h-4 w-4" />
-                        <span>Export</span>
-                     </button>
-
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
                      <Users className="h-4 w-4" />
