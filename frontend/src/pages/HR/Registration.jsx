@@ -20,6 +20,7 @@ export const Registration = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState([]);
+  const [allowSubmission, setAllowSubmission] = useState(false);
 
   const totalSteps = 5;
 
@@ -146,7 +147,7 @@ export const Registration = () => {
         
       case 3:
         // Employment Details validation
-        ['department', 'designation', 'salary'].forEach(field => {
+        ['department', 'designation', 'joinDate', 'salary'].forEach(field => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
           }
@@ -172,6 +173,7 @@ export const Registration = () => {
   };
 
   const handleNext = () => {
+   console.log("cliacked next ")
     if (validateCurrentStep()) {
       // Mark current step as completed
       if (!completedSteps.includes(currentStep)) {
@@ -179,7 +181,10 @@ export const Registration = () => {
       }
       
       if (currentStep < totalSteps) {
-        setCurrentStep(currentStep + 1);
+        const nextStep = currentStep + 1;
+        setCurrentStep(nextStep);
+        // Reset submission permission for new step
+        setAllowSubmission(false);
       }
     }
   };
@@ -191,7 +196,27 @@ export const Registration = () => {
   };
 
   const handleSubmit = async (e) => {
+   console.log("clicked submit ")
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Prevent double submissions
+    if (isSubmitting) {
+      return;
+    }
+    
+    // Prevent auto-submission - require explicit user action
+    if (!allowSubmission) {
+      return;
+    }
+    
+    // Ensure we're on the final step before submitting
+    if (currentStep !== totalSteps) {
+      return;
+    }
+    
+    // Add a small delay to ensure this is an intentional submission
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     const validationErrors = validateForm(formData);
     setErrors(validationErrors);
@@ -246,7 +271,6 @@ export const Registration = () => {
       // Register the user
       const response = await userApiService.register(userData);
       
-      console.log('Registration successful:', response);
       alert('Employee registered successfully!');
       
       // Reset form
@@ -254,12 +278,16 @@ export const Registration = () => {
       setCurrentStep(1);
       setCompletedSteps([]);
       
-      // Optionally redirect or refresh the page to show the new employee
-      // window.location.reload(); // Uncomment if needed to refresh the employee list
-      
     } catch (error) {
-      console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+      // Show more detailed error message to user
+      let errorMessage = 'Registration failed. Please try again.';
+      if (error.details && error.details.message) {
+        errorMessage = `Registration failed: ${error.details.message}`;
+      } else if (error.message && error.message !== 'API request failed') {
+        errorMessage = `Registration failed: ${error.message}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -268,6 +296,7 @@ export const Registration = () => {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
+         console.log("step: ", currentStep);
         return (
           <BasicInformation 
             formData={formData} 
@@ -276,6 +305,7 @@ export const Registration = () => {
           />
         );
       case 2:
+         console.log("step: ", currentStep);
         return (
           <PersonalInformation 
             formData={formData.profile || {}} 
@@ -284,6 +314,7 @@ export const Registration = () => {
           />
         );
       case 3:
+         console.log("step: ", currentStep);
         return (
           <EmploymentDetails 
             formData={formData.employment || {}} 
@@ -292,6 +323,7 @@ export const Registration = () => {
           />
         );
       case 4:
+         console.log("step: ", currentStep);
         return (
           <BankDetails 
             formData={formData.bankDetails || {}} 
@@ -300,6 +332,7 @@ export const Registration = () => {
           />
         );
       case 5:
+         console.log("step: ", currentStep);
         return (
           <Dependents 
             dependents={formData.dependents || []}
@@ -331,7 +364,7 @@ export const Registration = () => {
           {/* Stepped Progress */}
           <SteppedProgress currentStep={currentStep} completedSteps={completedSteps} />
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8" noValidate>
             {/* Current Step Content */}
             {renderCurrentStep()}
 
@@ -366,8 +399,20 @@ export const Registration = () => {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
                   disabled={isSubmitting}
+                  onClick={async (e) => {
+                    // Manually trigger form submission
+                    const form = e.target.closest('form');
+                    if (form) {
+                      setAllowSubmission(true);
+                      // Small delay to ensure state is updated
+                      setTimeout(() => {
+                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                        form.dispatchEvent(submitEvent);
+                      }, 10);
+                    }
+                  }}
                   className={`px-8 py-3 rounded-lg font-medium text-white transition-all ${
                     isSubmitting 
                       ? 'bg-gray-400 cursor-not-allowed' 

@@ -538,5 +538,261 @@
             "id": "68b330466490f16e98c7926a"
         }
     ]
+},
+{
+    "success": true,
+    "message": "Template created successfully",
+    "template": {
+        "claimType": "life",
+        "claimOption": "hospitalization",
+        "title": "Life Insurance - Hospitalization Claim Questionnaire",
+        "description": "Complete questionnaire for hospitalization claims under life insurance policy",
+        "sections": [
+            {
+                "title": "Hospital Details",
+                "description": "Information about the hospital and admission",
+                "order": 1,
+                "questions": [
+                    {
+                        "questionId": "hospital_name",
+                        "questionText": "Name of the hospital where treatment was received",
+                        "questionType": "text",
+                        "options": [],
+                        "isRequired": true,
+                        "validation": {
+                            "minLength": 2,
+                            "maxLength": 100,
+                            "pattern": "^[A-Za-z0-9 .,&'-]+$",
+                            "message": "Hospital name can only include letters, numbers, spaces, and basic punctuation"
+                        },
+                        "order": 1,
+                        "helpText": "Enter the full name of the hospital",
+                        "_id": "68d985c71229744cad936cff"
+                    },
+                    {
+                        "questionId": "admission_date",
+                        "questionText": "Date of hospital admission",
+                        "questionType": "date",
+                        "options": [],
+                        "isRequired": true,
+                        "validation": {
+                            "max": "today",
+                            "message": "Admission date cannot be in the future"
+                        },
+                        "order": 2,
+                        "_id": "68d985c71229744cad936d00"
+                    },
+                    {
+                        "questionId": "discharge_date",
+                        "questionText": "Date of hospital discharge",
+                        "questionType": "date",
+                        "options": [],
+                        "isRequired": true,
+                        "validation": {
+                            "min": "admission_date",
+                            "max": "today",
+                            "disable": "admission_date",
+                            "message": "Discharge date must be after admission date"
+                        },
+                        "order": 3,
+                        "_id": "68d985c71229744cad936d01"
+                    }
+                ],
+                "_id": "68d985c71229744cad936cfe"
+            },
+            {
+                "title": "Treatment Information",
+                "description": "Details of the treatment and reason for hospitalization",
+                "order": 2,
+                "questions": [
+                    {
+                        "questionId": "cause_of_hospitalization",
+                        "questionText": "Reason for Hospitalization (Diagnosis)",
+                        "questionType": "text",
+                        "options": [],
+                        "isRequired": true,
+                        "validation": {
+                            "minLength": 3,
+                            "maxLength": 200,
+                            "pattern": "^[A-Za-z0-9 ,.()-]+$",
+                            "message": "Diagnosis can only include letters, numbers, spaces, and common medical symbols"
+                        },
+                        "order": 1,
+                        "helpText": "Provide the medical diagnosis or reason for hospitalization",
+                        "_id": "68d985c71229744cad936d03"
+                    },
+                    {
+                        "questionId": "treatment_type",
+                        "questionText": "Type of treatment received",
+                        "questionType": "select",
+                        "options": [
+                            "Surgery",
+                            "Medical Treatment",
+                            "Emergency Care",
+                            "Observation",
+                            "Other"
+                        ],
+                        "isRequired": true,
+                        "validation": {
+                            "message": "Please select a valid treatment type"
+                        },
+                        "order": 2,
+                        "_id": "68d985c71229744cad936d04"
+                    },
+                    {
+                        "questionId": "documents",
+                        "questionText": "Upload supporting medical documents",
+                        "questionType": "file",
+                        "options": [],
+                        "isRequired": false,
+                        "validation": {
+                            "max": "5242880",
+                            "pattern": "\\.(pdf|jpg|jpeg|png)$",
+                            "message": "Only PDF, JPG, or PNG files are allowed"
+                        },
+                        "order": 3,
+                        "helpText": "Upload discharge summary, lab reports, or other medical documents",
+                        "_id": "68d985c71229744cad936d05"
+                    }
+                ],
+                "_id": "68d985c71229744cad936d02"
+            }
+        ],
+        "isActive": true,
+        "version": 1,
+        "modifiedBy": "68b2a18932fcc7b363bafaab",
+        "_id": "68d985c71229744cad936cfd",
+        "lastModified": "2025-09-28T19:00:23.893Z",
+        "createdAt": "2025-09-28T19:00:23.892Z",
+        "updatedAt": "2025-09-28T19:00:23.892Z",
+        "templateId": "LIFE_HOSP",
+        "__v": 0
+    }
+},
+{
+  "claimType": "life",
+  "claimOption": "channelling",
+  "title": "Life Insurance - Channeling Claim Questionnaire",
+  "description": "Complete questionnaire for doctor consultation (channeling) claims under life insurance policy",
+  "sections": [
+    {
+      "title": "Consultation Details",
+      "description": "Information about the consultation appointment",
+      "order": 1,
+      "questions": [
+        {
+          "questionId": "doctor_name",
+          "questionText": "Name of the doctor consulted",
+          "questionType": "text",
+          "isRequired": true,
+          "order": 1,
+          "helpText": "Enter the full name of the consulting doctor",
+          "validation": {
+            "pattern": "^[A-Za-z .'-]+$",
+            "message": "Doctor name can only include letters, spaces, and basic punctuation",
+            "minLength": 2,
+            "maxLength": 100
+          }
+        },
+        {
+          "questionId": "specialization",
+          "questionText": "Doctor's specialization",
+          "questionType": "select",
+          "options": [
+            "Cardiologist",
+            "Dermatologist",
+            "Pediatrician",
+            "Psychiatrist",
+            "Rheumatologist",
+            "Urologist",
+            "Ophthalmologist",
+            "Dentist",
+            "Other"
+          ],
+          "isRequired": true,
+          "order": 2,
+          "validation": {
+            "message": "Specialization can only include letters, spaces, and punctuation"
+          }
+        },
+        {
+          "questionId": "consultation_date",
+          "questionText": "Date of consultation",
+          "questionType": "date",
+          "isRequired": true,
+          "order": 3,
+          "validation": {
+            "max": "today",
+            "message": "Consultation date cannot be in the future"
+          }
+        },
+        {
+          "questionId": "consultation_reason",
+          "questionText": "Reason for consultation",
+          "questionType": "text",
+          "isRequired": true,
+          "order": 4,
+          "helpText": "Briefly state the symptoms or reason for visiting",
+          "validation": {
+            "pattern": "^[A-Za-z0-9 ,.()-]+$",
+            "message": "Reason can only include letters, numbers, spaces, and punctuation",
+            "minLength": 3,
+            "maxLength": 200
+          }
+        }
+      ]
+    },
+    {
+      "title": "Payment Information",
+      "description": "Details related to the consultation payment",
+      "order": 2,
+      "questions": [
+        {
+          "questionId": "consultation_fee",
+          "questionText": "Consultation fee amount",
+          "questionType": "number",
+          "isRequired": true,
+          "order": 1,
+          "helpText": "Enter the consultation fee paid in local currency",
+          "validation": {
+            "min": 1,
+            "max": 100000,
+            "message": "Fee must be between 1 and 100,000"
+          }
+        },
+        {
+          "questionId": "payment_method",
+          "questionText": "Payment method used",
+          "questionType": "select",
+          "options": [
+            "Cash",
+            "Credit Card",
+            "Debit Card",
+            "Online Payment",
+            "Other"
+          ],
+          "isRequired": true,
+          "order": 2,
+          "validation": {
+            "message": "Please select a valid payment method"
+          }
+        },
+        {
+          "questionId": "documents",
+          "questionText": "Upload supporting documents (optional)",
+          "questionType": "file",
+          "isRequired": false,
+          "order": 3,
+          "helpText": "Upload payment receipt or doctor’s note if available",
+          "validation": {
+            "pattern": "\\.(pdf|jpg|jpeg|png)$",
+            "message": "Only PDF, JPG, or PNG files are allowed",
+            "max": 5242880
+          }
+        }
+      ]
+    }
+  ]
 }
+
 ]

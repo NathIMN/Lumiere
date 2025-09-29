@@ -154,36 +154,36 @@ export const AdminOverview = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, change, color = "blue" }) => (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+  const StatCard = ({ title, value, icon: Icon, change, color = "red" }) => (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-900/10 hover:border-red-900/20 transition-all duration-200 hover:shadow-xl">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+          <p className="text-2xl font-bold text-[#151E3D] dark:text-white">{value}</p>
           {change && (
             <p className={`text-sm ${change.type === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
               {change.type === 'increase' ? '↗' : '↘'} {change.value}% from last month
             </p>
           )}
         </div>
-        <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20`}>
-          <Icon className={`w-6 h-6 text-${color}-600 dark:text-${color}-400`} />
+        <div className="p-3 rounded-full bg-gradient-to-br from-red-900 to-[#151E3D]">
+          <Icon className="w-6 h-6 text-white" />
         </div>
       </div>
     </div>
   );
 
-  const QuickActionCard = ({ title, description, icon: Icon, action, color = "blue" }) => (
+  const QuickActionCard = ({ title, description, icon: Icon, action, color = "red" }) => (
     <div 
       onClick={action}
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 cursor-pointer hover:shadow-xl transition-shadow"
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-900/10 hover:border-red-900/20 cursor-pointer hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
     >
       <div className="flex items-center space-x-4">
-        <div className={`p-3 rounded-full bg-${color}-100 dark:bg-${color}-900/20`}>
-          <Icon className={`w-6 h-6 text-${color}-600 dark:text-${color}-400`} />
+        <div className="p-3 rounded-full bg-gradient-to-br from-red-900 to-[#151E3D]">
+          <Icon className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <h3 className="text-lg font-semibold text-[#151E3D] dark:text-white">{title}</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
         </div>
       </div>
@@ -194,7 +194,7 @@ export const AdminOverview = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex items-center space-x-2">
-          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
+          <RefreshCw className="w-6 h-6 animate-spin text-red-900" />
           <span className="text-gray-600 dark:text-gray-400">Loading dashboard...</span>
         </div>
       </div>
@@ -209,7 +209,7 @@ export const AdminOverview = () => {
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <button 
             onClick={loadDashboardData}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-lg hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg"
           >
             Try Again
           </button>
@@ -219,20 +219,25 @@ export const AdminOverview = () => {
   }
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+    <div className="p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl shadow-xl border-2 border-red-900/10">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Admin Dashboard
-          </h1>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-[#151E3D] dark:text-white">
+              Admin Dashboard
+            </h1>
+          </div>
           <p className="text-gray-600 dark:text-gray-400">
             Welcome back, {user?.profile?.firstName || 'Admin'}! Here's your system overview.
           </p>
         </div>
         <button 
           onClick={loadDashboardData}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-lg hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Refresh</span>
@@ -246,36 +251,37 @@ export const AdminOverview = () => {
           value={dashboardData.users.total}
           icon={Users}
           change={{ type: 'increase', value: 12 }}
-          color="blue"
         />
         <StatCard 
           title="Active Policies" 
           value={dashboardData.policies.active}
           icon={Shield}
           change={{ type: 'increase', value: 8 }}
-          color="green"
         />
         <StatCard 
           title="Pending Claims" 
           value={dashboardData.claims.pending}
           icon={Clock}
           change={{ type: 'decrease', value: 5 }}
-          color="yellow"
         />
         <StatCard 
           title="Total Premium" 
           value={`$${dashboardData.policies.totalPremium.toLocaleString()}`}
           icon={DollarSign}
           change={{ type: 'increase', value: 15 }}
-          color="purple"
         />
       </div>
 
       {/* Detailed Breakdowns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Users Breakdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Users Overview</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-900/10 hover:border-red-900/20 transition-all duration-200">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center">
+              <Users className="w-4 h-4 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold text-[#151E3D] dark:text-white">Users Overview</h2>
+          </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-400">HR Officers</span>
@@ -297,8 +303,13 @@ export const AdminOverview = () => {
         </div>
 
         {/* Claims Breakdown */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Claims Overview</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-900/10 hover:border-red-900/20 transition-all duration-200">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+            <h2 className="text-xl font-semibold text-[#151E3D] dark:text-white">Claims Overview</h2>
+          </div>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-400">Total Claims</span>

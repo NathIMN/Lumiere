@@ -1,0 +1,138 @@
+/* Lumi Voice Assistant - Elliptical Design */
+
+.lumi-assistant {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 180px;
+  height: 70px;
+  border-radius: 35px;
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  user-select: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+  gap: 12px;
+  
+  /* Default idle state - Blue gradient */
+  background: linear-gradient(135deg, #1e40af, #3730a3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.lumi-assistant:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 25px rgba(30, 64, 175, 0.3);
+}
+
+.lumi-assistant:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Avatar Section */
+.lumi-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+  border-radius: 50%;
+}
+
+.avatar-initial {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Info Section */
+.lumi-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.lumi-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  line-height: 1.2;
+}
+
+.lumi-status {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  line-height: 1.2;
+  margin-top: 2px;
+}
+
+/* Assistant states */
+
+/* Connecting state - Burgundy gradient */
+.lumi-assistant.loading {
+  background: linear-gradient(135deg, #9f1239, #7f1d1d);
+  border-color: rgba(255, 255, 255, 0.3);
+  animation: pulse-connecting 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-connecting {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(159, 18, 57, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 6px 25px rgba(159, 18, 57, 0.6);
+  }
+}
+
+/* Active state - Enhanced blue */
+.lumi-assistant.active {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 20px rgba(29, 78, 216, 0.4);
+}
+
+.lumi-assistant.active:hover {
+  box-shadow: 0 6px 25px rgba(29, 78, 216, 0.5);
+}
+
+/* Listening state - Active pulsing with blue-burgundy mix */
+.lumi-assistant.active.listening {
+  animation: pulse-listening 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-listening {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(29, 78, 216, 0.4);
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 8px 30px rgba(29, 78, 216, 0.8);
+    background: linear-gradient(135deg, #2563eb, #9f1239);
+  }
+}

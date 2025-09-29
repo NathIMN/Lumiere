@@ -223,6 +223,62 @@ function isConversationAllowed(role1, role2) {
   );
 }
 
+// Edit a message
+const editMessage = asyncWrapper(async (req, res, next) => {
+  const { messageId } = req.params;
+  const { content } = req.body;
+
+  if (!content || !content.trim()) {
+    return next(createCustomError("Message content is required", 400));
+  }
+
+  // Find the message
+  const message = await Message.findById(messageId);
+  if (!message) {
+    return next(createCustomError("Message not found", 404));
+  }
+
+  // Check if user owns the message
+  if (message.sender.toString() !== req.user.userId.toString()) {
+    return next(createCustomError("You can only edit your own messages", 403));
+  }
+
+  // Update the message
+  message.content = content.trim();
+  message.edited = true;
+  message.editedAt = new Date();
+  await message.save();
+
+  res.status(200).json({
+    success: true,
+    message: message
+  });
+});
+
+// Delete a message
+const deleteMessage = asyncWrapper(async (req, res, next) => {
+  const { messageId } = req.params;
+
+  // Find the message
+  const message = await Message.findById(messageId);
+  if (!message) {
+    return next(createCustomError("Message not found", 404));
+  }
+
+  // Check if user owns the message
+  if (message.sender.toString() !== req.user.userId.toString()) {
+    return next(createCustomError("You can only delete your own messages", 403));
+  }
+
+  // Delete the message
+  await Message.findByIdAndDelete(messageId);
+
+  res.status(200).json({
+    success: true,
+    message: "Message deleted successfully"
+  });
+});
+
 export {
   getConversations,
   getConversation,
@@ -231,4 +287,6 @@ export {
   getAvailableContacts,
   getUnreadCount,
   searchMessages,
+  editMessage,
+  deleteMessage,
 };

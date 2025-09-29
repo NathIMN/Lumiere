@@ -118,7 +118,7 @@ export const messagingUtils = {
   filterContacts: (contacts, searchQuery, roleFilter = 'all', statusFilter = 'all') => {
     return contacts.filter(contact => {
       const matchesSearch = !searchQuery || 
-        this.formatUserName(contact).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        messagingUtils.formatUserName(contact).toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         contact.userId?.toLowerCase().includes(searchQuery.toLowerCase());
 

@@ -377,17 +377,17 @@ export const AdminPolicies = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-900/10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div className="flex items-center mb-4 md:mb-0">
-              <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center mr-4">
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-3xl font-bold text-[#151E3D] dark:text-white">
                   Policy Management
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
@@ -401,7 +401,7 @@ export const AdminPolicies = () => {
                 resetForm();
                 setShowCreateModal(true);
               }}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-lg hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create Policy

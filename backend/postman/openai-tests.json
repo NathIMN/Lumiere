@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "OpenAI Integration Tests",
+    "description": "Test payloads for OpenAI chatbot endpoints",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Chatbot - Send Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Hello, I need help with my insurance policy. Can you explain the benefits?\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/message",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "message"]
+        },
+        "description": "Test basic chatbot message functionality with OpenAI"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Formalize Message (Professional)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"hey there! i need 2 know about my claim status ASAP. its urgent!!!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/formalize",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "formalize"]
+        },
+        "description": "Test message formalization - converting casual text to professional"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Formalize Message (Already Professional)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"I would like to inquire about the status of my insurance claim. Could you please provide an update?\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/formalize",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "formalize"]
+        },
+        "description": "Test formalization with already professional message - should return minimal changes"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Stream Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "text/event-stream"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Can you explain the different types of life insurance policies available and their key benefits?\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/stream",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "stream"]
+        },
+        "description": "Test streaming response functionality - you'll see chunks of response in real-time"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Error Test (Empty Message)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/message",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "message"]
+        },
+        "description": "Test error handling for empty message - should return 400 error"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Error Test (No Message Field)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"This should fail because field name is wrong\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/formalize",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "formalize"]
+        },
+        "description": "Test error handling for missing message field - should return 400 error"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Complex Insurance Query",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"I'm 35 years old, married with two children. I want to compare term life insurance vs whole life insurance. What are the pros and cons of each, and which would be better for my situation? Also, how much coverage should I consider?\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/message",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "message"]
+        },
+        "description": "Test complex insurance consultation query - should provide detailed analysis"
+      },
+      "response": []
+    },
+    {
+      "name": "Chatbot - Formalize Long Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"omg this is so confusing!!! i filed a claim like 3 weeks ago and still havent heard anything back. i called twice but nobody picked up. this is really frustrating cuz i need the money to fix my car. can someone PLEASE tell me whats going on??? i have policy number AB123456 and the claim was for $2500. i submitted all the docs they asked for so idk what the holdup is!!!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/chatbot/formalize",
+          "host": ["{{base_url}}"],
+          "path": ["api", "chatbot", "formalize"]
+        },
+        "description": "Test formalization of frustrated customer message - should convert to professional tone while preserving key details"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "description": "Base URL for the backend server"
+    }
+  ]
+}

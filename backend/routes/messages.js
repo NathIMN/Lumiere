@@ -8,6 +8,8 @@ import {
   getAvailableContacts,
   getUnreadCount,
   searchMessages,
+  editMessage,
+  deleteMessage,
 } from "../controllers/messages.js";
 import { authenticate } from "../middleware/auth.js";
 
@@ -36,5 +38,11 @@ router.post("/send", sendMessage);
 
 // Mark conversation as read
 router.patch("/conversation/:recipientId/read", markConversationAsRead);
+
+// Edit a message
+router.put("/:messageId", editMessage);
+
+// Delete a message
+router.delete("/:messageId", deleteMessage);
 
 export default router;

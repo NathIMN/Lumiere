@@ -698,6 +698,66 @@ const getBeneficiaryClaimedAmounts = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Get claimed amounts for a specific beneficiary using custom policy ID
+const getBeneficiaryClaimedAmountsByPolicyId = asyncWrapper(async (req, res, next) => {
+  const { policyId } = req.params;
+  const { beneficiaryId } = req.query;
+  const { userId, role } = req.user;
+
+  const policy = await Policy.findOne({ policyId: policyId.toUpperCase() }).populate([
+    { path: "beneficiaries", select: "firstName lastName email employeeId" }
+  ]);
+
+  if (!policy) {
+    return next(createCustomError(`No policy with policy ID: ${policyId}`, 404));
+  }
+
+  // Check permissions - employees can only check their own amounts
+  if (role === "employee" || role === "executive") {
+    if (!beneficiaryId || beneficiaryId !== userId.toString()) {
+      return next(createCustomError("You can only check your own claimed amounts", 403));
+    }
+  }
+
+  const targetBeneficiaryId = beneficiaryId || userId;
+
+  // Check if user is a beneficiary of this policy
+  const isBeneficiary = policy.beneficiaries.some(
+    b => b._id.toString() === targetBeneficiaryId.toString()
+  );
+
+  if (!isBeneficiary) {
+    return next(createCustomError("User is not a beneficiary of this policy", 404));
+  }
+
+  // Get all coverage types for this policy
+  const coverageTypes = policy.policyType === 'life' ? policy.coverage.typeLife : policy.coverage.typeVehicle;
+  
+  // Build response with claimed amounts and limits
+  const claimedAmounts = coverageTypes.map(coverageType => {
+    const claimed = policy.getClaimedAmountForBeneficiary(targetBeneficiaryId, coverageType);
+    const limit = policy.getCoverageLimit(coverageType);
+    const remaining = limit - claimed;
+
+    return {
+      coverageType,
+      claimedAmount: claimed,
+      coverageLimit: limit,
+      remainingAmount: Math.max(0, remaining),
+      utilizationPercentage: limit > 0 ? Math.round((claimed / limit) * 100) : 0
+    };
+  });
+
+  res.status(200).json({
+    success: true,
+    policyId: policy.policyId,
+    policyType: policy.policyType,
+    beneficiaryId: targetBeneficiaryId,
+    claimedAmounts,
+    totalCoverageAmount: policy.coverage.coverageAmount
+  });
+});
+
 // Get claimed amounts summary for all beneficiaries (admin/hr/agent only)
 const getPolicyClaimedAmountsSummary = asyncWrapper(async (req, res, next) => {
   const { id: policyId } = req.params;
@@ -865,6 +925,7 @@ export {
   bulkUpdateStatus,
   getPoliciesByAgent,
   getBeneficiaryClaimedAmounts,
+  getBeneficiaryClaimedAmountsByPolicyId,
   getPolicyClaimedAmountsSummary,
   validatePolicyCoverageConsistency,
   getEnhancedClaimedAmountsSummary,

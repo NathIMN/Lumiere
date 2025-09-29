@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import insuranceApiService from '../../services/insurance-api';
+import { policyService } from '../../services/policyService';
 import {
   Search, Filter, Eye, Clock, AlertTriangle, CheckCircle, XCircle, FileText, User, Building2,
   Calendar, DollarSign, ChevronRight, RefreshCw, MoreHorizontal, ArrowRight, ArrowLeft, Star,
@@ -7,7 +8,8 @@ import {
   AlertCircle, Info, Target, BarChart3, ThumbsUp, ThumbsDown, RotateCcw, Bookmark, BookmarkCheck,
   Settings, Plus, Minus, Save, X, Check, Grid3X3, List, Maximize2, Minimize2, SortAsc, SortDesc,
   Home, Bell, Menu, ChevronDown, ChevronUp, Layers, Square, CheckSquare, Filter as FilterIcon,
-  Layout, Globe, Sliders, ToggleLeft, ToggleRight, Palette, Moon, Sun, ChevronLeft, ChevronsLeft, ChevronsRight, Mail
+  Layout, Globe, Sliders, ToggleLeft, ToggleRight, Palette, Moon, Sun, ChevronLeft, ChevronsLeft, 
+  ChevronsRight, Mail, Shield, Percent, TrendingDown, Calculator
 } from 'lucide-react';
 
 const ClaimsReview = () => {
@@ -28,6 +30,7 @@ const ClaimsReview = () => {
   // Coverage analysis state
   const [coverageAnalysis, setCoverageAnalysis] = useState(null);
   const [detailedClaimData, setDetailedClaimData] = useState(null);
+  const [policyCoverageData, setPolicyCoverageData] = useState(new Map()); // Map policyId -> coverage data
 
   // View State for toggling between pending and processed
   const [activeView, setActiveView] = useState('pending');
@@ -338,7 +341,50 @@ const ClaimsReview = () => {
       return;
     }
 
-    // Validate against coverage limits if coverage analysis is available
+    // Enhanced validation with policy coverage data
+    try {
+      if (selectedClaim.policy?.policyId && selectedClaim.employeeId) {
+        const employeeId = getEmployeeIdFromClaim(selectedClaim);
+        if (employeeId) {
+          // Always use the custom policyId (like "LG0001") first
+          const policyIdentifier = selectedClaim.policy.policyId || selectedClaim.policy._id;
+          const coverageData = await loadPolicyCoverageData(policyIdentifier, employeeId);
+          
+          if (coverageData) {
+            const summary = calculateCoverageSummary(coverageData);
+            
+            if (summary && approvedAmount > summary.totalRemaining) {
+              showToast(
+                `Approval amount ($${approvedAmount.toLocaleString()}) exceeds remaining coverage ($${summary.totalRemaining.toLocaleString()}). Employee has already claimed $${summary.totalClaimed.toLocaleString()} of their $${summary.totalLimit.toLocaleString()} limit.`,
+                'error'
+              );
+              return;
+            }
+
+            // Check specific coverage type if available
+            if (selectedClaim.claimOption && summary.coverageBreakdown) {
+              const relevantCoverage = summary.coverageBreakdown.find(
+                coverage => coverage.coverageType === selectedClaim.claimOption
+              );
+              
+              if (relevantCoverage && approvedAmount > relevantCoverage.remainingAmount) {
+                showToast(
+                  `Approval amount ($${approvedAmount.toLocaleString()}) exceeds remaining ${selectedClaim.claimOption.replace('_', ' ')} coverage ($${relevantCoverage.remainingAmount.toLocaleString()}).`,
+                  'error'
+                );
+                return;
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Could not validate coverage limits:', error);
+      // Continue with approval but show warning
+      showToast('Warning: Could not validate coverage limits. Proceeding with approval.', 'info');
+    }
+
+    // Validate against coverage limits if coverage analysis is available (legacy support)
     if (coverageAnalysis && selectedClaim.hrForwardingDetails?.coverageBreakdown) {
       let hasOverage = false;
       const overageDetails = [];
@@ -380,6 +426,12 @@ const ClaimsReview = () => {
       // Use MongoDB ObjectId for API calls
       const mongoClaimId = selectedClaim._id || selectedClaim.id;
       const customClaimId = selectedClaim.claimId || selectedClaim.claimNumber;
+
+      console.log('Making claim decision with:', { 
+        mongoClaimId, 
+        customClaimId, 
+        decisionData 
+      });
 
       await insuranceApiService.makeClaimDecision(mongoClaimId, decisionData);
 
@@ -555,6 +607,80 @@ const ClaimsReview = () => {
     setCoverageAnalysis(null);
     setDetailedClaimData(null);
     resetForms();
+  };
+
+  // ==================== COVERAGE ANALYSIS FUNCTIONS ====================
+  
+  const getEmployeeIdFromClaim = (claim) => {
+    // Handle different possible structures for employeeId
+    if (!claim.employeeId) return null;
+    
+    if (typeof claim.employeeId === 'string') {
+      return claim.employeeId;
+    }
+    
+    if (typeof claim.employeeId === 'object' && claim.employeeId._id) {
+      return claim.employeeId._id;
+    }
+    
+    if (typeof claim.employeeId === 'object' && claim.employeeId.id) {
+      return claim.employeeId.id;
+    }
+    
+    return null;
+  };
+  
+  const loadPolicyCoverageData = async (policyId, beneficiaryId) => {
+    try {
+      if (!policyId || !beneficiaryId) {
+        console.warn('Missing policyId or beneficiaryId:', { policyId, beneficiaryId });
+        return null;
+      }
+      
+      // Ensure beneficiaryId is a string
+      const beneficiaryIdString = typeof beneficiaryId === 'object' 
+        ? (beneficiaryId._id || beneficiaryId.id || beneficiaryId.toString())
+        : beneficiaryId.toString();
+      
+      // Check if we already have this data cached
+      const cacheKey = `${policyId}-${beneficiaryIdString}`;
+      if (policyCoverageData.has(cacheKey)) {
+        return policyCoverageData.get(cacheKey);
+      }
+
+      console.log('Fetching policy coverage data:', { policyId, beneficiaryId: beneficiaryIdString });
+      
+      // Fetch policy coverage data
+      const coverageResponse = await policyService.getBeneficiaryClaimedAmounts(policyId, beneficiaryIdString);
+      
+      if (coverageResponse && coverageResponse.claimedAmounts) {
+        // Cache the data
+        setPolicyCoverageData(prev => new Map(prev.set(cacheKey, coverageResponse)));
+        return coverageResponse;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error loading policy coverage data:', error);
+      return null;
+    }
+  };
+
+  const calculateCoverageSummary = (coverageData) => {
+    if (!coverageData || !coverageData.claimedAmounts) return null;
+
+    const totalLimit = coverageData.totalCoverageAmount || 0;
+    const totalClaimed = coverageData.claimedAmounts.reduce((sum, coverage) => sum + coverage.claimedAmount, 0);
+    const totalRemaining = Math.max(0, totalLimit - totalClaimed);
+    const utilizationPercentage = totalLimit > 0 ? Math.round((totalClaimed / totalLimit) * 100) : 0;
+
+    return {
+      totalLimit,
+      totalClaimed,
+      totalRemaining,
+      utilizationPercentage,
+      coverageBreakdown: coverageData.claimedAmounts
+    };
   };
 
   // ==================== LOAD CLAIM DETAILS ====================
@@ -788,17 +914,26 @@ const ClaimsReview = () => {
       loadPendingClaims(showLoading),
       loadProcessedClaims()
     ]);
-    // remove overlaps between pending and processed
-    // ensure no overlap: remove any item from pending that exists in processed
-    setPendingClaims((prevPending) => {
-      const processedIds = new Set(
-        (processedClaims || []).map((c) => c._id || c.id || c.claimId)
-      );
-      return prevPending.filter((p) => !processedIds.has(p._id || p.id || p.claimId));
-    });
-
-
   }, [loadPendingClaims, loadProcessedClaims]);
+
+  // Use effect to handle deduplication after both states are updated
+  useEffect(() => {
+    if (pendingClaims.length > 0 && processedClaims.length > 0) {
+      setPendingClaims((prevPending) => {
+        const processedIds = new Set(
+          processedClaims.map((c) => c._id || c.id || c.claimId)
+        );
+        const filteredPending = prevPending.filter((p) => 
+          !processedIds.has(p._id || p.id || p.claimId)
+        );
+        
+        if (filteredPending.length !== prevPending.length) {
+          console.log(`Filtered out ${prevPending.length - filteredPending.length} overlapping pending claims`);
+        }
+        return filteredPending;
+      });
+    }
+  }, [processedClaims]); // Run when processedClaims changes
 
   // ==================== **FIXED** COMPUTED VALUES ====================
 
@@ -895,6 +1030,270 @@ const paginatedClaims = useMemo(() => {
 }, [currentClaims, currentPage, itemsPerPage]);
 
 
+  // ==================== REAL-TIME VALIDATION COMPONENT ====================
+  
+  const ApprovalValidation = ({ claim, approvedAmount }) => {
+    const [validation, setValidation] = useState(null);
+    const [loading, setLoading] = useState(false);
+    
+    // Get stable employee ID reference
+    const employeeId = getEmployeeIdFromClaim(claim);
+
+    useEffect(() => {
+      const validateAmount = async () => {
+        if (!approvedAmount || isNaN(parseFloat(approvedAmount)) || parseFloat(approvedAmount) <= 0) {
+          setValidation(null);
+          return;
+        }
+
+        if (!claim?.policy?.policyId || !employeeId) {
+          setValidation({ type: 'warning', message: 'Cannot validate: Policy or employee information missing' });
+          return;
+        }
+
+        // Always use the custom policyId (like "LG0001") first
+        const policyIdentifier = claim.policy.policyId || claim.policy._id;
+        if (!policyIdentifier) {
+          setValidation({ type: 'warning', message: 'Cannot validate: No policy identifier available' });
+          return;
+        }
+
+        setLoading(true);
+        try {
+          const coverageData = await loadPolicyCoverageData(policyIdentifier, employeeId);
+          
+          if (coverageData) {
+            const summary = calculateCoverageSummary(coverageData);
+            const amount = parseFloat(approvedAmount);
+            
+            if (summary) {
+              if (amount > summary.totalRemaining) {
+                setValidation({
+                  type: 'error',
+                  message: `Amount exceeds remaining coverage by $${(amount - summary.totalRemaining).toLocaleString()}`
+                });
+              } else if (amount > summary.totalRemaining * 0.8) {
+                setValidation({
+                  type: 'warning',
+                  message: `High approval amount - ${Math.round((amount / summary.totalLimit) * 100)}% of total coverage used`
+                });
+              } else {
+                setValidation({
+                  type: 'success',
+                  message: `Valid amount - $${(summary.totalRemaining - amount).toLocaleString()} will remain`
+                });
+              }
+            }
+          } else {
+            setValidation({ type: 'warning', message: 'Could not load coverage data for validation' });
+          }
+        } catch (error) {
+          setValidation({ type: 'warning', message: 'Validation unavailable - network error' });
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const timeoutId = setTimeout(validateAmount, 500); // Debounce validation
+      return () => clearTimeout(timeoutId);
+    }, [approvedAmount, claim?.policy?.policyId, employeeId]);
+
+    if (loading) {
+      return (
+        <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+          <Calculator className="w-4 h-4 animate-spin" />
+          <span>Validating coverage limits...</span>
+        </div>
+      );
+    }
+
+    if (!validation) return null;
+
+    const styles = {
+      success: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+      warning: 'bg-amber-50 border-amber-200 text-amber-700',
+      error: 'bg-red-50 border-red-200 text-red-700'
+    };
+
+    const icons = {
+      success: CheckCircle,
+      warning: AlertTriangle,
+      error: XCircle
+    };
+
+    const Icon = icons[validation.type];
+
+    return (
+      <div className={`mt-2 p-3 border rounded-lg ${styles[validation.type]}`}>
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm font-medium">{validation.message}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // ==================== COVERAGE SUMMARY COMPONENT ====================
+  
+  const CoverageSummary = ({ claim, isCompact = false }) => {
+    const [coverageData, setCoverageData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    
+    // Get stable employee ID reference
+    const employeeId = getEmployeeIdFromClaim(claim);
+
+    useEffect(() => {
+      const loadCoverageInfo = async () => {
+        if (!claim?.policy?.policyId || !employeeId) {
+          console.warn('Missing policy or employee information:', { 
+            policyId: claim?.policy?.policyId,
+            policyObjectId: claim?.policy?._id,
+            employeeId 
+          });
+          return;
+        }
+        
+        // Always use the custom policyId (like "LG0001") first
+        const policyIdentifier = claim.policy.policyId || claim.policy._id;
+        if (!policyIdentifier) {
+          console.warn('No policy identifier available');
+          return;
+        }
+        
+        setLoading(true);
+        try {
+          const data = await loadPolicyCoverageData(policyIdentifier, employeeId);
+          setCoverageData(data);
+        } catch (error) {
+          console.error('Failed to load coverage data:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadCoverageInfo();
+    }, [claim?.policy?.policyId, employeeId]);
+
+    if (loading) {
+      return (
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="w-5 h-5 text-purple-600 animate-pulse" />
+            <span className="text-sm font-semibold text-purple-700">Loading Coverage Info...</span>
+          </div>
+          <div className="h-4 bg-purple-200 rounded animate-pulse"></div>
+        </div>
+      );
+    }
+
+    if (!coverageData) {
+      return (
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center gap-2 text-gray-500">
+            <AlertCircle className="w-5 h-5" />
+            <span className="text-sm">Coverage data unavailable</span>
+          </div>
+        </div>
+      );
+    }
+
+    const summary = calculateCoverageSummary(coverageData);
+    if (!summary) return null;
+
+    const getUtilizationColor = (percentage) => {
+      if (percentage >= 90) return 'text-red-600 bg-red-50 border-red-200';
+      if (percentage >= 70) return 'text-amber-600 bg-amber-50 border-amber-200';
+      if (percentage >= 50) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+      return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+    };
+
+    if (isCompact) {
+      return (
+        <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-3 border border-purple-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-purple-600" />
+              <span className="text-sm font-semibold text-purple-700">Coverage</span>
+            </div>
+            <div className={`px-2 py-1 rounded-full text-xs font-semibold border ${getUtilizationColor(summary.utilizationPercentage)}`}>
+              {summary.utilizationPercentage}% Used
+            </div>
+          </div>
+          <div className="mt-2 text-xs text-purple-600">
+            ${summary.totalRemaining.toLocaleString()} remaining of ${summary.totalLimit.toLocaleString()}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-5 h-5 text-purple-600" />
+          <span className="text-sm font-semibold text-purple-700 uppercase tracking-wide">Coverage Summary</span>
+        </div>
+        
+        {/* Overall Coverage Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="text-center">
+            <div className="text-lg font-bold text-gray-900">${summary.totalLimit.toLocaleString()}</div>
+            <div className="text-xs text-gray-500 font-medium">Total Limit</div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-red-600">${summary.totalClaimed.toLocaleString()}</div>
+            <div className="text-xs text-gray-500 font-medium">Already Claimed</div>
+          </div>
+          {/* <div className="text-center">
+            <div className="text-lg font-bold text-emerald-600">${summary.totalRemaining.toLocaleString()}</div>
+            <div className="text-xs text-gray-500 font-medium">Remaining</div>
+          </div> */}
+        </div>
+
+        {/* Utilization Bar */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-500">Coverage Utilized</span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getUtilizationColor(summary.utilizationPercentage)}`}>
+              {summary.utilizationPercentage}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className={`h-2 rounded-full transition-all ${
+                summary.utilizationPercentage >= 90 ? 'bg-red-500' :
+                summary.utilizationPercentage >= 70 ? 'bg-amber-500' :
+                summary.utilizationPercentage >= 50 ? 'bg-yellow-500' : 'bg-emerald-500'
+              }`}
+              style={{ width: `${Math.min(summary.utilizationPercentage, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Coverage Type Breakdown */}
+        {summary.coverageBreakdown && summary.coverageBreakdown.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide">By Coverage Type</div>
+            {summary.coverageBreakdown.map((coverage, index) => (
+              <div key={index} className="flex items-center justify-between text-xs bg-white rounded-lg p-2 border">
+                <span className="font-medium text-gray-700 capitalize">
+                  {coverage.coverageType.replace('_', ' ')}
+                </span>
+                <div className="text-right">
+                  <div className="font-semibold text-gray-900">
+                    ${coverage.remainingAmount.toLocaleString()} left
+                  </div>
+                  <div className="text-gray-500">
+                    of ${coverage.coverageLimit.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // ==================== USER-FRIENDLY CLAIM CARD COMPONENT ====================
   const EnhancedClaimCard = ({ claim }) => {
     const priorityConfig = PRIORITY_CONFIG[claim.priority] || PRIORITY_CONFIG['low'];
@@ -918,7 +1317,7 @@ const paginatedClaims = useMemo(() => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Checkbox */}
-              {activeView === 'pending' && (
+              {/* {activeView === 'pending' && (
                 <input
                   type="checkbox"
                   checked={selectedClaims.has(uniqueClaimId)}
@@ -933,7 +1332,7 @@ const paginatedClaims = useMemo(() => {
                   }}
                   className="w-5 h-5 text-sky-600 rounded-lg focus:ring-sky-500 focus:ring-2"
                 />
-              )}
+              )} */}
 
               {/* Claim ID & Icon */}
               <div className="flex items-center gap-4">
@@ -983,7 +1382,7 @@ const paginatedClaims = useMemo(() => {
 
         {/* MAIN CONTENT SECTION */}
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
 
             {/* Employee Information */}
             <div className="space-y-3">
@@ -1035,14 +1434,56 @@ const paginatedClaims = useMemo(() => {
               </div>
             </div>
 
-            {/* Progress & Status */}
+            {/* Coverage Information */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
+                <Shield className="w-5 h-5" />
+                Coverage Status
+              </div>
+              <CoverageSummary claim={claim} isCompact={false} />
+            </div>
+
+            {/* Progress & Status or HR Forwarding Details */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">
                 <Target className="w-5 h-5" />
-                Status & Progress
+                {activeView === 'pending' ? 'HR Forwarding' : 'Status & Progress'}
               </div>
 
-              {activeView === 'pending' ? (
+              {activeView === 'pending' && claim.hrForwardingDetails ? (
+                <div className="bg-orange-50 rounded-2xl p-4 border border-orange-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <User className="w-4 h-4 text-orange-600" />
+                    <span className="text-lg font-bold text-gray-900">HR Review</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <span className="text-sm font-medium">Officer:</span>
+                      <span className="text-sm">
+                        {claim.hrForwardingDetails.hrOfficer?.firstName} {claim.hrForwardingDetails.hrOfficer?.lastName}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-sm">
+                        Forwarded: {new Date(claim.hrForwardingDetails.forwardingDate || claim.updatedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <DollarSign className="w-4 h-4" />
+                      <span className="text-sm font-semibold">
+                        Amount: ${(claim.hrForwardingDetails.forwardedAmount || getClaimAmount(claim)).toLocaleString()}
+                      </span>
+                    </div>
+                    {claim.hrForwardingDetails.hrNotes && (
+                      <div className="mt-2 p-2 bg-white rounded-lg border border-orange-200">
+                        <span className="text-xs text-gray-500 font-medium">HR Notes:</span>
+                        <p className="text-xs text-gray-700 mt-1">{claim.hrForwardingDetails.hrNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : activeView === 'pending' ? (
                 <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-lg font-bold text-gray-900">Documentation</span>
@@ -1547,6 +1988,15 @@ const paginatedClaims = useMemo(() => {
                     </div>
                   </div>
 
+                  {/* Coverage Summary in Approval Modal */}
+                  <div className="bg-purple-50 rounded-2xl p-6 border border-purple-200">
+                    <h4 className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+                      <Shield className="w-5 h-5" />
+                      Coverage Validation
+                    </h4>
+                    <CoverageSummary claim={selectedClaim} isCompact={false} />
+                  </div>
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1559,6 +2009,7 @@ const paginatedClaims = useMemo(() => {
                         placeholder="Enter approved amount"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all text-lg"
                       />
+                      <ApprovalValidation claim={selectedClaim} approvedAmount={approveForm.approvedAmount} />
                     </div>
 
                     <div>
