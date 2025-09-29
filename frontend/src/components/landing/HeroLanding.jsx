@@ -1,6 +1,9 @@
 import {Shield, Users, FileText, MessageCircle, Zap, ArrowRight, CheckCircle, Menu, X, Bot, Bell, Database, Lock, Clock, BarChart3, Upload, Eye, Search, ChevronLeft, ChevronRight, Star, Play, Pause } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function HeroLanding() {
+   const navigate = useNavigate();
+   
   return (
     <div className="relative overflow-hidden">
       {/* Hero Section */}
@@ -24,7 +27,7 @@ export function HeroLanding() {
             
             {/* CTA Button */}
             <div className="mb-16">
-              <button className="bg-red-900 text-white px-10 py-3  font-semibold text-lg hover:shadow-xl hover:bg-[#151E3D] hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105">
+              <button onClick={() => navigate("/auth")} className="bg-red-900 text-white px-10 py-3  font-semibold text-lg hover:shadow-xl hover:bg-[#151E3D] hover:shadow-orange-500/25 transition-all duration-300 hover:scale-105">
                 Try Lumiere
               </button>
             </div>
