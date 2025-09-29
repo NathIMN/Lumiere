@@ -30,7 +30,7 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import messagingApiService from "../../services/messaging-api";
-import chatbotApiService from "../../services/chatbot-api";
+import geminiApiService from "../../services/gemini-api";
 import { useMessaging } from "../../hooks/useMessaging";
 import { messagingUtils } from "../../utils/messagingUtils";
 import { useAuth } from "../../context/AuthContext";
@@ -312,27 +312,21 @@ const MobileMessagingPage = () => {
     setFormalizeLoading(true);
 
     try {
-      const response = await chatbotApiService.formalizeMessage(messageInput);
-
-      if (response.success && response.data.formalizedMessage) {
-        setMessageInput(response.data.formalizedMessage);
-
-        // Show feedback to user if AI was unavailable
-        if (response.data.error) {
-          console.warn("AI formalization unavailable:", response.data.error);
-          // You could show a toast notification here if needed
-        }
+      const response = await geminiApiService.formalizeText(messageInput);
+      
+      if (response.success && response.formalized) {
+        setMessageInput(response.formalized);
+      } else if (response.formalized) {
+        // Even if not successful, use the fallback formalization
+        setMessageInput(response.formalized);
       }
     } catch (error) {
       console.error("Failed to formalize message:", error);
-      // Keep the original message and show a subtle warning
-      console.warn("AI formalization failed, keeping original message");
+      // Show user-friendly error message or keep original text
     } finally {
       setFormalizeLoading(false);
     }
-  };
-
-  // Edit message function
+  };  // Edit message function
   const editMessage = async (messageId, newContent) => {
     if (!newContent.trim()) {
       setEditingMessageId(null);
