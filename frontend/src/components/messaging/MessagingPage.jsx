@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   MessageCircle,
+  MessageSquare,
   Search,
   Filter,
   Send,
@@ -28,7 +29,8 @@ import {
   ArrowLeft,
   Paperclip,
   Smile,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import messagingApiService from '../../services/messaging-api';
 import chatbotApiService from '../../services/chatbot-api';
@@ -522,7 +524,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
   const getMessageStatusIcon = (message) => {
     if (message.status === 'sending') return <Clock className="w-3 h-3 text-gray-400" />;
     if (message.status === 'failed') return <AlertTriangle className="w-3 h-3 text-red-500" />;
-    if (message.readBy && message.readBy.length > 1) return <CheckCheck className="w-3 h-3 text-blue-500" />;
+    if (message.readBy && message.readBy.length > 1) return <CheckCheck className="w-3 h-3 text-rose-700" />;
     return <Check className="w-3 h-3 text-gray-400" />;
   };
 
@@ -531,7 +533,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-red-900" />
           <p className="text-gray-600 dark:text-gray-400">Loading user authentication...</p>
         </div>
       </div>
@@ -541,69 +543,84 @@ const MessagingPage = ({ userRole, config = {} }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-red-900" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-1/3 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex h-full bg-white rounded-xl shadow-xl overflow-hidden border-2 border-red-900/10">
+      {/* Sidebar with enhanced styling */}
+      <div className="w-1/3 border-r-2 border-red-900/10 flex flex-col bg-gradient-to-b from-white to-gray-50">
+        {/* Header matching sidebar design */}
+        <div className="p-6 border-b-2 border-red-900/10 bg-white">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              {roleConfig.title}
-            </h2>
-            <div className="flex items-center gap-2">
-              {isConnected ? (
-                <Circle className="w-3 h-3 text-green-500 fill-current" />
-              ) : (
-                <Circle className="w-3 h-3 text-red-500 fill-current" />
-              )}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold text-[#151E3D]">
+                {roleConfig.title}
+              </h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center space-x-2">
+                {isConnected ? (
+                  <>
+                    <Circle className="w-3 h-3 text-green-500 fill-current" />
+                    <span className="text-xs text-gray-600">Online</span>
+                  </>
+                ) : (
+                  <>
+                    <Circle className="w-3 h-3 text-red-500 fill-current" />
+                    <span className="text-xs text-gray-600">Offline</span>
+                  </>
+                )}
+              </div>
               <button
                 onClick={loadContacts}
-                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 text-gray-500 hover:text-white hover:bg-red-900 rounded-lg transition-all duration-200"
               >
                 <Settings className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Search */}
+          {/* Enhanced Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search messages..."
+              placeholder="Search conversations & contacts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-900 focus:border-red-900 bg-gray-50 text-gray-900 placeholder-gray-500 transition-all duration-200"
             />
           </div>
 
-          {/* View Tabs */}
-          <div className="flex mt-3 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          {/* Enhanced View Tabs */}
+          <div className="flex mt-4 bg-gray-100 rounded-xl p-1">
             <button
               onClick={() => setActiveView('conversations')}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex-1 px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
                 activeView === 'conversations'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-red-900 text-white shadow-md transform scale-[1.02]'
+                  : 'text-gray-600 hover:text-red-900 hover:bg-red-50'
               }`}
             >
-              Chats
+              <MessageSquare className="w-4 h-4" />
+              <span>Conversations</span>
             </button>
             <button
               onClick={() => setActiveView('contacts')}
-              className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`flex-1 px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 ${
                 activeView === 'contacts'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  ? 'bg-red-900 text-white shadow-md transform scale-[1.02]'
+                  : 'text-gray-600 hover:text-red-900 hover:bg-red-50'
               }`}
             >
-              Contacts
+              <Users className="w-4 h-4" />
+              <span>Contacts</span>
             </button>
           </div>
 
@@ -625,16 +642,18 @@ const MessagingPage = ({ userRole, config = {} }) => {
           )}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Enhanced Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-2">
           {activeView === 'conversations' ? (
-            /* Conversations List */
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            /* Enhanced Conversations List */
+            <div className="space-y-3">
               {getFilteredConversations().length === 0 ? (
-                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-                  <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                  <p>No conversations yet</p>
-                  <p className="text-sm">Start a new conversation from Contacts</p>
+                <div className="text-center py-12 text-gray-500">
+                  <div className="w-20 h-20 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <MessageCircle className="w-10 h-10 text-white" />
+                  </div>
+                  <p className="text-lg font-semibold text-[#151E3D] mb-2">No conversations yet</p>
+                  <p className="text-sm text-gray-600">Start a new conversation from Contacts</p>
                 </div>
               ) : (
                 getFilteredConversations().map(conversation => {
@@ -660,13 +679,13 @@ const MessagingPage = ({ userRole, config = {} }) => {
                       }}
                       className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
                         activeConversation?._id === conversation._id
-                          ? 'bg-blue-50 dark:bg-blue-900/20 border-r-2 border-blue-500'
+                          ? 'bg-rose-50 dark:bg-rose-900/20 border-r-2 border-rose-700'
                           : ''
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                        <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
                             {messagingUtils.formatUserName(conversation.otherParticipant).charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -684,7 +703,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
                               {conversation.lastMessage?.content || 'No messages yet'}
                             </p>
                             {conversation.unreadCount > 0 && (
-                              <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                              <span className="ml-2 bg-red-900 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                                 {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                               </span>
                             )}
@@ -704,7 +723,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
             <div className="divide-y divide-gray-200 dark:divide-gray-700">
               {contactsLoading ? (
                 <div className="p-6 text-center">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto text-red-900" />
                 </div>
               ) : getFilteredContacts().length === 0 ? (
                 <div className="p-6 text-center text-gray-500 dark:text-gray-400">
@@ -757,8 +776,8 @@ const MessagingPage = ({ userRole, config = {} }) => {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                  <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900 rounded-full flex items-center justify-center">
+                    <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
                       {messagingUtils.formatUserName(activeConversation.otherParticipant).charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -793,7 +812,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-800">
               {messageLoading ? (
                 <div className="flex justify-center">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  <Loader2 className="w-6 h-6 animate-spin text-red-900" />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -820,12 +839,12 @@ const MessagingPage = ({ userRole, config = {} }) => {
                         <div
                           className={`px-4 py-2 rounded-lg ${
                             isOwn
-                              ? 'bg-blue-600 text-white'
+                              ? 'bg-red-900 text-white'
                               : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                           }`}
                         >
                           <p className="text-sm">{message.content}</p>
-                          <div className={`flex items-center justify-end mt-1 space-x-1 ${isOwn ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                          <div className={`flex items-center justify-end mt-1 space-x-1 ${isOwn ? 'text-rose-200' : 'text-gray-500 dark:text-gray-400'}`}>
                             <span className="text-xs">
                               {messagingUtils.formatTime(message.createdAt)}
                             </span>
@@ -881,7 +900,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
                       }
                     }}
                     placeholder="Type a message..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-900 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
                 </div>
                 <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
@@ -902,7 +921,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
                 <button
                   onClick={sendMessage}
                   disabled={!messageInput.trim()}
-                  className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="p-2 bg-red-900 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Send className="w-5 h-5" />
                 </button>

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../../styles/mobile-messaging.css';
 import {
   MessageCircle,
+  MessageSquare,
   Search,
   Send,
   Phone,
@@ -455,7 +456,7 @@ const MobileMessagingPage = () => {
   const getMessageStatusIcon = (message) => {
     if (message.status === 'sending') return <Clock className="w-3 h-3 text-gray-400" />;
     if (message.status === 'failed') return <AlertTriangle className="w-3 h-3 text-red-500" />;
-    if (message.readBy && message.readBy.length > 1) return <CheckCheck className="w-3 h-3 text-blue-500" />;
+    if (message.readBy && message.readBy.length > 1) return <CheckCheck className="w-3 h-3 text-rose-700" />;
     return <Check className="w-3 h-3 text-gray-400" />;
   };
 
@@ -464,7 +465,7 @@ const MobileMessagingPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-red-900" />
           <p className="text-gray-600 dark:text-gray-400">Loading user authentication...</p>
         </div>
       </div>
@@ -474,126 +475,133 @@ const MobileMessagingPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-red-900" />
       </div>
     );
   }
 
   // Mobile Menu Overlay
   const MobileMenu = () => (
-    <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 ${showMenu ? 'block' : 'hidden'}`}>
-      <div className="fixed right-0 top-0 h-full w-64 bg-white dark:bg-gray-900 shadow-lg transform transition-transform mobile-safe-area">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h3>
-            <button
-              onClick={() => setShowMenu(false)}
-              className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-        <div className="p-4">
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  {messagingUtils.formatUserName(currentUser).charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white">
-                  {messagingUtils.formatUserName(currentUser)}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {messagingUtils.getRoleDisplayName(currentUser.role)}
-                </p>
-              </div>
+    <>
+      <div className={`mobile-menu-backdrop ${showMenu ? 'open' : ''}`} onClick={() => setShowMenu(false)} />
+      <div className={`mobile-slide-menu ${showMenu ? 'open' : ''}`}>
+        <div className="mobile-safe-area">
+          <div className="p-6 border-b-2 border-red-900/10">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-[#151E3D]">Menu</h3>
+              <button
+                onClick={() => setShowMenu(false)}
+                className="mobile-touchable p-2 text-gray-500 hover:text-red-900 rounded-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={() => {
-                setShowMenu(false);
-                loadContacts();
-              }}
-              className="mobile-touchable w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg"
-            >
-              <Settings className="w-5 h-5 text-gray-500" />
-              <span className="text-gray-900 dark:text-white">Refresh Contacts</span>
-            </button>
-            <button
-              onClick={() => {
-                logout();
-                setShowMenu(false);
-              }}
-              className="mobile-touchable w-full flex items-center space-x-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-red-600 dark:text-red-400"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>Logout</span>
-            </button>
+          </div>
+          <div className="p-6">
+            <div className="space-y-6">
+              <div className="mobile-card p-4">
+                <div className="flex items-center space-x-4">
+                  <div className="mobile-avatar">
+                    {messagingUtils.formatUserName(currentUser).charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[#151E3D]">
+                      {messagingUtils.formatUserName(currentUser)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {messagingUtils.getRoleDisplayName(currentUser.role)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setShowMenu(false);
+                  loadContacts();
+                }}
+                className="mobile-button-secondary w-full flex items-center justify-center space-x-3"
+              >
+                <Settings className="w-5 h-5" />
+                <span>Refresh Contacts</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  logout();
+                  setShowMenu(false);
+                }}
+                className="mobile-button-primary w-full flex items-center justify-center space-x-3 bg-red-600 hover:bg-red-700"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 
   return (
-    <div className="mobile-messaging-container min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="mobile-messaging-container">
       <MobileMenu />
       
       {currentView === 'chat' && activeConversation ? (
-        // Chat View
-        <div className="mobile-chat-container flex flex-col h-screen">
-          {/* Chat Header */}
-          <div className="mobile-safe-area bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
+        // Chat View with Fixed Header and Footer
+        <div className="mobile-chat-container flex flex-col h-full">
+          {/* Fixed Chat Header */}
+          <div className="mobile-header-bar flex items-center justify-between px-4">
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setCurrentView('conversations')}
-                className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                className="mobile-touchable p-2 text-gray-600 hover:text-red-900 rounded-lg"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-6 h-6" />
               </button>
-              <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  {messagingUtils.formatUserName(activeConversation.otherParticipant).charAt(0).toUpperCase()}
-                </span>
+              <div className="mobile-avatar" style={{ width: '36px', height: '36px', fontSize: '14px' }}>
+                {messagingUtils.formatUserName(activeConversation.otherParticipant).charAt(0).toUpperCase()}
               </div>
               <div>
-                <h3 className="font-medium text-gray-900 dark:text-white text-sm">
+                <h3 className="font-bold text-[#151E3D] text-base">
                   {messagingUtils.formatUserName(activeConversation.otherParticipant)}
                 </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-600">
                   {messagingUtils.getRoleDisplayName(activeConversation.otherParticipant.role)}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               {roleConfig.features.canCallUsers && (
-                <button className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button className="mobile-touchable p-2 text-gray-600 hover:text-red-900 rounded-lg">
                   <Phone className="w-5 h-5" />
                 </button>
               )}
               {roleConfig.features.canVideoCall && (
-                <button className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <button className="mobile-touchable p-2 text-gray-600 hover:text-red-900 rounded-lg">
                   <Video className="w-5 h-5" />
                 </button>
               )}
-              <button className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              <button 
+                onClick={() => setShowMenu(true)}
+                className="mobile-touchable p-2 text-gray-600 hover:text-red-900 rounded-lg"
+              >
                 <MoreVertical className="w-5 h-5" />
               </button>
             </div>
           </div>
 
           {/* Messages */}
-          <div className="mobile-messages-container flex-1 overflow-y-auto px-4 py-2 space-y-3">
+          <div className="mobile-content-area mobile-messages-container overflow-y-auto px-4 space-y-4">
             {messageLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <div className="flex items-center justify-center py-8">
+                <div className="mobile-loading-spinner"></div>
+                <span className="ml-2 text-sm text-gray-500">Loading messages...</span>
               </div>
             ) : messages.length === 0 ? (
-              <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p>No messages yet. Start the conversation!</p>
+              <div className="text-center py-8 text-gray-500">
+                <MessageCircle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p className="text-[#151E3D]">No messages yet. Start the conversation!</p>
               </div>
             ) : (
               messages.map((message, index) => {
@@ -603,31 +611,28 @@ const MobileMessagingPage = () => {
                 const showAvatar = index === 0 || messages[index - 1].sender._id !== message.sender._id;
                 
                 return (
-                  <div key={message._id || message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-xs`}>
-                      {showAvatar && !isOwn && (
-                        <div className="w-6 h-6 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                            {messagingUtils.formatUserName(message.sender).charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <div
-                        className={`px-3 py-2 rounded-2xl ${
-                          isOwn
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <div className={`flex items-center justify-end mt-1 space-x-1 ${isOwn ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}`}>
-                          <span className="text-xs">
-                            {messagingUtils.formatTime(message.createdAt)}
-                          </span>
-                          {isOwn && getMessageStatusIcon(message)}
-                        </div>
+                  <div key={message._id || message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} items-end space-x-2`}>
+                    {!isOwn && showAvatar && (
+                      <div className="mobile-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
+                        {messagingUtils.formatUserName(message.sender).charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className={isOwn ? 'mobile-message-sent' : 'mobile-message-received'}>
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                      <div className={`flex items-center justify-end mt-1 space-x-1 ${
+                        isOwn ? 'text-white/70' : 'text-gray-500'
+                      }`}>
+                        <span className="text-xs">
+                          {messagingUtils.formatTime(message.createdAt)}
+                        </span>
+                        {isOwn && getMessageStatusIcon(message)}
                       </div>
                     </div>
+                    {isOwn && showAvatar && (
+                      <div className="mobile-avatar" style={{ width: '32px', height: '32px', fontSize: '12px' }}>
+                        {messagingUtils.formatUserName(message.sender).charAt(0).toUpperCase()}
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -638,15 +643,15 @@ const MobileMessagingPage = () => {
 
           {/* Typing indicator */}
           {typingUsers[activeConversation._id] && Object.keys(typingUsers[activeConversation._id]).length > 0 && (
-            <div className="px-4 pb-2">
+            <div className="px-6 pb-2">
               <div className="flex justify-start">
-                <div className="flex items-center space-x-2 px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded-2xl">
+                <div className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-2xl">
                   <div className="flex space-x-1">
-                    <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce"></div>
-                    <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-1 h-1 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-red-900 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-red-900 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-red-900 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="text-xs text-gray-600">
                     {Object.values(typingUsers[activeConversation._id])[0]} is typing...
                   </span>
                 </div>
@@ -654,71 +659,79 @@ const MobileMessagingPage = () => {
             </div>
           )}
 
-          {/* Message Input */}
-          <div className="mobile-input-container mobile-safe-area bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
-            <div className="flex items-center space-x-2">
-              <button className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                <Paperclip className="w-5 h-5" />
+          {/* Fixed Message Input Bottom Bar */}
+          <div className="mobile-bottom-bar flex items-center px-3 py-3">
+            <div className="flex items-center w-full space-x-2 bg-white rounded-full px-3 py-2 shadow-sm border border-gray-200">
+              <button className="mobile-touchable flex-shrink-0 p-1 text-gray-500 hover:text-red-900 rounded-lg">
+                <Paperclip className="w-4 h-4" />
               </button>
-              <div className="flex-1 relative">
-                <input
-                  ref={messageInputRef}
-                  type="text"
-                  value={messageInput}
-                  onChange={(e) => {
-                    setMessageInput(e.target.value);
-                    handleTyping();
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  placeholder="Type a message..."
-                  className="mobile-message-input w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
+              
+              <input
+                ref={messageInputRef}
+                type="text"
+                value={messageInput}
+                onChange={(e) => {
+                  setMessageInput(e.target.value);
+                  handleTyping();
+                }}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+                placeholder="Type a message..."
+                className="mobile-message-input flex-1 min-w-0 border-none bg-transparent focus:outline-none text-gray-900 placeholder-gray-500"
+                style={{ fontSize: '16px' }}
+              />
+              
               <button
                 onClick={formalizeMessage}
                 disabled={!messageInput.trim() || formalizeLoading}
-                className="mobile-touch-target mobile-touchable p-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mobile-touchable flex-shrink-0 p-1 text-purple-600 hover:text-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg"
                 title="Formalize message with AI"
               >
                 {formalizeLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-4 h-4" />
                 )}
               </button>
+              
               <button
                 onClick={sendMessage}
                 disabled={!messageInput.trim()}
-                className="mobile-touch-target mobile-touchable p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mobile-button-primary flex-shrink-0 p-2 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ width: '40px', height: '40px', minWidth: '40px' }}
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
         </div>
       ) : (
-        // Main View (Conversations/Contacts)
-        <div className="mobile-chat-container flex flex-col h-screen">
-          {/* Header */}
-          <div className="mobile-safe-area bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        // Main View (Conversations/Contacts) with Fixed Header
+        <div className="mobile-chat-container">
+          {/* Fixed Header */}
+          <div className="mobile-header-bar flex flex-col px-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#151E3D]">
                 {roleConfig.title}
               </h2>
-              <div className="flex items-center space-x-2">
-                {isConnected ? (
-                  <Circle className="w-3 h-3 text-green-500 fill-current" />
-                ) : (
-                  <Circle className="w-3 h-3 text-red-500 fill-current" />
-                )}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-1">
+                  {isConnected ? (
+                    <Circle className="w-3 h-3 text-green-500 fill-current" />
+                  ) : (
+                    <Circle className="w-3 h-3 text-red-500 fill-current" />
+                  )}
+                  <span className="text-xs text-gray-600">
+                    {isConnected ? 'Online' : 'Offline'}
+                  </span>
+                </div>
                 <button
                   onClick={() => setShowMenu(true)}
-                  className="mobile-touch-target mobile-touchable p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  className="mobile-touchable p-2 text-gray-600 hover:text-red-900 rounded-lg"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
@@ -726,45 +739,40 @@ const MobileMessagingPage = () => {
             </div>
 
             {/* Search */}
-            <div className="relative mb-4">
+            <div className="relative mt-3">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search conversations & contacts..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="mobile-message-input w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="mobile-search-input pl-10"
               />
             </div>
+          </div>
 
-            {/* View Tabs */}
-            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-full p-1">
+          {/* Fixed Navigation Tabs */}
+          <div className="bg-white border-b-2 border-gray-100 px-4 py-2">
+            <div className="flex">
               <button
                 onClick={() => setCurrentView('conversations')}
-                className={`mobile-touchable flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                  currentView === 'conversations'
-                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
+                className={`mobile-nav-tab ${currentView === 'conversations' ? 'active' : ''}`}
               >
-                Chats
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Conversations
               </button>
               <button
                 onClick={() => setCurrentView('contacts')}
-                className={`mobile-touchable flex-1 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                  currentView === 'contacts'
-                    ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}
+                className={`mobile-nav-tab ${currentView === 'contacts' ? 'active' : ''}`}
               >
+                <Users className="w-4 h-4 mr-2" />
                 Contacts
               </button>
             </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">
-            {currentView === 'conversations' ? (
+          <div className="mobile-content-area overflow-y-auto">{currentView === 'conversations' ? (
               /* Conversations List */
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {getFilteredConversations().length === 0 ? (
@@ -787,8 +795,8 @@ const MobileMessagingPage = () => {
                         className="mobile-touchable p-4 active:bg-gray-50 dark:active:bg-gray-800 transition-colors"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                          <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
                               {messagingUtils.formatUserName(conversation.otherParticipant).charAt(0).toUpperCase()}
                             </span>
                           </div>
@@ -806,7 +814,7 @@ const MobileMessagingPage = () => {
                                 {conversation.lastMessage?.content || 'No messages yet'}
                               </p>
                               {conversation.unreadCount > 0 && (
-                                <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                                <span className="ml-2 bg-red-900 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
                                   {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                                 </span>
                               )}
@@ -826,7 +834,7 @@ const MobileMessagingPage = () => {
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {contactsLoading ? (
                   <div className="p-6 text-center">
-                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-red-900" />
                   </div>
                 ) : getFilteredContacts().length === 0 ? (
                   <div className="p-6 text-center text-gray-500 dark:text-gray-400">
