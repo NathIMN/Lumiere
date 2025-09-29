@@ -31,36 +31,40 @@ export const BeneficiaryManagementModal = ({
   const [currentBeneficiaries, setCurrentBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Show notification
+  //  Utility: Safe name builder
+  const formatName = (user) =>
+    `${user?.profile?.firstName || user?.firstName || ""} ${
+      user?.profile?.lastName || user?.lastName || ""
+    }`.trim() || "Unnamed User";
+
+  //  Utility: Safe ID getter
+  const getId = (item) => item?._id || item?.id;
+
+  //  Notification system
   const showNotification = (message, type = "success") => {
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Search employees for adding beneficiaries - FIXED
+  //  Search employees (debounced via useEffect)
   const searchEmployees = async (searchQuery) => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
       return;
     }
-
     setSearchLoading(true);
     try {
-      // Enhanced search parameters to include employee ID search
       const response = await userApiService.getUsers({
         role: "employee",
         search: searchQuery,
         limit: 20,
-        // Add specific fields to search in
-        searchFields: ["firstName", "lastName", "email", "userId", "employeeId"]
+        searchFields: ["firstName", "lastName", "email", "userId", "employeeId"],
       });
 
       let employees = [];
-      // Handle your API response structure: { success: true, count: 6, users: [...] }
       if (response?.users) {
         employees = response.users;
       } else if (response?.data) {
@@ -71,33 +75,28 @@ export const BeneficiaryManagementModal = ({
         employees = response;
       }
 
-      // Additional client-side filtering for employee ID search
-      if (searchQuery.trim()) {
-        employees = employees.filter(emp => {
-          const searchLower = searchQuery.toLowerCase();
-          const firstName = (emp.profile?.firstName || emp.firstName || '').toLowerCase();
-          const lastName = (emp.profile?.lastName || emp.lastName || '').toLowerCase();
-          const email = (emp.email || '').toLowerCase();
-          const userId = (emp.userId || '').toLowerCase();
-          const employeeId = (emp.employeeId || '').toLowerCase();
-          
-          return firstName.includes(searchLower) ||
-                 lastName.includes(searchLower) ||
-                 email.includes(searchLower) ||
-                 userId.includes(searchLower) ||
-                 employeeId.includes(searchLower);
-        });
-      }
+      // Client-side filtering
+      const searchLower = searchQuery.toLowerCase();
+      employees = employees.filter((emp) => {
+        const firstName = (emp?.profile?.firstName || emp?.firstName || "").toLowerCase();
+        const lastName = (emp?.profile?.lastName || emp?.lastName || "").toLowerCase();
+        const email = (emp?.email || "").toLowerCase();
+        const userId = (emp?.userId || "").toLowerCase();
+        const employeeId = (emp?.employeeId || "").toLowerCase();
+        return (
+          firstName.includes(searchLower) ||
+          lastName.includes(searchLower) ||
+          email.includes(searchLower) ||
+          userId.includes(searchLower) ||
+          employeeId.includes(searchLower)
+        );
+      });
 
-      // Filter out users who are already beneficiaries
-      const existingBeneficiaryIds = currentBeneficiaries.map(
-        (b) => b._id || b.id
-      );
-      const filteredEmployees = employees.filter(
-        (emp) => !existingBeneficiaryIds.includes(emp._id || emp.id)
-      );
+      // Exclude existing beneficiaries
+      const existingIds = currentBeneficiaries.map(getId);
+      const filtered = employees.filter((emp) => !existingIds.includes(getId(emp)));
 
-      setSearchResults(filteredEmployees);
+      setSearchResults(filtered);
     } catch (error) {
       console.error("Error searching employees:", error);
       showNotification("Failed to search employees: " + error.message, "error");
@@ -107,76 +106,51 @@ export const BeneficiaryManagementModal = ({
     }
   };
 
-  // Load current beneficiaries
+  // ✅ Load beneficiaries
   const loadCurrentBeneficiaries = async () => {
     if (!policy?.beneficiaries) {
       setCurrentBeneficiaries([]);
       return;
     }
-
     setLoading(true);
     try {
-      // If beneficiaries are already populated objects, use them directly
       if (
         policy.beneficiaries.length > 0 &&
         typeof policy.beneficiaries[0] === "object"
       ) {
         setCurrentBeneficiaries(policy.beneficiaries);
-      } else if (policy.beneficiaries.length > 0) {
-        // If beneficiaries are just IDs, we need to fetch user details
-        const beneficiaryPromises = policy.beneficiaries.map(
-          async (beneficiaryId) => {
+      } else {
+        const details = await Promise.all(
+          policy.beneficiaries.map(async (id) => {
             try {
-              const response = await userApiService.getUsers({
-                id: beneficiaryId,
-              });
+              const response = await userApiService.getUsers({ id });
               return response?.data || response;
             } catch (error) {
-              console.error(
-                `Error fetching beneficiary ${beneficiaryId}:`,
-                error
-              );
+              console.error("Error fetching beneficiary:", id, error);
               return null;
             }
-          }
+          })
         );
-
-        const beneficiaryDetails = await Promise.all(beneficiaryPromises);
-        setCurrentBeneficiaries(beneficiaryDetails.filter((b) => b !== null));
-      } else {
-        setCurrentBeneficiaries([]);
+        setCurrentBeneficiaries(details.filter(Boolean));
       }
     } catch (error) {
       console.error("Error loading beneficiaries:", error);
-      showNotification("Failed to load current beneficiaries", "error");
-      setCurrentBeneficiaries([]);
+      showNotification("Failed to load beneficiaries", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle adding beneficiary
+  // ✅ Add
   const handleAddBeneficiary = async (employee) => {
     if (!employee || !policy) return;
-
     setActionLoading(true);
     try {
-      console.log("Adding beneficiary : ", policy._id);
-      await policyService.addBeneficiary(policy._id, employee._id);
-
-      // Update local state
+      await policyService.addBeneficiary(policy._id, getId(employee));
       setCurrentBeneficiaries((prev) => [...prev, employee]);
-      setSearchResults((prev) =>
-        prev.filter(
-          (emp) => (emp._id || emp.id) !== (employee._id || employee.id)
-        )
-      );
-      setSelectedUser(null);
-      setSearchTerm("");
-
-      showNotification(
-        `Successfully added ${employee.firstName} ${employee.lastName} as beneficiary`
-      );
+      setSearchResults((prev) => prev.filter((emp) => getId(emp) !== getId(employee)));
+      showNotification(`Added ${formatName(employee)} as beneficiary`);
+      if (onAddBeneficiary) onAddBeneficiary(employee);
     } catch (error) {
       console.error("Error adding beneficiary:", error);
       showNotification("Failed to add beneficiary: " + error.message, "error");
@@ -185,74 +159,41 @@ export const BeneficiaryManagementModal = ({
     }
   };
 
-  // Handle removing beneficiary
+  // ✅ Remove
   const handleRemoveBeneficiary = async (beneficiary) => {
     if (!beneficiary || !policy) return;
-
     setActionLoading(true);
     try {
-      // Make sure we're using the correct policy ID
-      // Get policy ID and beneficiary ID
-      const policyId = policy._id;
-      const beneficiaryId = beneficiary._id;
-
-      console.log("Removing beneficiary:", {
-        policyId,
-        beneficiaryId,
-        policy,
-        beneficiary: beneficiary.firstName + " " + beneficiary.lastName,
-      });
-
-      await policyService.removeBeneficiary(policyId, beneficiaryId);
-
-      // Update local state
-      setCurrentBeneficiaries((prevBeneficiaries) =>
-        prevBeneficiaries.filter((b) => b._id !== beneficiaryId)
+      await policyService.removeBeneficiary(policy._id, getId(beneficiary));
+      setCurrentBeneficiaries((prev) =>
+        prev.filter((b) => getId(b) !== getId(beneficiary))
       );
-
-      // Show success notification
-      showNotification(
-        `Successfully removed ${beneficiary.firstName} ${beneficiary.lastName} as beneficiary`
-      );
-
-      // Notify parent component if callback exists
-      if (onRemoveBeneficiary) {
-        onRemoveBeneficiary(beneficiaryId);
-      }
+      showNotification(`Removed ${formatName(beneficiary)} from beneficiaries`);
+      if (onRemoveBeneficiary) onRemoveBeneficiary(getId(beneficiary));
     } catch (error) {
-      console.error("Failed to remove beneficiary:", error);
-      showNotification(
-        `Failed to remove beneficiary: ${error.message || "Unknown error"}`,
-        "error"
-      );
+      console.error("Error removing beneficiary:", error);
+      showNotification("Failed to remove beneficiary: " + error.message, "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Effects
+  // ✅ Effects
   useEffect(() => {
-    if (isOpen && policy) {
-      loadCurrentBeneficiaries();
-    }
+    if (isOpen && policy) loadCurrentBeneficiaries();
   }, [isOpen, policy]);
 
   useEffect(() => {
-    if (mode === "add") {
-      const debounceTimer = setTimeout(() => {
-        searchEmployees(searchTerm);
-      }, 300);
-
-      return () => clearTimeout(debounceTimer);
+    if (mode === "add" && searchTerm) {
+      const t = setTimeout(() => searchEmployees(searchTerm), 300);
+      return () => clearTimeout(t);
     }
-  }, [searchTerm, mode, currentBeneficiaries]); // Added currentBeneficiaries as dependency
+  }, [searchTerm, mode, currentBeneficiaries]);
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setSearchTerm("");
       setSearchResults([]);
-      setSelectedUser(null);
       setNotification(null);
     }
   }, [isOpen]);
@@ -275,14 +216,14 @@ export const BeneficiaryManagementModal = ({
                 {mode === "add" ? "Add Beneficiary" : "Remove Beneficiary"}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Policy: {policy?.policyId} •{" "}
-                {policy?.policyType === "life" ? "Life" : "Vehicle"} Insurance
+                Policy: {policy?.policyId || policy?._id} •{" "}
+                {policy?.policyType || "Insurance"}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
           >
             <X className="h-5 w-5 text-gray-500" />
           </button>
@@ -313,9 +254,9 @@ export const BeneficiaryManagementModal = ({
         {/* Content */}
         <div className="flex-1 p-6 overflow-y-auto min-h-0">
           {mode === "add" ? (
-            // Add Beneficiary Mode
+            // 🔵 Add Mode
             <div className="space-y-6">
-              {/* Current Beneficiaries Info */}
+              {/* Current Beneficiaries */}
               <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="h-4 w-4 text-blue-600" />
@@ -325,12 +266,12 @@ export const BeneficiaryManagementModal = ({
                 </div>
                 {currentBeneficiaries.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {currentBeneficiaries.map((beneficiary) => (
+                    {currentBeneficiaries.map((b) => (
                       <span
-                        key={beneficiary._id || beneficiary.id}
+                        key={getId(b)}
                         className="inline-flex items-center px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs rounded-md"
                       >
-                        {beneficiary.firstName} {beneficiary.lastName}
+                        {formatName(b)}
                       </span>
                     ))}
                   </div>
@@ -367,9 +308,9 @@ export const BeneficiaryManagementModal = ({
                   </h3>
                   {searchResults.length > 0 ? (
                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                      {searchResults.map((employee) => (
+                      {searchResults.map((emp) => (
                         <div
-                          key={employee._id || employee.id}
+                          key={getId(emp)}
                           className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                           <div className="flex items-center gap-3">
@@ -378,35 +319,31 @@ export const BeneficiaryManagementModal = ({
                             </div>
                             <div>
                               <h4 className="font-medium text-gray-900 dark:text-white">
-                                {employee.profile?.firstName ||
-                                  employee.firstName}{" "}
-                                {employee.profile?.lastName ||
-                                  employee.lastName}
+                                {formatName(emp)}
                               </h4>
                               <div className="flex items-center gap-4 text-sm text-gray-500">
                                 <div className="flex items-center gap-1">
                                   <Mail className="h-3 w-3" />
-                                  {employee.email}
+                                  {emp?.email || "N/A"}
                                 </div>
-                                {(employee.profile?.phoneNumber ||
-                                  employee.phone) && (
+                                {emp?.profile?.phoneNumber || emp?.phone ? (
                                   <div className="flex items-center gap-1">
                                     <Phone className="h-3 w-3" />
-                                    {employee.profile?.phoneNumber ||
-                                      employee.phone}
+                                    {emp?.profile?.phoneNumber || emp?.phone}
                                   </div>
-                                )}
+                                ) : null}
                               </div>
                               <div className="text-xs text-gray-400 mt-1">
-                                Employee ID: {employee.userId || employee.employeeId || 'N/A'} •{" "}
-                                {employee.employment?.department || "N/A"}
+                                Employee ID:{" "}
+                                {emp?.userId || emp?.employeeId || "N/A"} •{" "}
+                                {emp?.employment?.department || "N/A"}
                               </div>
                             </div>
                           </div>
                           <button
-                            onClick={() => handleAddBeneficiary(employee)}
+                            onClick={() => handleAddBeneficiary(emp)}
                             disabled={actionLoading}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
                           >
                             {actionLoading ? (
                               <RefreshCw className="h-4 w-4 animate-spin" />
@@ -418,112 +355,78 @@ export const BeneficiaryManagementModal = ({
                         </div>
                       ))}
                     </div>
-                  ) : searchTerm && !searchLoading ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                      <p>No employees found matching "{searchTerm}"</p>
-                      <p className="text-sm">
-                        Try searching with a different term
-                      </p>
-                    </div>
-                  ) : null}
+                  ) : (
+                    !searchLoading && (
+                      <div className="text-center py-8 text-gray-500">
+                        <User className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p>No employees found matching "{searchTerm}"</p>
+                      </div>
+                    )
+                  )}
                 </div>
               )}
             </div>
           ) : (
-            // Remove Beneficiary Mode
+            // 🔴 Remove Mode
             <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                  Current Beneficiaries ({currentBeneficiaries.length})
-                </h3>
-
-                {loading ? (
-                  <div className="space-y-3">
-                    {[...Array(3)].map((_, index) => (
-                      <div key={index} className="animate-pulse">
-                        <div className="flex items-center p-4 border border-gray-200 rounded-lg">
-                          <div className="w-10 h-10 bg-gray-300 rounded-full mr-3"></div>
-                          <div className="flex-1">
-                            <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                            <div className="h-3 bg-gray-300 rounded w-3/4"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : currentBeneficiaries.length > 0 ? (
-                  <div className="space-y-3">
-                    {currentBeneficiaries.map((beneficiary) => (
-                      <div
-                        key={beneficiary._id || beneficiary.id}
-                        className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-                            <User className="h-5 w-5 text-red-600 dark:text-red-400" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-white">
-                              {beneficiary.profile?.firstName ||
-                                beneficiary.firstName}{" "}
-                              {beneficiary.profile?.lastName ||
-                                beneficiary.lastName}
-                            </h4>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {beneficiary.email}
-                              </div>
-                              {(beneficiary.profile?.phoneNumber ||
-                                beneficiary.phone) && (
-                                <div className="flex items-center gap-1">
-                                  <Phone className="h-3 w-3" />
-                                  {beneficiary.profile?.phoneNumber ||
-                                    beneficiary.phone}
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                              Employee ID: {beneficiary.userId || beneficiary.employeeId || 'N/A'} •{" "}
-                              {beneficiary.employment?.department || "N/A"}
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveBeneficiary(beneficiary)}
-                          disabled={actionLoading}
-                          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {actionLoading ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                      No Beneficiaries
-                    </h3>
-                    <p>This policy doesn't have any beneficiaries yet.</p>
-                    <button
-                      onClick={() => {
-                        // Switch to add mode if needed
-                        onClose();
-                      }}
-                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Current Beneficiaries ({currentBeneficiaries.length})
+              </h3>
+              {loading ? (
+                <p>Loading...</p>
+              ) : currentBeneficiaries.length > 0 ? (
+                <div className="space-y-3">
+                  {currentBeneficiaries.map((b) => (
+                    <div
+                      key={getId(b)}
+                      className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
-                      Add Beneficiaries
-                    </button>
-                  </div>
-                )}
-              </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 dark:text-white">
+                            {formatName(b)}
+                          </h4>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {b?.email || "N/A"}
+                            </div>
+                            {b?.profile?.phoneNumber || b?.phone ? (
+                              <div className="flex items-center gap-1">
+                                <Phone className="h-3 w-3" />
+                                {b?.profile?.phoneNumber || b?.phone}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveBeneficiary(b)}
+                        disabled={actionLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
+                      >
+                        {actionLoading ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    No Beneficiaries
+                  </h3>
+                  <p>This policy doesn't have any beneficiaries yet.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -537,7 +440,7 @@ export const BeneficiaryManagementModal = ({
           </div>
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg"
           >
             Done
           </button>

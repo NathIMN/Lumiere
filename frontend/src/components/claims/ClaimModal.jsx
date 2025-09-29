@@ -1,51 +1,26 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import documentApiService from "../../services/document-api";
 import {
-  X,
-  User,
-  FileText,
-  DollarSign,
-  Calendar,
-  Shield,
-  ArrowRight,
-  ArrowLeft,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Download,
-  ChevronDown,
-  ChevronUp,
-  MessageSquare,
-  AlertCircle,
-  Info,
-  Eye,
-  History,
-  Package,
-  Coins,
-  Send,
+  X, User, FileText, DollarSign, Calendar, Shield, ArrowRight, ArrowLeft,
+  CheckCircle, XCircle, Clock, Download, ChevronDown, ChevronUp, MessageSquare,
+  AlertCircle, Info, Eye, History, Package, Coins, Send,
 } from "lucide-react";
 
 export const ClaimModal = ({
-  claim,
-  onClose,
-  onForward,
-  onReturn,
-  showDetailedQuestionnaire = true,
+  claim, onClose, onForward, onReturn, showDetailedQuestionnaire = true,
 }) => {
   const [expandedSections, setExpandedSections] = useState({});
   const [selectedTab, setSelectedTab] = useState("overview");
   const [downloadingDocs, setDownloadingDocs] = useState(new Set());
-
+console.log("here : ",claim)
   if (!claim) return null;
 
   const formatDate = (dateString) => {
     if (!dateString) return "Not set";
     return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+      year: "numeric", month: "long", day: "numeric",
+      hour: "2-digit", minute: "2-digit",
     });
   };
 
@@ -56,106 +31,53 @@ export const ClaimModal = ({
 
   const calculateDaysInSystem = (submittedDate) => {
     if (!submittedDate) return "Unknown";
-
-    const submitted = new Date(submittedDate);
-    const now = new Date();
-
-    const submittedDateOnly = new Date(
-      submitted.getFullYear(),
-      submitted.getMonth(),
-      submitted.getDate()
-    );
-    const nowDateOnly = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    );
-
-    const diffTime = nowDateOnly.getTime() - submittedDateOnly.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
-      return "Today";
-    } else if (diffDays === 1) {
-      return "Yesterday";
-    } else if (diffDays === 2) {
-      return "2 days ago";
-    } else {
-      return `${diffDays} days ago`;
-    }
+    const diffDays = Math.floor((new Date() - new Date(submittedDate)) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays === 2) return "2 days ago";
+    return `${diffDays} days ago`;
   };
 
   const getStatusColor = (status) => {
     const colorMap = {
       hr: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200 dark:border-yellow-800",
-      insurer:
-        "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800",
-      approved:
-        "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800",
-      rejected:
-        "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-800",
-      employee:
-        "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-200 dark:border-orange-800",
+      insurer: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-200 dark:border-blue-800",
+      approved: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-200 dark:border-green-800",
+      rejected: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-800",
+      employee: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/20 dark:text-orange-200 dark:border-orange-800",
     };
-    return (
-      colorMap[status] ||
-      "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-200 dark:border-gray-800"
-    );
+    return colorMap[status] || "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/20 dark:text-gray-200 dark:border-gray-800";
   };
 
   const getStatusText = (status) => {
     const statusMap = {
-      hr: "Pending HR Review",
-      insurer: "With Insurer",
-      approved: "Approved",
-      rejected: "Rejected",
-      employee: "With Employee",
+      hr: "Pending HR Review", insurer: "With Insurer", approved: "Approved",
+      rejected: "Rejected", employee: "With Employee",
     };
     return statusMap[status] || status;
   };
 
   const toggleSection = (sectionIndex) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [sectionIndex]: !prev[sectionIndex],
-    }));
+    setExpandedSections((prev) => ({ ...prev, [sectionIndex]: !prev[sectionIndex] }));
   };
 
   const canTakeHRAction = claim.claimStatus === "hr";
-
-  const hasCoverageBreakdown =
-    (claim.coverageBreakdown &&
-      Array.isArray(claim.coverageBreakdown) &&
-      claim.coverageBreakdown.length > 0) ||
-    (claim.hrForwardingDetails?.coverageBreakdown &&
-      Array.isArray(claim.hrForwardingDetails.coverageBreakdown) &&
-      claim.hrForwardingDetails.coverageBreakdown.length > 0);
+  const hasCoverageBreakdown = (claim.coverageBreakdown?.length > 0) || 
+    (claim.hrForwardingDetails?.coverageBreakdown?.length > 0);
 
   const handleViewDocument = async (doc) => {
     try {
-      console.log("View document called with:", doc);
-
-      const documentId =
-        doc._id ||
-        doc.id ||
-        (typeof doc.fileValue === "string"
-          ? doc.fileValue
-          : doc.fileValue?._id || doc.fileValue?.id) ||
+      const documentId = doc._id || doc.id || 
+        (typeof doc.fileValue === "string" ? doc.fileValue : doc.fileValue?._id || doc.fileValue?.id) ||
         (typeof doc === "string" ? doc : null);
 
-      console.log("Extracted document ID:", documentId);
-
       if (!documentId) {
-        console.error("Document structure:", doc);
         alert("Document ID is not available. Cannot view document.");
         return;
       }
 
-      const downloadLink = await documentApiService.createDownloadLink(
-        documentId
-      );
+      const downloadLink = await documentApiService.createDownloadLink(documentId);
       window.open(downloadLink, "_blank");
-
       setTimeout(() => window.URL.revokeObjectURL(downloadLink), 1000);
     } catch (error) {
       console.error("Error viewing document:", error);
@@ -165,20 +87,11 @@ export const ClaimModal = ({
 
   const handleDownloadDocument = async (doc) => {
     try {
-      console.log("Download document called with:", doc);
-
-      const documentId =
-        doc._id ||
-        doc.id ||
-        (typeof doc.fileValue === "string"
-          ? doc.fileValue
-          : doc.fileValue?._id || doc.fileValue?.id) ||
+      const documentId = doc._id || doc.id || 
+        (typeof doc.fileValue === "string" ? doc.fileValue : doc.fileValue?._id || doc.fileValue?.id) ||
         (typeof doc === "string" ? doc : null);
 
-      console.log("Extracted document ID:", documentId);
-
       if (!documentId) {
-        console.error("Document structure:", doc);
         alert("Document ID is not available. Cannot download document.");
         return;
       }
@@ -191,13 +104,8 @@ export const ClaimModal = ({
     } finally {
       setDownloadingDocs((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(
-          doc._id ||
-            doc.id ||
-            (typeof doc.fileValue === "string"
-              ? doc.fileValue
-              : doc.fileValue?._id || doc.fileValue?.id)
-        );
+        newSet.delete(doc._id || doc.id || 
+          (typeof doc.fileValue === "string" ? doc.fileValue : doc.fileValue?._id || doc.fileValue?.id));
         return newSet;
       });
     }
@@ -205,78 +113,34 @@ export const ClaimModal = ({
 
   const renderQuestionnaireResponse = (response) => {
     const { answer } = response;
-
-    if (!response.isAnswered) {
-      return <span className="text-gray-400 italic">Not answered</span>;
-    }
+    if (!response.isAnswered) return <span className="text-gray-400 italic">Not answered</span>;
 
     if (answer.fileValue) {
-      console.log("File answer structure:", answer.fileValue);
-
-      const documentId =
-        typeof answer.fileValue === "string"
-          ? answer.fileValue
-          : answer.fileValue._id || answer.fileValue.id;
-
-      console.log("Extracted document ID:", documentId);
-
-      if (!documentId) {
-        console.error("Invalid file value structure:", answer.fileValue);
-        return <div className="text-red-600">Error: Document ID not found</div>;
-      }
-
+      const documentId = typeof answer.fileValue === "string" ? answer.fileValue : 
+        answer.fileValue._id || answer.fileValue.id;
+      
+      if (!documentId) return <div className="text-red-600">Error: Document ID not found</div>;
+      
       const isDownloading = downloadingDocs.has(documentId);
 
       return (
         <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
           <div className="flex items-center space-x-2">
             <FileText className="h-5 w-5 text-blue-600" />
-            <div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {typeof answer.fileValue === "object"
-                  ? answer.fileValue.originalName || "Uploaded file"
-                  : "Document"}
-              </span>
-            </div>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {typeof answer.fileValue === "object" ? answer.fileValue.originalName || "Uploaded file" : "Document"}
+            </span>
           </div>
-
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() =>
-                handleViewDocument({
-                  _id: documentId,
-                  originalName:
-                    typeof answer.fileValue === "object"
-                      ? answer.fileValue.originalName
-                      : "document",
-                })
-              }
+            <button onClick={() => handleViewDocument({ _id: documentId })} disabled={isDownloading}
               className="text-green-600 hover:text-green-700 dark:text-green-400 p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
-              disabled={isDownloading}
-              title="View document"
-            >
+              title="View document">
               <Eye className="h-4 w-4" />
             </button>
-
-            <button
-              onClick={() =>
-                handleDownloadDocument({
-                  _id: documentId,
-                  originalName:
-                    typeof answer.fileValue === "object"
-                      ? answer.fileValue.originalName
-                      : "document",
-                })
-              }
+            <button onClick={() => handleDownloadDocument({ _id: documentId })} disabled={isDownloading}
               className="text-blue-600 hover:text-blue-700 dark:text-blue-400 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors disabled:opacity-50"
-              disabled={isDownloading}
-              title={isDownloading ? "Downloading..." : "Download document"}
-            >
-              {isDownloading ? (
-                <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
+              title={isDownloading ? "Downloading..." : "Download document"}>
+              {isDownloading ? <div className="h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /> : <Download className="h-4 w-4" />}
             </button>
           </div>
         </div>
@@ -284,200 +148,109 @@ export const ClaimModal = ({
     }
 
     if (answer.textValue) return answer.textValue;
-    if (answer.numberValue !== null && answer.numberValue !== undefined)
-      return answer.numberValue.toString();
-    if (answer.booleanValue !== null && answer.booleanValue !== undefined)
-      return answer.booleanValue ? "Yes" : "No";
+    if (answer.numberValue != null) return answer.numberValue.toString();
+    if (answer.booleanValue != null) return answer.booleanValue ? "Yes" : "No";
     if (answer.selectValue) return answer.selectValue;
-    if (answer.multiselectValue && answer.multiselectValue.length > 0) {
-      return answer.multiselectValue.join(", ");
-    }
+    if (answer.multiselectValue?.length) return answer.multiselectValue.join(", ");
     if (answer.dateValue) return formatDate(answer.dateValue);
-
     return <span className="text-gray-400 italic">No response</span>;
   };
 
   const groupQuestionnaireBySection = () => {
     let responses = [];
-
     if (claim.questionnaire?.sections) {
-      responses = claim.questionnaire.sections
-        .sort((a, b) => (a.order || 0) - (b.order || 0))
-        .flatMap((section) =>
-          (section.responses || [])
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
-            .filter((response) => response.isAnswered)
-            .map((response) => ({
-              ...response,
-              section: section.title,
-              sectionId: section.sectionId || section._id,
-            }))
-        );
+      responses = claim.questionnaire.sections.sort((a, b) => (a.order || 0) - (b.order || 0))
+        .flatMap((s) => (s.responses || []).filter(r => r.isAnswered).map(r => ({ ...r, section: s.title })));
     } else if (claim.questionnaire?.responses) {
-      responses = claim.questionnaire.responses.filter((r) => r.isAnswered);
+      responses = claim.questionnaire.responses.filter(r => r.isAnswered);
     }
-
-    if (responses.length === 0) {
-      return [];
-    }
-
-    if (responses.length > 0 && responses[0].section) {
+    if (!responses.length) return [];
+    
+    if (responses[0]?.section) {
       const sections = {};
-      responses.forEach((response) => {
-        const sectionTitle = response.section || "General Questions";
-        if (!sections[sectionTitle]) {
-          sections[sectionTitle] = [];
-        }
-        sections[sectionTitle].push(response);
+      responses.forEach(r => {
+        const title = r.section || "General Questions";
+        if (!sections[title]) sections[title] = [];
+        sections[title].push(r);
       });
-
-      return Object.entries(sections).map(([title, questions]) => ({
-        title,
-        questions: questions.sort((a, b) => (a.order || 0) - (b.order || 0)),
-      }));
-    } else {
-      return [
-        {
-          title: "Questionnaire Responses",
-          questions: responses.sort((a, b) => (a.order || 0) - (b.order || 0)),
-        },
-      ];
+      return Object.entries(sections).map(([title, questions]) => ({ title, questions }));
     }
+    return [{ title: "Questionnaire Responses", questions: responses }];
   };
 
   const renderCoverageBreakdown = () => {
-    const coverageData =
-      claim.coverageBreakdown || claim.hrForwardingDetails?.coverageBreakdown;
-
-    if (
-      !coverageData ||
-      !Array.isArray(coverageData) ||
-      coverageData.length === 0
-    ) {
-      return null;
-    }
-
-    const calculateTotal = () => {
-      return coverageData.reduce(
-        (sum, item) => sum + (item.requestedAmount || 0),
-        0
-      );
-    };
+    const data = claim.coverageBreakdown || claim.hrForwardingDetails?.coverageBreakdown;
+    if (!data?.length) return null;
+    const total = data.reduce((sum, item) => sum + (item.requestedAmount || 0), 0);
 
     return (
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center space-x-2">
           <Package className="h-5 w-5 text-blue-600" />
           <span>Coverage Breakdown</span>
-          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-            (Submitted by HR)
-          </span>
+          <span className="text-sm font-normal text-gray-500 dark:text-gray-400">(Submitted by HR)</span>
         </h3>
-
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="space-y-4">
-            {coverageData.map((coverage, index) => (
-              <div
-                key={index}
-                className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-lg p-4"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Shield className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Coverage Type
-                      </span>
-                    </div>
-                    <p className="font-semibold text-gray-900 dark:text-white">
-                      {coverage.coverageType}
-                    </p>
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-4">
+          {data.map((cov, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Shield className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Coverage Type</span>
                   </div>
-
-                  <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Coins className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Requested Amount
-                      </span>
-                    </div>
-                    <p className="font-semibold text-gray-900 dark:text-white">
-                      {formatCurrency(coverage.requestedAmount)}
-                    </p>
-                  </div>
+                  <p className="font-semibold text-gray-900 dark:text-white">{cov.coverageType}</p>
                 </div>
-
-                {coverage.notes && (
-                  <div className="mt-4">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <MessageSquare className="h-4 w-4 text-gray-600" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Coverage Notes
-                      </span>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-300 text-sm bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
-                      {coverage.notes}
-                    </p>
+                <div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Coins className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Requested Amount</span>
                   </div>
-                )}
-
-                {coverage.createdAt && (
-                  <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
-                      <Calendar className="h-3 w-3" />
-                      <span>Added on: {formatDate(coverage.createdAt)}</span>
-                    </div>
+                  <p className="font-semibold text-gray-900 dark:text-white">{formatCurrency(cov.requestedAmount)}</p>
+                </div>
+              </div>
+              {cov.notes && (
+                <div className="mt-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <MessageSquare className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Coverage Notes</span>
                   </div>
-                )}
-              </div>
-            ))}
-
-            <div className="bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-900/20 border border-blue-300 dark:border-blue-600 rounded-lg p-4 mt-4">
-              <div className="flex justify-between items-center">
-                <span className="font-semibold text-blue-900 dark:text-blue-200">
-                  Total Coverage Amount:
-                </span>
-                <span className="text-xl font-bold text-blue-900 dark:text-blue-200">
-                  {formatCurrency(calculateTotal())}
-                </span>
-              </div>
-              <div className="flex justify-between items-center mt-2 text-sm">
-                <span className="text-blue-700 dark:text-blue-300">
-                  Original Claim Amount:
-                </span>
-                <span className="text-blue-700 dark:text-blue-300">
-                  {formatCurrency(claim.claimAmount?.requested || 0)}
-                </span>
-              </div>
-
-              {(claim.forwardedAt ||
-                claim.hrForwardingDetails?.forwardedAt) && (
-                <div className="flex justify-between items-center mt-2 text-sm">
-                  <span className="text-blue-700 dark:text-blue-300">
-                    Forwarded to Insurer:
-                  </span>
-                  <span className="text-blue-700 dark:text-blue-300">
-                    {formatDate(
-                      claim.forwardedAt ||
-                        claim.hrForwardingDetails?.forwardedAt
-                    )}
-                  </span>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm bg-gray-50 dark:bg-gray-700 p-3 rounded-md">{cov.notes}</p>
                 </div>
               )}
-
-              {calculateTotal() !== (claim.claimAmount?.requested || 0) && (
-                <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-600 rounded text-sm text-amber-800 dark:text-amber-200">
-                  <div className="flex items-center space-x-1">
-                    <AlertCircle className="h-4 w-4" />
-                    <span>
-                      {calculateTotal() > (claim.claimAmount?.requested || 0)
-                        ? "Coverage breakdown exceeds original claim amount"
-                        : "Coverage breakdown is less than original claim amount"}
-                    </span>
+              {cov.createdAt && (
+                <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                  <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="h-3 w-3" />
+                    <span>Added on: {formatDate(cov.createdAt)}</span>
                   </div>
                 </div>
               )}
             </div>
+          ))}
+          <div className="bg-gradient-to-r from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-900/20 border border-blue-300 dark:border-blue-600 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-blue-900 dark:text-blue-200">Total Coverage Amount:</span>
+              <span className="text-xl font-bold text-blue-900 dark:text-blue-200">{formatCurrency(total)}</span>
+            </div>
+            <div className="flex justify-between items-center mt-2 text-sm">
+              <span className="text-blue-700 dark:text-blue-300">Original Claim Amount:</span>
+              <span className="text-blue-700 dark:text-blue-300">{formatCurrency(claim.claimAmount?.requested || 0)}</span>
+            </div>
+            {(claim.forwardedAt || claim.hrForwardingDetails?.forwardedAt) && (
+              <div className="flex justify-between items-center mt-2 text-sm">
+                <span className="text-blue-700 dark:text-blue-300">Forwarded to Insurer:</span>
+                <span className="text-blue-700 dark:text-blue-300">{formatDate(claim.forwardedAt || claim.hrForwardingDetails?.forwardedAt)}</span>
+              </div>
+            )}
+            {total !== (claim.claimAmount?.requested || 0) && (
+              <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-600 rounded text-sm text-amber-800 dark:text-amber-200">
+                <div className="flex items-center space-x-1">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{total > (claim.claimAmount?.requested || 0) ? "Coverage breakdown exceeds original claim amount" : "Coverage breakdown is less than original claim amount"}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -493,17 +266,12 @@ export const ClaimModal = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-5xl w-full max-h-[95vh] overflow-hidden flex flex-col">
+        
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-4">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Claim Details - {claim.claimId}
-            </h2>
-            <span
-              className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
-                claim.claimStatus
-              )}`}
-            >
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Claim Details - {claim.claimId}</h2>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(claim.claimStatus)}`}>
               {getStatusText(claim.claimStatus)}
             </span>
             {hasCoverageBreakdown && (
@@ -512,29 +280,22 @@ export const ClaimModal = ({
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tabs */}
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8 px-6">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedTab(tab.id)}
+                <button key={tab.id} onClick={() => setSelectedTab(tab.id)}
                   className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                    selectedTab === tab.id
-                      ? "border-green-500 text-green-600 dark:text-green-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}
-                >
+                    selectedTab === tab.id ? "border-green-500 text-green-600 dark:text-green-400" : 
+                    "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}>
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>
                   {tab.id === "overview" && hasCoverageBreakdown && (
@@ -546,241 +307,158 @@ export const ClaimModal = ({
           </nav>
         </div>
 
-        {/* Content Area */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Overview Tab */}
           {selectedTab === "overview" && (
             <div className="space-y-6">
-              {/* Basic Claim Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Claim Info */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                     Claim Information
                   </h3>
-
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <FileText className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Claim ID
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.claimId}
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Claim ID</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{claim.claimId}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Shield className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Claim Type
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Claim Type</p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.claimType === "life"
-                            ? "Life Insurance"
-                            : "Vehicle Insurance"}
+                          {claim.claimType === "life" ? "Life Insurance" : "Vehicle Insurance"}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Option:{" "}
-                          {claim.claimType === "life"
-                            ? claim.lifeClaimOption
-                            : claim.vehicleClaimOption}
+                          Option: {claim.claimType === "life" ? claim.lifeClaimOption : claim.vehicleClaimOption}
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <DollarSign className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Requested Amount
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {formatCurrency(claim.claimAmount?.requested)}
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Requested Amount</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{formatCurrency(claim.claimAmount?.requested)}</p>
                         {claim.claimAmount?.approved > 0 && (
-                          <p className="text-sm text-green-600 dark:text-green-400">
-                            Approved:{" "}
-                            {formatCurrency(claim.claimAmount?.approved)}
-                          </p>
+                          <p className="text-sm text-green-600 dark:text-green-400">Approved: {formatCurrency(claim.claimAmount?.approved)}</p>
                         )}
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Calendar className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Submitted Date
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {formatDate(claim.submittedAt)}
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Submitted Date</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{formatDate(claim.submittedAt)}</p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <Clock className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Days in System
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {calculateDaysInSystem(claim.submittedAt)}
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Days in System</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{calculateDaysInSystem(claim.submittedAt)}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Employee Info */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                     Employee Information
                   </h3>
-
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3">
                       <User className="h-5 w-5 text-gray-400" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Employee Name
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Employee Name</p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.employeeId?.firstName}{" "}
-                          {claim.employeeId?.lastName}
+                          {claim.employeeId?.fullName}
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <div className="h-5 w-5" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Email
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{claim.employeeId?.email || "Not available"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="h-5 w-5" />
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Employee ID</p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.employeeId?.email}
+                          {claim.employeeId?.userId || "Not specified"}
                         </p>
                       </div>
                     </div>
-
                     <div className="flex items-center space-x-3">
                       <div className="h-5 w-5" />
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Employee ID
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.employeeId?.employeeId || "Not specified"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                      <div className="h-5 w-5" />
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Department
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.employeeId?.department || "Not specified"}
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Department</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{claim.employeeId?.employment.department || "Not available"}</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Coverage Breakdown Section */}
               {renderCoverageBreakdown()}
 
-              {/* Policy Information */}
+              {/* Policy Info */}
               {claim.policy && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
                     Policy Information
                   </h3>
-
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Policy Number
-                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Policy Number</p>
                         <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.policy.policyNumber}
+                          {claim.policy?.policyNumber || claim.policy?.policyId || "Not available"}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Policy Type
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.policy.policyType}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Provider
-                        </p>
-                        <p className="font-medium text-gray-900 dark:text-white">
-                          {claim.policy.provider}
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Policy Type</p>
+                        <p className="font-medium text-gray-900 dark:text-white capitalize">
+                          {claim.policy?.policyType ? 
+                            (claim.policy.policyType === 'life' ? 'Life Insurance' : 'Vehicle Insurance') : "Not available"}
                         </p>
                       </div>
+                      
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Rejection Reason Section */}
-              {claim.claimStatus === "rejected" && (
-                <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg p-6 mb-6">
+              {/* Rejection */}
+              {claim.claimStatus === "rejected" && claim.decision?.rejectionReason && (
+                <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg p-6">
                   <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
-                    </div>
+                    <XCircle className="h-8 w-8 text-red-600 dark:text-red-400 flex-shrink-0" />
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">
-                        Claim Rejected by Insurer
-                      </h3>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                            Rejection Reason:
-                          </p>
-                          <p className="mt-1 text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/40 p-3 rounded-md">
-                            {claim.rejectionReason || "No reason provided"}
-                          </p>
-                        </div>
-                        <div className="flex items-center text-sm text-red-600 dark:text-red-400">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Rejected on: {formatDate(claim.updatedAt)}
-                        </div>
-                        <div className="text-sm text-red-600 dark:text-red-400">
-                          <Info className="h-4 w-4 inline mr-2" />
-                          Original claim amount:{" "}
-                          {formatCurrency(claim.claimAmount?.requested)}
-                        </div>
-                      </div>
+                      <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-2">Claim Rejected by Insurer</h3>
+                      <p className="text-red-600 dark:text-red-400 bg-red-100/50 dark:bg-red-900/40 p-3 rounded-md">
+                        {claim.decision.rejectionReason}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Return Reason (if applicable) */}
+              {/* Return Reason */}
               {claim.returnReason && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    Return Reason
-                  </h3>
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-                      <p className="text-yellow-800 dark:text-yellow-200">
-                        {claim.returnReason}
-                      </p>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1">Return Reason</p>
+                      <p className="text-yellow-700 dark:text-yellow-300">{claim.returnReason}</p>
                     </div>
                   </div>
                 </div>
@@ -788,61 +466,12 @@ export const ClaimModal = ({
 
               {/* HR Notes */}
               {(claim.hrNotes || claim.hrForwardingDetails?.hrNotes) && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    HR Notes
-                  </h3>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-start space-x-3">
-                      <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
-                      <p className="text-blue-800 dark:text-blue-200">
-                        {claim.hrNotes || claim.hrForwardingDetails?.hrNotes}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Processing Summary for forwarded claims */}
-              {claim.claimStatus === "insurer" && hasCoverageBreakdown && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    Processing Summary
-                  </h3>
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Package className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                            Coverage Items
-                          </span>
-                        </div>
-                        <p className="text-blue-700 dark:text-blue-300">
-                          {
-                            (
-                              claim.coverageBreakdown ||
-                              claim.hrForwardingDetails?.coverageBreakdown ||
-                              []
-                            ).length
-                          }{" "}
-                          coverage type(s) submitted
-                        </p>
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2 mb-2">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                            Forwarded Date
-                          </span>
-                        </div>
-                        <p className="text-blue-700 dark:text-blue-300">
-                          {formatDate(
-                            claim.forwardedAt ||
-                              claim.hrForwardingDetails?.forwardedAt
-                          )}
-                        </p>
-                      </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-blue-800 dark:text-blue-200 mb-1">HR Notes</p>
+                      <p className="text-blue-700 dark:text-blue-300">{claim.hrNotes || claim.hrForwardingDetails?.hrNotes}</p>
                     </div>
                   </div>
                 </div>
@@ -853,588 +482,205 @@ export const ClaimModal = ({
           {/* Questionnaire Tab */}
           {selectedTab === "questionnaire" && (
             <div className="space-y-6">
-              {claim.questionnaire?.sections?.some((s) =>
-                s.responses?.some((r) => r.isAnswered)
-              ) || claim.questionnaire?.responses?.some((r) => r.isAnswered) ? (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Employee Questionnaire Responses
-                    </h3>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                      {(() => {
-                        const sections = groupQuestionnaireBySection();
-                        const totalAnswered = sections.reduce(
-                          (sum, section) => sum + section.questions.length,
-                          0
-                        );
-                        const totalQuestions = claim.questionnaire?.sections
-                          ? claim.questionnaire.sections.reduce(
-                              (sum, s) => sum + (s.responses?.length || 0),
-                              0
-                            )
-                          : claim.questionnaire?.responses?.length || 0;
-                        return `${totalAnswered} of ${totalQuestions} questions answered`;
-                      })()}
-                    </div>
-                  </div>
-
-                  {showDetailedQuestionnaire ? (
-                    <div className="space-y-6">
-                      {groupQuestionnaireBySection().map(
-                        (section, sectionIndex) => (
-                          <div
-                            key={sectionIndex}
-                            className="border border-gray-200 dark:border-gray-700 rounded-lg"
-                          >
-                            <button
-                              onClick={() => toggleSection(sectionIndex)}
-                              className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors rounded-t-lg"
-                            >
-                              <h4 className="text-lg font-semibold text-gray-900 dark:text-white text-left">
-                                {section.title}
-                              </h4>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-600 dark:text-gray-400">
-                                  {section.questions.length} questions
-                                </span>
-                                {expandedSections[sectionIndex] ? (
-                                  <ChevronUp className="h-5 w-5 text-gray-400" />
-                                ) : (
-                                  <ChevronDown className="h-5 w-5 text-gray-400" />
-                                )}
-                              </div>
-                            </button>
-
-                            {expandedSections[sectionIndex] && (
-                              <div className="p-4 space-y-4">
-                                {section.questions.map(
-                                  (response, responseIndex) => (
-                                    <div
-                                      key={responseIndex}
-                                      className="border-l-4 border-green-500 pl-4 py-2"
-                                    >
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                          <p className="font-medium text-gray-900 dark:text-white mb-2">
-                                            {response.questionText}
-                                          </p>
-                                          <div className="text-gray-600 dark:text-gray-300">
-                                            {renderQuestionnaireResponse(
-                                              response
-                                            )}
-                                          </div>
-                                          {response.questionType && (
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                              Type: {response.questionType}
-                                            </p>
-                                          )}
-                                        </div>
-                                        <div className="ml-4 text-right">
-                                          <span
-                                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                              response.isAnswered
-                                                ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-200"
-                                                : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-200"
-                                            }`}
-                                          >
-                                            {response.isAnswered
-                                              ? "Answered"
-                                              : "Skipped"}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )
-                                )}
-                              </div>
+              {groupQuestionnaireBySection().length > 0 ? (
+                groupQuestionnaireBySection().map((section, idx) => (
+                  <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <button onClick={() => toggleSection(idx)}
+                      className="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                      <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{section.title}</h4>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">{section.questions.length} questions</span>
+                        {expandedSections[idx] ? <ChevronUp className="h-5 w-5 text-gray-600" /> : <ChevronDown className="h-5 w-5 text-gray-600" />}
+                      </div>
+                    </button>
+                    {expandedSections[idx] && (
+                      <div className="p-4 space-y-4 bg-white dark:bg-gray-800">
+                        {section.questions.map((q, i) => (
+                          <div key={i} className="border-l-4 border-green-500 pl-4 py-2 bg-gray-50 dark:bg-gray-700 rounded-r">
+                            <p className="font-medium text-gray-900 dark:text-white mb-2">{q.questionText}</p>
+                            <div className="text-gray-600 dark:text-gray-300">{renderQuestionnaireResponse(q)}</div>
+                            {q.questionType && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Type: {q.questionType}</p>
                             )}
                           </div>
-                        )
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-4 max-h-60 overflow-y-auto">
-                      {groupQuestionnaireBySection()
-                        .flatMap((section) => section.questions)
-                        .map((response, index) => (
-                          <div
-                            key={index}
-                            className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4"
-                          >
-                            <p className="font-medium text-gray-900 dark:text-white mb-2">
-                              {response.questionText}
-                            </p>
-                            <div className="text-gray-600 dark:text-gray-300">
-                              {renderQuestionnaireResponse(response)}
-                            </div>
-                          </div>
                         ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                ))
               ) : (
                 <div className="text-center py-12">
                   <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                    No Questionnaire Data
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    No questionnaire responses are available for this claim.
-                  </p>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Questionnaire Data</h3>
+                  <p className="text-gray-600 dark:text-gray-400">No questionnaire responses are available for this claim.</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Activity/History Tab */}
+          {/* History Tab */}
           {selectedTab === "history" && (
-            <div className="space-y-6">
-              {/* Coverage Breakdown History */}
-              {hasCoverageBreakdown && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    HR Coverage Breakdown History
-                  </h3>
-
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-4">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="font-medium text-green-800 dark:text-green-200">
-                        Coverage Details Submitted to Insurer
-                      </span>
-                      {(claim.forwardedAt ||
-                        claim.hrForwardingDetails?.forwardedAt) && (
-                        <span className="text-sm text-green-600 dark:text-green-300 ml-auto">
-                          {formatDate(
-                            claim.forwardedAt ||
-                              claim.hrForwardingDetails?.forwardedAt
-                          )}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-3">
-                      {(
-                        claim.coverageBreakdown ||
-                        claim.hrForwardingDetails?.coverageBreakdown ||
-                        []
-                      ).map((coverage, index) => (
-                        <div
-                          key={index}
-                          className="bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded-lg p-4"
-                        >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <Shield className="h-4 w-4 text-green-600" />
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Coverage Type
-                                </span>
-                              </div>
-                              <p className="font-semibold text-gray-900 dark:text-white">
-                                {coverage.coverageType}
-                              </p>
-                            </div>
-
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <Coins className="h-4 w-4 text-green-600" />
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Requested Amount
-                                </span>
-                              </div>
-                              <p className="font-semibold text-gray-900 dark:text-white">
-                                {formatCurrency(coverage.requestedAmount)}
-                              </p>
-                            </div>
-                          </div>
-
-                          {coverage.notes && (
-                            <div>
-                              <div className="flex items-center space-x-2 mb-2">
-                                <MessageSquare className="h-4 w-4 text-green-600" />
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Coverage Notes
-                                </span>
-                              </div>
-                              <p className="text-gray-600 dark:text-gray-300 text-sm bg-gray-50 dark:bg-gray-700 p-3 rounded-md">
-                                {coverage.notes}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Total Summary */}
-                      <div className="bg-gradient-to-r from-green-100 to-green-50 dark:from-green-900/30 dark:to-green-900/20 border border-green-300 dark:border-green-600 rounded-lg p-4">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-green-900 dark:text-green-200">
-                            Total Coverage Amount:
-                          </span>
-                          <span className="text-xl font-bold text-green-900 dark:text-green-200">
-                            {formatCurrency(
-                              (
-                                claim.coverageBreakdown ||
-                                claim.hrForwardingDetails?.coverageBreakdown ||
-                                []
-                              ).reduce(
-                                (sum, item) =>
-                                  sum + (item.requestedAmount || 0),
-                                0
-                              )
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center mt-2 text-sm">
-                          <span className="text-green-700 dark:text-green-300">
-                            Coverage Items:{" "}
-                            {
-                              (
-                                claim.coverageBreakdown ||
-                                claim.hrForwardingDetails?.coverageBreakdown ||
-                                []
-                              ).length
-                            }
-                          </span>
-                          <span className="text-green-700 dark:text-green-300">
-                            Status: Submitted to Insurer
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                Processing Timeline
+              </h3>
+              <div className="space-y-3">
+                {/* Submitted */}
+                <div className="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <Send className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-blue-800 dark:text-blue-200">Claim Submitted</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-300">{formatDate(claim.submittedAt)}</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      Amount: {formatCurrency(claim.claimAmount?.requested || 0)}
+                    </p>
                   </div>
                 </div>
-              )}
 
-              {/* HR Notes History */}
-              {(claim.hrNotes || claim.hrForwardingDetails?.hrNotes) && (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                    HR Notes History
-                  </h3>
-
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <MessageSquare className="h-5 w-5 text-blue-600" />
-                      <span className="font-medium text-blue-800 dark:text-blue-200">
-                        HR Notes Submitted with Claim
-                      </span>
-                      {(claim.forwardedAt ||
-                        claim.hrForwardingDetails?.forwardedAt) && (
-                        <span className="text-sm text-blue-600 dark:text-blue-300 ml-auto">
-                          {formatDate(
-                            claim.forwardedAt ||
-                              claim.hrForwardingDetails?.forwardedAt
-                          )}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {claim.hrNotes || claim.hrForwardingDetails?.hrNotes}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Processing Timeline */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
-                  Processing Timeline
-                </h3>
-
-                <div className="space-y-3">
-                  {/* Submitted */}
-                  <div className="flex items-start space-x-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <Send className="h-5 w-5 text-blue-600 mt-0.5" />
+                {/* HR Review */}
+                {claim.claimStatus !== "draft" && claim.claimStatus !== "employee" && (
+                  <div className="flex items-start space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <Eye className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="font-medium text-blue-800 dark:text-blue-200">
-                        Claim Submitted
-                      </p>
-                      <p className="text-sm text-blue-600 dark:text-blue-300">
-                        {formatDate(claim.submittedAt)}
-                      </p>
-                      <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                        Original amount:{" "}
-                        {formatCurrency(claim.claimAmount?.requested || 0)}
-                      </p>
+                      <p className="font-medium text-yellow-800 dark:text-yellow-200">HR Review Stage</p>
+                      <p className="text-sm text-yellow-600 dark:text-yellow-300">Claim reviewed by HR team</p>
+                      {hasCoverageBreakdown && (
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                          Coverage breakdown prepared with {(claim.coverageBreakdown || claim.hrForwardingDetails?.coverageBreakdown || []).length} items
+                        </p>
+                      )}
                     </div>
                   </div>
+                )}
 
-                  {/* HR Review */}
-                  {claim.claimStatus !== "draft" &&
-                    claim.claimStatus !== "employee" && (
-                      <div className="flex items-start space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <Eye className="h-5 w-5 text-yellow-600 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-medium text-yellow-800 dark:text-yellow-200">
-                            HR Review Stage
-                          </p>
-                          <p className="text-sm text-yellow-600 dark:text-yellow-300">
-                            Claim reviewed by HR team
-                          </p>
-                          {hasCoverageBreakdown && (
-                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                              Coverage breakdown prepared with{" "}
-                              {
-                                (
-                                  claim.coverageBreakdown ||
-                                  claim.hrForwardingDetails
-                                    ?.coverageBreakdown ||
-                                  []
-                                ).length
-                              }{" "}
-                              items
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                  {/* Forwarded to Insurer */}
-                  {(claim.claimStatus === "insurer" ||
-                    claim.claimStatus === "approved" ||
-                    claim.claimStatus === "rejected") && (
-                    <div className="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <ArrowRight className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-green-800 dark:text-green-200">
-                          Forwarded to Insurer
-                        </p>
-                        <p className="text-sm text-green-600 dark:text-green-300">
-                          {formatDate(
-                            claim.forwardedAt ||
-                              claim.hrForwardingDetails?.forwardedAt ||
-                              claim.updatedAt
-                          )}
-                        </p>
-                        {hasCoverageBreakdown && (
-                          <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                            Detailed coverage breakdown submitted:{" "}
-                            {formatCurrency(
-                              (
-                                claim.coverageBreakdown ||
-                                claim.hrForwardingDetails?.coverageBreakdown ||
-                                []
-                              ).reduce(
-                                (sum, item) =>
-                                  sum + (item.requestedAmount || 0),
-                                0
-                              )
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Returned to Employee */}
-                  {claim.claimStatus === "employee" && (
-                    <div className="flex items-start space-x-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                      <ArrowLeft className="h-5 w-5 text-orange-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-orange-800 dark:text-orange-200">
-                          Returned to Employee
-                        </p>
-                        <p className="text-sm text-orange-600 dark:text-orange-300">
-                          {formatDate(claim.updatedAt)}
-                        </p>
-                        {claim.returnReason && (
-                          <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
-                            Reason: {claim.returnReason}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Final Decision */}
-                  {claim.claimStatus === "approved" && (
-                    <div className="flex items-start space-x-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
-                      <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-emerald-800 dark:text-emerald-200">
-                          Claim Approved
-                        </p>
-                        <p className="text-sm text-emerald-600 dark:text-emerald-300">
-                          {formatDate(claim.updatedAt)}
-                        </p>
-                        {claim.claimAmount?.approved && (
-                          <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
-                            Approved amount:{" "}
-                            {formatCurrency(claim.claimAmount.approved)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Enhanced Rejection Timeline Entry */}
-                  {claim.claimStatus === "rejected" && (
-                    <div className="flex items-start space-x-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border-2 border-red-200 dark:border-red-800">
-                      <XCircle className="h-6 w-6 text-red-600 mt-0.5" />
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="font-semibold text-red-800 dark:text-red-200">
-                            Claim Rejected by Insurer
-                          </p>
-                          <span className="text-sm text-red-600 dark:text-red-400">
-                            {formatDate(claim.updatedAt)}
-                          </span>
-                        </div>
-
-                        {claim.rejectionReason && (
-                          <div className="mt-3 space-y-2">
-                            <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                              Rejection Details:
-                            </p>
-                            <div className="bg-red-100/50 dark:bg-red-900/40 p-3 rounded-md border border-red-200 dark:border-red-700">
-                              <p className="text-red-600 dark:text-red-400">
-                                {claim.rejectionReason}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="mt-3 flex items-center gap-4 text-sm text-red-600 dark:text-red-400">
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            <span>
-                              {calculateDaysInSystem(claim.submittedAt)} in
-                              system
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            <span>
-                              Original amount:{" "}
-                              {formatCurrency(claim.claimAmount?.requested)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Summary Information */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                    Summary
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Days in system:
+                {/* Forwarded to Insurer */}
+                {(claim.claimStatus === "insurer" || claim.claimStatus === "approved" || claim.claimStatus === "rejected") && (
+                  <div className="flex items-start space-x-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <ArrowRight className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-green-800 dark:text-green-200">Forwarded to Insurer</p>
+                      <p className="text-sm text-green-600 dark:text-green-300">
+                        {formatDate(claim.forwardedToInsurerAt || claim.hrForwardingDetails?.forwardedAt || claim.updatedAt)}
                       </p>
-                      <p className="font-medium text-gray-900 dark:text-white">
-                        {calculateDaysInSystem(claim.submittedAt)}
-                      </p>
+                      {hasCoverageBreakdown && (
+                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                          Detailed coverage breakdown submitted
+                        </p>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        Current status:
-                      </p>
-                      <p className="font-medium text-gray-900 dark:text-white capitalize">
-                        {getStatusText(claim.claimStatus)}
-                      </p>
-                    </div>
-                    {hasCoverageBreakdown && (
-                      <>
-                        <div>
-                          <p className="text-gray-600 dark:text-gray-400">
-                            Coverage items:
-                          </p>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {
-                              (
-                                claim.coverageBreakdown ||
-                                claim.hrForwardingDetails?.coverageBreakdown ||
-                                []
-                              ).length
-                            }{" "}
-                            types detailed
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600 dark:text-gray-400">
-                            HR processing:
-                          </p>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            Complete with breakdown
-                          </p>
-                        </div>
-                      </>
-                    )}
                   </div>
+                )}
+
+                {/* Returned to Employee */}
+                {claim.claimStatus === "employee" && claim.returnReason && (
+                  <div className="flex items-start space-x-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <ArrowLeft className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-orange-800 dark:text-orange-200">Returned to Employee</p>
+                      <p className="text-sm text-orange-600 dark:text-orange-300">{formatDate(claim.updatedAt)}</p>
+                      <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">Reason: {claim.returnReason}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Approved */}
+                {claim.claimStatus === "approved" && (
+                  <div className="flex items-start space-x-3 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-medium text-emerald-800 dark:text-emerald-200">Claim Approved</p>
+                      <p className="text-sm text-emerald-600 dark:text-emerald-300">{formatDate(claim.finalizedAt || claim.updatedAt)}</p>
+                      {claim.claimAmount?.approved && (
+                        <p className="text-sm text-emerald-700 dark:text-emerald-300 mt-1">
+                          Approved amount: {formatCurrency(claim.claimAmount.approved)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rejected */}
+                {claim.claimStatus === "rejected" && (
+                  <div className="flex items-start space-x-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border-2 border-red-200 dark:border-red-800">
+                    <XCircle className="h-6 w-6 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-red-800 dark:text-red-200">Claim Rejected by Insurer</p>
+                      <p className="text-sm text-red-600 dark:text-red-300">{formatDate(claim.finalizedAt || claim.updatedAt)}</p>
+                      {claim.decision?.rejectionReason && (
+                        <div className="mt-2 bg-red-100/50 dark:bg-red-900/40 p-3 rounded-md">
+                          <p className="text-sm text-red-700 dark:text-red-300">{claim.decision.rejectionReason}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary */}
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mt-6">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Summary</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400">Days in system:</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{calculateDaysInSystem(claim.submittedAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400">Current status:</p>
+                    <p className="font-medium text-gray-900 dark:text-white capitalize">{getStatusText(claim.claimStatus)}</p>
+                  </div>
+                  {hasCoverageBreakdown && (
+                    <>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">Coverage items:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          {(claim.coverageBreakdown || claim.hrForwardingDetails?.coverageBreakdown || []).length} types detailed
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-400">HR processing:</p>
+                        <p className="font-medium text-gray-900 dark:text-white">Complete with breakdown</p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Action Buttons - Only show HR actions for claims with 'hr' status */}
-        {canTakeHRAction && (
-          <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-            <button
-              onClick={onReturn}
-              className="flex items-center space-x-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-900/20"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Return to Employee</span>
-            </button>
-
-            <button
-              onClick={onForward}
-              className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-            >
-              <ArrowRight className="h-4 w-4" />
-              <span>Forward to Insurer</span>
-            </button>
-          </div>
-        )}
-
-        {/* Status information for non-actionable claims */}
-        {!canTakeHRAction && (
-          <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-            <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-              <Info className="h-4 w-4" />
-              <span>
-                {claim.claimStatus === "insurer" &&
-                  "This claim is currently being processed by the insurer. No HR action required."}
-                {claim.claimStatus === "approved" &&
-                  "This claim has been approved by the insurer."}
-                {claim.claimStatus === "rejected" &&
-                  "This claim has been rejected by the insurer."}
-                {claim.claimStatus === "employee" &&
-                  "This claim has been returned to the employee for updates."}
-                {claim.claimStatus === "draft" &&
-                  "This claim is still in draft status with the employee."}
-              </span>
-              {hasCoverageBreakdown && (
-                <span className="ml-2 px-2 py-1 rounded text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200">
-                  Coverage Details Available
+        {/* Footer Actions */}
+        <div className="flex items-center justify-end space-x-4 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+          {canTakeHRAction ? (
+            <>
+              <button onClick={onReturn}
+                className="flex items-center space-x-2 px-4 py-2 border border-orange-300 text-orange-700 rounded-md hover:bg-orange-50 dark:border-orange-600 dark:text-orange-400 dark:hover:bg-orange-900/20 transition-colors">
+                <ArrowLeft className="h-4 w-4" />
+                <span>Return to Employee</span>
+              </button>
+              <button onClick={onForward}
+                className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 transition-colors shadow-sm hover:shadow-md">
+                <ArrowRight className="h-4 w-4" />
+                <span>Forward to Insurer</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <Info className="h-4 w-4" />
+                <span>
+                  {claim.claimStatus === "insurer" && "This claim is currently being processed by the insurer."}
+                  {claim.claimStatus === "approved" && "This claim has been approved by the insurer."}
+                  {claim.claimStatus === "rejected" && "This claim has been rejected by the insurer."}
+                  {claim.claimStatus === "employee" && "This claim has been returned to the employee for updates."}
                 </span>
-              )}
-              {!canTakeHRAction && claim.claimStatus === "rejected" && (
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                  <XCircle className="h-4 w-4 text-red-500" />
-                  <span>
-                    This claim has been rejected by the insurer
-                    {claim.rejectionReason && (
-                      <span className="ml-2 px-2 py-1 rounded text-xs bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-200 border border-red-200 dark:border-red-700">
-                        Rejection Reason Available
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
+              </div>
+              <button onClick={onClose} 
+                className="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+                Close
+              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
