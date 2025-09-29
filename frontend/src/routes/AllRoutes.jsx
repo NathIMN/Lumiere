@@ -47,7 +47,8 @@ import {
    ClaimsLayout,
    ClaimForm,
    ClaimDetails,
-   TestingStuff
+   TestingStuff,
+   MobileVoiceAssistant
 } from "../pages/Employee";
 
 
@@ -77,6 +78,7 @@ export const AllRoutes = () => {
             <Route path="/auth" element={<UserAuthApp />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/debug" element={<DebugPage />} />
+            <Route path="/mobile-assistant" element={<MobileVoiceAssistant />} />
 
 
 

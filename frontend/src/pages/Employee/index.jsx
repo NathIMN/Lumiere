@@ -8,3 +8,4 @@ export { ClaimsLayout } from "./ClaimsLayout";
 export { ClaimForm } from "./ClaimForm";
 export { ClaimDetails } from "./ClaimDetails";
 export { TestingStuff } from "./TestingStuff";
+export { default as MobileVoiceAssistant } from "./MobileVoiceAssistant";

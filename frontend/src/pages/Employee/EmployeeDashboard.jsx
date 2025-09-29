@@ -2,6 +2,7 @@
 import { Outlet, NavLink } from "react-router-dom";
 import { SideBar } from '../../components/dashboard/SideBar';
 import { Header } from '../../components/dashboard/Header';
+import FloatingVoiceAssistant from '../../components/FloatingVoiceAssistant';
 import { useState } from "react";
 
 import {
@@ -59,6 +60,9 @@ export const EmployeeDashboard = () => {
             </main>
 
          </div>
+         
+         {/* Floating Voice Assistant */}
+         <FloatingVoiceAssistant />
       </div>
    )
 }
