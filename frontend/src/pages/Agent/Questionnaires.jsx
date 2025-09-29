@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CreateTemplateModal } from './CreateTemplate';
 import {
   Plus,
   Search,
@@ -28,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import InsuranceApiService from '../../services/insurance-api';
 
 const Questionnaires = () => {
+     const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('templates');
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +44,11 @@ const Questionnaires = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
+
+    const handleSuccess = (response) => {
+    console.log('Template created:', response);
+    alert('Template created successfully!');
+  };
 
   // Valid combinations from your model
   const VALID_COMBINATIONS = {
@@ -960,12 +967,11 @@ const Questionnaires = () => {
 
       {/* Create Template Modal */}
       {showCreateModal && (
-        <CreateTemplateModal 
-          onClose={() => setShowCreateModal(false)}
-          onSave={handleSaveNewTemplate}
-          validCombinations={VALID_COMBINATIONS}
-          getTemplateId={getTemplateId}
-        />
+        <CreateTemplateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleSuccess}
+      />
       )}
 
       {/* Edit Template Modal */}
@@ -985,155 +991,7 @@ const Questionnaires = () => {
 };
 
 // Create Template Modal Component
-const CreateTemplateModal = ({ onClose, onSave, validCombinations, getTemplateId }) => {
-  const [formData, setFormData] = useState({
-    claimType: '',
-    claimOption: '',
-    title: '',
-    description: '',
-    isActive: true
-  });
 
-  const handleSave = () => {
-    if (!formData.claimType || !formData.claimOption || !formData.title) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const templateId = getTemplateId(formData.claimType, formData.claimOption);
-    const newTemplate = {
-      templateId,
-      ...formData,
-      sections: [
-        {
-          sectionId: `${formData.claimOption}_basic`,
-          title: 'Basic Information',
-          order: 1,
-          questions: [
-            {
-              questionId: `${formData.claimOption}_001`,
-              questionText: 'Please describe the incident in detail',
-              questionType: 'textarea',
-              isRequired: true,
-              order: 1,
-              helpText: 'Provide a comprehensive description of what happened'
-            }
-          ]
-        }
-      ],
-      version: 1
-    };
-
-    onSave(newTemplate);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create Questionnaire Template</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Claim Type *
-            </label>
-            <select
-              value={formData.claimType}
-              onChange={(e) => setFormData({ ...formData, claimType: e.target.value, claimOption: '' })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">Select claim type</option>
-              {Object.keys(validCombinations).map(type => (
-                <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-
-          {formData.claimType && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Claim Option *
-              </label>
-              <select
-                value={formData.claimOption}
-                onChange={(e) => setFormData({ ...formData, claimOption: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">Select claim option</option>
-                {validCombinations[formData.claimType].map(option => (
-                  <option key={option} value={option}>
-                    {option.charAt(0).toUpperCase() + option.slice(1).replace(/([A-Z])/g, ' $1')}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Title *
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Enter template title"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              placeholder="Enter template description"
-            />
-          </div>
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="createIsActive"
-              checked={formData.isActive}
-              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-            />
-            <label htmlFor="createIsActive" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-              Template is active
-            </label>
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Create Template
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Edit Template Modal Component
 const EditTemplateModal = ({ template, setTemplate, onClose, onSave }) => {
