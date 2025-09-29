@@ -36,6 +36,14 @@ const MessageSchema = new mongoose.Schema(
     readAt: {
       type: Date,
     },
+    // Edit tracking
+    edited: {
+      type: Boolean,
+      default: false,
+    },
+    editedAt: {
+      type: Date,
+    },
     // Optional: for file messages
     attachments: [
       {
