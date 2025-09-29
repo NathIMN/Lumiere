@@ -173,6 +173,7 @@ export const Registration = () => {
   };
 
   const handleNext = () => {
+   console.log("cliacked next ")
     if (validateCurrentStep()) {
       // Mark current step as completed
       if (!completedSteps.includes(currentStep)) {
@@ -195,6 +196,7 @@ export const Registration = () => {
   };
 
   const handleSubmit = async (e) => {
+   console.log("clicked submit ")
     e.preventDefault();
     e.stopPropagation();
     
@@ -294,6 +296,7 @@ export const Registration = () => {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
+         console.log("step: ", currentStep);
         return (
           <BasicInformation 
             formData={formData} 
@@ -302,6 +305,7 @@ export const Registration = () => {
           />
         );
       case 2:
+         console.log("step: ", currentStep);
         return (
           <PersonalInformation 
             formData={formData.profile || {}} 
@@ -310,6 +314,7 @@ export const Registration = () => {
           />
         );
       case 3:
+         console.log("step: ", currentStep);
         return (
           <EmploymentDetails 
             formData={formData.employment || {}} 
@@ -318,6 +323,7 @@ export const Registration = () => {
           />
         );
       case 4:
+         console.log("step: ", currentStep);
         return (
           <BankDetails 
             formData={formData.bankDetails || {}} 
@@ -326,6 +332,7 @@ export const Registration = () => {
           />
         );
       case 5:
+         console.log("step: ", currentStep);
         return (
           <Dependents 
             dependents={formData.dependents || []}

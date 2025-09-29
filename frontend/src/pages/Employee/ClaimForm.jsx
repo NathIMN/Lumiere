@@ -40,52 +40,36 @@ export const ClaimForm = () => {
    // Color schemes for each option
    const optionColors = {
       hospitalization: {
-         bg: 'from-emerald-500 to-teal-600',
-         hover: 'hover:shadow-emerald-200',
-         icon: 'text-white',
-         accent: 'bg-emerald-100 text-emerald-700'
+         bg: 'bg-green-100',
+         hover: 'hover:bg-green-200 hover:shadow-green-200',
       },
       channelling: {
-         bg: 'from-blue-500 to-indigo-600',
-         hover: 'hover:shadow-blue-200',
-         icon: 'text-white',
-         accent: 'bg-blue-100 text-blue-700'
+         bg: 'bg-indigo-100',
+         hover: 'hover:bg-indigo-200 hover:shadow-indigo-200',
       },
       medication: {
-         bg: 'from-purple-500 to-violet-600',
-         hover: 'hover:shadow-purple-200',
-         icon: 'text-white',
-         accent: 'bg-purple-100 text-purple-700'
+         bg: 'bg-yellow-100',
+         hover: 'hover:bg-yellow-200 hover:shadow-yellow-200',
       },
       death: {
-         bg: 'from-rose-500 to-pink-600',
-         hover: 'hover:shadow-rose-200',
-         icon: 'text-white',
-         accent: 'bg-rose-100 text-rose-700'
+         bg: 'bg-neutral-100',
+         hover: 'hover:bg-neutral-200 hover:shadow-neutral-200',
       },
       accident: {
-         bg: 'from-orange-500 to-red-600',
-         hover: 'hover:shadow-orange-200',
-         icon: 'text-white',
-         accent: 'bg-orange-100 text-orange-700'
+         bg: 'bg-orange-100',
+         hover: 'hover:bg-orange-200 hover:shadow-orange-200',
       },
       theft: {
-         bg: 'from-slate-500 to-gray-600',
-         hover: 'hover:shadow-slate-200',
-         icon: 'text-white',
-         accent: 'bg-slate-100 text-slate-700'
+         bg: 'bg-slate-100',
+         hover: 'hover:bg-slate-200 hover:shadow-slate-200',
       },
       fire: {
-         bg: 'from-red-500 to-orange-600',
-         hover: 'hover:shadow-red-200',
-         icon: 'text-white',
-         accent: 'bg-red-100 text-red-700'
+         bg: 'bg-red-100',
+         hover: 'hover:bg-red-200 hover:shadow-red-200',
       },
       naturalDisaster: {
-         bg: 'from-indigo-500 to-blue-600',
-         hover: 'hover:shadow-indigo-200',
-         icon: 'text-white',
-         accent: 'bg-indigo-100 text-indigo-700'
+         bg: 'bg-blue-100',
+         hover: 'hover:bg-blue-200 hover:shadow-blue-200',
       }
    };
 
@@ -363,15 +347,16 @@ export const ClaimForm = () => {
 
                         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                            {claimOptions[selectedPolicy.policyType]?.map((option) => {
-                              const Icon = optionIcons[option]; // Pick correct icon
+                              const Icon = optionIcons[option];
+                              const colors = optionColors[option];
                               return (
                                  <button
                                     key={option}
                                     onClick={() => handleClaimOptionSelect(option)}
-                                    className="p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200 text-center"
+                                    className={`p-6 border-2 border-gray-200 rounded-xl ${colors.bg} ${colors.hover} hover:border-gray-400 transition-all duration-300 text-center hover:scale-105 hover:shadow-xl group transform`}
                                  >
-                                    {Icon && <Icon className="w-8 h-8 text-blue-600 mx-auto mb-3" />}
-                                    <h3 className="font-medium text-gray-900 capitalize">{option}</h3>
+                                    {Icon && <Icon className="w-24 h-24 text-gray-600 group-hover:text-gray-800 mx-auto mb-3 transition-colors duration-300" />}
+                                    <h3 className="font-medium text-gray-900 text-lg capitalize">{option}</h3>
                                  </button>
                               );
                            })}

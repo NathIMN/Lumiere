@@ -5,7 +5,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 import UserAuthApp from "../pages/Common/UserAuthApp";
 import { Navigate } from "react-router-dom";
-
+import { PageNotFound } from "../pages/Common/PageNotFound";
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
 import DebugPage from "../components/DebugPage";
 
@@ -140,7 +140,7 @@ export const AllRoutes = () => {
                }
             >
 
-               <Route index element={<Navigate to="overview" replace />} />
+               <Route index element={<Navigate to="claims" replace />} />
                <Route path="overview" element={<EmployeeOverview />} />
                <Route path="claims" element={<ClaimsLayout />}>
                   <Route index element={<EmployeeClaims />} />
@@ -168,7 +168,11 @@ export const AllRoutes = () => {
                <Route path="questionnaires" element={<Questionnaires />} />
             </Route>
 
+            <Route path="*" element={<PageNotFound />} />
+
          </Routes>
+               
+
       </Router>
    );
 };

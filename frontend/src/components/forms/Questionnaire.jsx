@@ -1,4 +1,4 @@
-// components/Questionnaire.jsx
+// Enhanced Questionnaire.jsx with input restrictions
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FileText, Calendar, AlertCircle, Check, Upload } from 'lucide-react';
 import InsuranceApiService from "../../services/insurance-api";
@@ -36,7 +36,7 @@ export const Questionnaire = ({
       return date.toISOString();
    };
 
-   // Validation function for individual fields
+   // Enhanced validation function for individual fields
    const validateField = (question, value) => {
       const validation = question.validation || {};
 
@@ -90,56 +90,107 @@ export const Questionnaire = ({
       }
 
       // Date validation
-      if (question.questionType === 'date' && value) {
-         const dateValue = new Date(value);
-         if (isNaN(dateValue.getTime())) {
-            return 'Please enter a valid date';
-         }
+      // Date validation
+if (question.questionType === 'date' && value) {
+  const dateValue = new Date(value);
+  if (isNaN(dateValue.getTime())) {
+    return 'Please enter a valid date';
+  }
 
-         // Handle max validation (can be "today" or another field name)
-         if (validation.max) {
-            let maxDate;
-            if (validation.max === 'today') {
-               maxDate = new Date();
-               maxDate.setHours(23, 59, 59, 999); // End of today
-            } else {
-               // Check if max refers to another field
-               const maxFieldValue = formData[validation.max];
-               if (maxFieldValue) {
-                  maxDate = new Date(maxFieldValue);
-               }
-            }
+  // Helper: parse relative dates like "1mAgo", "2yAgo", "10dAgo"
+  function getRelativeDate(str) {
+    const match = /^(\d+)([dmy])Ago$/i.exec(str);
+    if (!match) return null;
 
-            if (maxDate && dateValue > maxDate) {
-               return validation.message || `Date cannot be after ${validation.max === 'today' ? 'today' : validation.max}`;
-            }
-         }
+    const amount = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
 
-         // Handle min validation (can be another field name or a date string)
-         if (validation.min) {
-            let minDate;
-            if (validation.min === 'today') {
-               minDate = new Date();
-               minDate.setHours(0, 0, 0, 0); // Start of today
-            } else {
-               // Check if min refers to another field
-               const minFieldValue = formData[validation.min];
-               if (minFieldValue) {
-                  minDate = new Date(minFieldValue);
-               } else {
-                  // Try to parse as direct date string
-                  minDate = new Date(validation.min);
-                  if (isNaN(minDate.getTime())) {
-                     minDate = null;
-                  }
-               }
-            }
+    const date = new Date();
+    if (unit === 'd') {
+      date.setDate(date.getDate() - amount);
+    } else if (unit === 'm') {
+      date.setMonth(date.getMonth() - amount);
+    } else if (unit === 'y') {
+      date.setFullYear(date.getFullYear() - amount);
+    }
+    return date;
+  }
 
-            if (minDate && dateValue <= minDate) {
-               return validation.message || `Date must be after ${validation.min === 'today' ? 'today' : validation.min}`;
-            }
-         }
+  // Handle max validation (can be "today", relative, or another field name)
+  if (validation.max) {
+    let maxDate;
+
+    if (validation.max === 'today') {
+      maxDate = new Date();
+      maxDate.setHours(23, 59, 59, 999); // End of today
+    } else {
+      // Relative string? e.g. "6mAgo"
+      const relativeDate = getRelativeDate(validation.max);
+      if (relativeDate) {
+        maxDate = relativeDate;
+      } else {
+        // Check if max refers to another field
+        const maxFieldValue = formData[validation.max];
+        if (maxFieldValue) {
+          maxDate = new Date(maxFieldValue);
+        } else {
+          // Direct date string
+          const parsed = new Date(validation.max);
+          if (!isNaN(parsed.getTime())) {
+            maxDate = parsed;
+          }
+        }
       }
+    }
+
+    if (maxDate && dateValue > maxDate) {
+      return (
+        validation.message ||
+        `Date cannot be after ${
+          validation.max === 'today' ? 'today' : validation.max
+        }`
+      );
+    }
+  }
+
+  // Handle min validation (can be "today", relative, another field, or date string)
+  if (validation.min) {
+    let minDate;
+
+    if (validation.min === 'today') {
+      minDate = new Date();
+      minDate.setHours(0, 0, 0, 0); // Start of today
+    } else {
+      // Relative string? e.g. "1yAgo"
+      const relativeDate = getRelativeDate(validation.min);
+      if (relativeDate) {
+        minDate = relativeDate;
+      } else {
+        // Check if min refers to another field
+        const minFieldValue = formData[validation.min];
+        if (minFieldValue) {
+          minDate = new Date(minFieldValue);
+        } else {
+          // Try to parse as direct date string
+          const parsed = new Date(validation.min);
+          if (!isNaN(parsed.getTime())) {
+            minDate = parsed;
+          }
+        }
+      }
+    }
+
+    if (minDate && dateValue < minDate) {
+      return (
+        validation.message ||
+        `Date must be after ${
+          validation.min === 'today' ? 'today' : validation.min
+        }`
+      );
+    }
+  }
+}
+
 
       // File validation
       if (question.questionType === 'file') {
@@ -293,12 +344,54 @@ export const Questionnaire = ({
       return true;
    };
 
+   // Enhanced input change handler with restrictions
    const handleInputChange = (questionId, value, question) => {
       let processedValue = value;
+      const validation = question?.validation || {};
 
-      // Process date values to remove time component
-      if (question && question.questionType === 'date' && value) {
-         processedValue = value; // Keep as YYYY-MM-DD for input
+      // Apply input restrictions based on question type
+      if (question) {
+         switch (question.questionType) {
+            case 'text':
+               // Restrict text length at input level
+               if (validation.maxLength && value.length > validation.maxLength) {
+                  processedValue = value.substring(0, validation.maxLength);
+               }
+               
+               // Apply pattern validation for real-time input restriction
+               if (validation.pattern && value) {
+                  const regex = new RegExp(validation.pattern);
+                  if (!regex.test(value)) {
+                     // Don't update the value if it doesn't match the pattern
+                     return; // Exit early, don't update state
+                  }
+               }
+               break;
+
+            case 'number':
+               if (value !== '') {
+                  const numValue = parseFloat(value);
+                  if (!isNaN(numValue)) {
+                     // Apply min/max restrictions
+                     if (validation.min !== undefined && numValue < validation.min) {
+                        processedValue = validation.min;
+                     } else if (validation.max !== undefined && numValue > validation.max) {
+                        processedValue = validation.max;
+                     } else {
+                        processedValue = numValue;
+                     }
+                  }
+               }
+               break;
+
+            case 'date':
+               // Keep as YYYY-MM-DD for input, validation will be done separately
+               processedValue = value;
+               break;
+
+            default:
+               processedValue = value;
+         }
       }
 
       setFormData(prev => ({
@@ -316,10 +409,11 @@ export const Questionnaire = ({
       } else {
          // Clear error for this field
          if (errors[questionId]) {
-            setErrors(prev => ({
-               ...prev,
-               [questionId]: ''
-            }));
+            setErrors(prev => {
+               const newErrors = { ...prev };
+               delete newErrors[questionId];
+               return newErrors;
+            });
          }
       }
 
@@ -378,6 +472,7 @@ export const Questionnaire = ({
          }));
    };
 
+   // Enhanced validation for current section - now prevents navigation with invalid data
    const validateCurrentSection = () => {
       const newErrors = {};
       const sections = getSections();
@@ -386,35 +481,9 @@ export const Questionnaire = ({
       if (!currentSection) return {};
 
       currentSection.questions.forEach(question => {
-         if (question.isRequired) {
-            // For file questions, check if files are selected
-            if (question.questionType === 'file') {
-               const hasLocalFiles = formData[question.questionId] &&
-                  Array.isArray(formData[question.questionId]) &&
-                  formData[question.questionId].length > 0 &&
-                  formData[question.questionId][0] instanceof File;
-
-               const hasBackendAnswer = question.isAnswered && question.currentAnswer && question.currentAnswer.value;
-
-               console.log(`Validating file question ${question.questionId}: hasLocalFiles=${hasLocalFiles}, hasBackendAnswer=${hasBackendAnswer}`);
-
-               if (!hasLocalFiles && !hasBackendAnswer) {
-                  newErrors[question.questionId] = `${question.questionText} is required`;
-               }
-            } else {
-               // For non-file questions, use original validation
-               const hasLocalAnswer = formData[question.questionId] !== undefined &&
-                  formData[question.questionId] !== null &&
-                  formData[question.questionId] !== '';
-
-               const hasBackendAnswer = question.isAnswered && question.currentAnswer && question.currentAnswer.value;
-
-               console.log(`Validating non-file question ${question.questionId}: hasLocalAnswer=${hasLocalAnswer}, hasBackendAnswer=${hasBackendAnswer}`);
-
-               if (!hasLocalAnswer && !hasBackendAnswer) {
-                  newErrors[question.questionId] = `${question.questionText} is required`;
-               }
-            }
+         const validationError = validateField(question, formData[question.questionId]);
+         if (validationError) {
+            newErrors[question.questionId] = validationError;
          }
       });
 
@@ -575,10 +644,16 @@ export const Questionnaire = ({
    };
 
    const handleNext = async () => {
+      // Enhanced validation - prevents moving with invalid data
       const validationErrors = validateCurrentSection();
 
       if (Object.keys(validationErrors).length > 0) {
          setErrors(validationErrors);
+         // Show a summary error message
+         setErrors(prev => ({
+            ...prev,
+            navigation: 'Please fix all validation errors before proceeding to the next section.'
+         }));
          return;
       }
 
@@ -596,8 +671,8 @@ export const Questionnaire = ({
             await saveAnswers();
          }
 
-         // Only proceed to next section if save was successful
-         if (questionnaire && currentSectionIndex < sections.length - 1) {
+         // Only proceed to next section if save was successful and no errors
+         if (questionnaire && currentSectionIndex < sections.length - 1 && !errors.save) {
             setCurrentSectionIndex(prev => prev + 1);
          }
       } catch (error) {
@@ -621,7 +696,10 @@ export const Questionnaire = ({
 
       if (Object.keys(validationErrors).length > 0) {
          console.log('Validation errors found:', validationErrors);
-         setErrors(validationErrors);
+         setErrors({
+            ...validationErrors,
+            submit: 'Please fix all validation errors before submitting the questionnaire.'
+         });
          return;
       }
 
@@ -673,6 +751,7 @@ export const Questionnaire = ({
    const renderQuestion = (question) => {
       const value = formData[question.questionId] || '';
       const hasError = errors[question.questionId];
+      const validation = question.validation || {};
 
       switch (question.questionType) {
          case 'text':
@@ -688,11 +767,14 @@ export const Questionnaire = ({
                      onChange={(e) => handleInputChange(question.questionId, e.target.value, question)}
                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-gray-300'
                         }`}
-                     maxLength={question.validation?.maxLength}
+                     maxLength={validation.maxLength} // Hard limit at HTML level
                   />
-                  {question.validation?.maxLength && (
-                     <p className="text-xs text-gray-500">
-                        {(value || '').length}/{question.validation.maxLength} characters
+                  {validation.maxLength && (
+                     <p className={`text-xs ${(value || '').length >= validation.maxLength * 0.9 ? 'text-orange-500' : 'text-gray-500'}`}>
+                        {(value || '').length}/{validation.maxLength} characters
+                        {(value || '').length >= validation.maxLength && (
+                           <span className="text-red-500 ml-2">Maximum reached</span>
+                        )}
                      </p>
                   )}
                   {hasError && (
@@ -717,9 +799,20 @@ export const Questionnaire = ({
                      onChange={(e) => handleInputChange(question.questionId, e.target.value, question)}
                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-gray-300'
                         }`}
-                     min={question.validation?.min}
-                     max={question.validation?.max}
+                     min={validation.min}
+                     max={validation.max}
+                     step="any"
                   />
+                  {(validation.min !== undefined || validation.max !== undefined) && (
+                     <p className="text-xs text-gray-500">
+                        {validation.min !== undefined && validation.max !== undefined
+                           ? `Range: ${validation.min} - ${validation.max}`
+                           : validation.min !== undefined
+                              ? `Minimum: ${validation.min}`
+                              : `Maximum: ${validation.max}`
+                        }
+                     </p>
+                  )}
                   {hasError && (
                      <p className="text-red-500 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
@@ -730,6 +823,21 @@ export const Questionnaire = ({
             );
 
          case 'date':
+            const today = new Date().toISOString().split('T')[0];
+            let minDate, maxDate;
+            
+            if (validation.min === 'today') {
+               minDate = today;
+            } else if (validation.min && formData[validation.min]) {
+               minDate = formatDateForInput(formData[validation.min]);
+            }
+            
+            if (validation.max === 'today') {
+               maxDate = today;
+            } else if (validation.max && formData[validation.max]) {
+               maxDate = formatDateForInput(formData[validation.max]);
+            }
+
             return (
                <div key={question.questionId} className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
@@ -743,10 +851,21 @@ export const Questionnaire = ({
                         onChange={(e) => handleInputChange(question.questionId, e.target.value, question)}
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${hasError ? 'border-red-500' : 'border-gray-300'
                            }`}
-                        max={question.validation?.max === 'today' ? new Date().toISOString().split('T')[0] : undefined}
+                        min={minDate}
+                        max={maxDate}
                      />
                      <Calendar className="absolute right-3 top-2.5 w-5 h-5 text-gray-400 pointer-events-none" />
                   </div>
+                  {(minDate || maxDate) && (
+                     <p className="text-xs text-gray-500">
+                        {minDate && maxDate
+                           ? `Date range: ${minDate} to ${maxDate}`
+                           : minDate
+                              ? `Must be after: ${minDate}`
+                              : `Must be before: ${maxDate}`
+                        }
+                     </p>
+                  )}
                   {hasError && (
                      <p className="text-red-500 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
@@ -810,6 +929,11 @@ export const Questionnaire = ({
             );
 
          case 'file':
+            const maxSizeInMB = validation.max ? Math.round(validation.max / 1024 / 1024) : null;
+            const acceptedTypes = validation.pattern ? 
+               validation.pattern.replace(/\\/g, '').replace(/\.\(\|/g, '.').replace(/\)\$/, '') : 
+               undefined;
+
             return (
                <div key={question.questionId} className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
@@ -823,12 +947,44 @@ export const Questionnaire = ({
                      }`}>
                      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                      <p className="text-sm text-gray-600 mb-2">Click to upload or drag and drop files here</p>
+                     {maxSizeInMB && (
+                        <p className="text-xs text-gray-500 mb-2">Maximum file size: {maxSizeInMB}MB</p>
+                     )}
+                     {acceptedTypes && (
+                        <p className="text-xs text-gray-500 mb-2">Accepted types: {acceptedTypes}</p>
+                     )}
                      <input
                         type="file"
                         multiple
-                        onChange={(e) => handleInputChange(question.questionId, Array.from(e.target.files), question)}
+                        onChange={(e) => {
+                           const files = Array.from(e.target.files);
+                           // Validate file size at selection
+                           if (validation.max) {
+                              const oversizedFiles = files.filter(file => file.size > validation.max);
+                              if (oversizedFiles.length > 0) {
+                                 setErrors(prev => ({
+                                    ...prev,
+                                    [question.questionId]: `File(s) too large. Maximum size is ${maxSizeInMB}MB`
+                                 }));
+                                 return;
+                              }
+                           }
+                           // Validate file type at selection
+                           if (validation.pattern) {
+                              const regex = new RegExp(validation.pattern);
+                              const invalidFiles = files.filter(file => !regex.test(file.name));
+                              if (invalidFiles.length > 0) {
+                                 setErrors(prev => ({
+                                    ...prev,
+                                    [question.questionId]: validation.message || 'Invalid file type selected'
+                                 }));
+                                 return;
+                              }
+                           }
+                           handleInputChange(question.questionId, files, question);
+                        }}
                         className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                        accept={question.validation?.pattern ? question.validation.pattern.replace(/\\/g, '').replace(/\.\(\|/g, '.').replace(/\)\$/, '') : undefined}
+                        accept={acceptedTypes}
                      />
 
                      {/* Show selected files */}
@@ -850,11 +1006,6 @@ export const Questionnaire = ({
                         </div>
                      )}
                   </div>
-                  {question.validation?.max && (
-                     <p className="text-xs text-gray-500">
-                        Maximum file size: {Math.round(question.validation.max / 1024 / 1024)}MB
-                     </p>
-                  )}
                   {hasError && (
                      <p className="text-red-500 text-sm flex items-center gap-1">
                         <AlertCircle className="w-4 h-4" />
@@ -921,12 +1072,12 @@ export const Questionnaire = ({
             </div>
          </div>
 
-         {/* Error display for save errors */}
-         {errors.save && (
+         {/* Error display for save and navigation errors */}
+         {(errors.save || errors.navigation) && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                <p className="text-red-700 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5" />
-                  {errors.save}
+                  {errors.save || errors.navigation}
                </p>
             </div>
          )}
@@ -990,7 +1141,7 @@ export const Questionnaire = ({
                      {isLastSection ? (
                         <button
                            onClick={handleSubmit}
-                           disabled={!canCompleteQuestionnaire() || saving || uploadingFiles}
+                           disabled={!canCompleteQuestionnaire() || saving || uploadingFiles || Object.keys(validateCurrentSection()).length > 0}
                            className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                            {saving || uploadingFiles ? (
@@ -999,13 +1150,17 @@ export const Questionnaire = ({
                                  {uploadingFiles ? 'Uploading...' : 'Saving...'}
                               </div>
                            ) : (
-                              canCompleteQuestionnaire() ? 'Complete Questionnaire' : 'Complete All Questions First'
+                              Object.keys(validateCurrentSection()).length > 0 
+                                 ? 'Fix Errors to Submit'
+                                 : canCompleteQuestionnaire() 
+                                    ? 'Complete Questionnaire' 
+                                    : 'Complete All Questions First'
                            )}
                         </button>
                      ) : (
                         <button
                            onClick={handleNext}
-                           disabled={saving || uploadingFiles}
+                           disabled={saving || uploadingFiles || Object.keys(validateCurrentSection()).length > 0}
                            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                            {saving || uploadingFiles ? (
@@ -1014,7 +1169,9 @@ export const Questionnaire = ({
                                  {uploadingFiles ? 'Uploading Files...' : 'Saving...'}
                               </>
                            ) : (
-                              'Save & Next Section'
+                              Object.keys(validateCurrentSection()).length > 0 
+                                 ? 'Fix Errors to Continue'
+                                 : 'Save & Next Section'
                            )}
                         </button>
                      )}
@@ -1026,6 +1183,25 @@ export const Questionnaire = ({
                </div>
             )}
          </div>
+
+         {/* Summary of validation errors if any */}
+         {Object.keys(errors).filter(key => !['save', 'navigation', 'submit'].includes(key)).length > 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+               <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                     <h3 className="font-medium text-yellow-800 mb-1">Please fix the following issues:</h3>
+                     <ul className="text-sm text-yellow-700 space-y-1">
+                        {Object.entries(errors)
+                           .filter(([key]) => !['save', 'navigation', 'submit'].includes(key))
+                           .map(([key, message]) => (
+                              <li key={key}>• {message}</li>
+                           ))}
+                     </ul>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
    );
 };

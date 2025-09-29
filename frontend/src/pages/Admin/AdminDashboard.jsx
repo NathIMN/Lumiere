@@ -28,7 +28,7 @@ export const AdminDashboard = () => {
     { path: "vapi-test", label: "Voice Assistant Test", icon: Mic },
   ];
 
-  const color = "#2e7096";
+const color = "#800020";
 
   const [isDark, setIsDark] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
