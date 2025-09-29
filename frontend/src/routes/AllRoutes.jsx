@@ -5,7 +5,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import { useAuth } from "../context/AuthContext";
 import UserAuthApp from "../pages/Common/UserAuthApp";
 import { Navigate } from "react-router-dom";
-
+import { PageNotFound } from "../pages/Common/PageNotFound";
 import { LumiereLanding } from "../pages/LandingPage/LumiereLanding";
 import DebugPage from "../components/DebugPage";
 
@@ -32,6 +32,7 @@ import {
 
 
 import MessagingPage from "../components/messaging/MessagingPage";
+import NotificationTester from "../components/testing/NotificationTester";
 
 import { AgentDashboard } from "../pages/Agent/AgentDashboard";
 import AgentOverview from "../pages/Agent/AgentOverview";
@@ -46,8 +47,11 @@ import {
    ClaimsLayout,
    ClaimForm,
    ClaimDetails,
-   TestingStuff
+   TestingStuff,
+   MobileVoiceAssistant
 } from "../pages/Employee";
+
+import MobileMessagingPage from "../pages/Mobile/MobileMessagingPage";
 
 
 const Logout = () => {
@@ -76,6 +80,15 @@ export const AllRoutes = () => {
             <Route path="/auth" element={<UserAuthApp />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/debug" element={<DebugPage />} />
+            <Route path="/mobile-assistant" element={<MobileVoiceAssistant />} />
+            <Route 
+               path="/mobile-messaging" 
+               element={
+                  <ProtectedRoute allowedRoles={["admin", "hr_officer", "employee", "insurance_agent"]}>
+                     <MobileMessagingPage />
+                  </ProtectedRoute>
+               } 
+            />
 
 
 
@@ -100,6 +113,7 @@ export const AllRoutes = () => {
           <Route path="reports" element={<AdminReports />} />
           <Route path="messaging" element={<MessagingPage userRole="admin" />} />
           <Route path="vapi-test" element={<VapiTestPage />} />
+          <Route path="notification-tester" element={<NotificationTester />} />
         </Route>
 
 
@@ -136,7 +150,7 @@ export const AllRoutes = () => {
                }
             >
 
-               <Route index element={<Navigate to="overview" replace />} />
+               <Route index element={<Navigate to="claims" replace />} />
                <Route path="overview" element={<EmployeeOverview />} />
                <Route path="claims" element={<ClaimsLayout />}>
                   <Route index element={<EmployeeClaims />} />
@@ -164,7 +178,11 @@ export const AllRoutes = () => {
                <Route path="questionnaires" element={<Questionnaires />} />
             </Route>
 
+            <Route path="*" element={<PageNotFound />} />
+
          </Routes>
+               
+
       </Router>
    );
 };

@@ -28,7 +28,7 @@ export const AdminDashboard = () => {
     { path: "vapi-test", label: "Voice Assistant Test", icon: Mic },
   ];
 
-  const color = "#2e7096";
+const color = "#800020";
 
   const [isDark, setIsDark] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -44,7 +44,7 @@ export const AdminDashboard = () => {
   };
 
   return (
-    <div className="employee-dashboard flex bg-neutral-300 dark:bg-neutral-800 h-screen">
+    <div className="employee-dashboard flex bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 h-screen">
       {/* Sidebar */}
       <SideBar
         links={adminLinks}
@@ -54,7 +54,7 @@ export const AdminDashboard = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ">
+      <div className="flex-1 flex flex-col">
         {/* Common Header */}
         <Header
           onToggleTheme={toggleTheme}
@@ -65,7 +65,7 @@ export const AdminDashboard = () => {
 
         {/* Scrollable Content */}
         <main
-          className={`flex-1 overflow-y-auto pt-25 transition-all duration-300 pr-4
+          className={`flex-1 overflow-y-auto pt-25 transition-all duration-300 pr-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800
          ${isCollapsed ? "ml-32" : "ml-75"}`}
           onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 10)}
         >

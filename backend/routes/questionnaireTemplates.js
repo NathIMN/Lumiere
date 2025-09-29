@@ -41,12 +41,12 @@ router.get("/by-type/:claimType/:claimOption",
 // Main CRUD routes
 router.route("/")
   .get(authenticate, getAllTemplates)
-  .post(authenticate, authorize("admin", "agent"), createTemplate);
+  .post(authenticate, authorize("admin", "agent", "insurance_agent"), createTemplate);
 
 router.route("/:id")
   .get(authenticate, getTemplateById)
-  .patch(authenticate, authorize("admin", "hr_officer"), updateTemplate)
-  .delete(authenticate, authorize("admin", "hr_officer"), deleteTemplate);
+  .patch(authenticate, authorize("admin", "agent", "insurance_agent", "hr_officer"), updateTemplate)
+  .delete(authenticate, authorize("admin", "agent", "insurance_agent", "hr_officer"), deleteTemplate);
 
 // Special template management routes (admin/hr only)
 router.post("/:id/clone", 
@@ -57,7 +57,7 @@ router.post("/:id/clone",
 
 router.patch("/:id/toggle-status", 
   authenticate, 
-  authorize("admin", "hr_officer"), 
+  authorize("admin", "agent", "insurance_agent", "hr_officer"), 
   toggleTemplateStatus
 );
 

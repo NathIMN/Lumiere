@@ -18,6 +18,11 @@ import {
   getPolicyUsage,
   bulkUpdateStatus,
   getPoliciesByAgent,
+  getBeneficiaryClaimedAmounts,
+  getBeneficiaryClaimedAmountsByPolicyId,
+  getPolicyClaimedAmountsSummary,
+  validatePolicyCoverageConsistency,
+  getEnhancedClaimedAmountsSummary,
 } from "../controllers/policies.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 
@@ -48,6 +53,9 @@ router.route("/")
 // Get policy by custom policy ID (e.g., LG0001)
 router.get("/policy-id/:policyId", authenticate, authorize("admin", "hr_officer", "insurance_agent"), getPolicyByPolicyId);
 
+// Get claimed amounts by custom policy ID
+router.get("/policy-id/:policyId/claimed-amounts", authenticate, getBeneficiaryClaimedAmountsByPolicyId);
+
 // Policy management routes (admin only for destructive operations)
 router.route("/:id")
   .get(authenticate, authorize("admin", "hr_officer", "insurance_agent"), getPolicyById)
@@ -61,6 +69,14 @@ router.patch("/:id/renew", authenticate, authorize("admin"), renewPolicy); // Ad
 // Beneficiary management routes
 router.patch("/:id/beneficiaries/add", authenticate, authorize("admin", "hr_officer"), addBeneficiary);
 router.patch("/:id/beneficiaries/remove", authenticate, authorize("admin", "hr_officer"), removeBeneficiary);
+
+// Claimed amounts tracking routes
+router.get("/:id/claimed-amounts", authenticate, getBeneficiaryClaimedAmounts); // Employees can check their own, admin/hr/agent can check any
+router.get("/:id/claimed-amounts/summary", authenticate, authorize("admin", "hr_officer", "insurance_agent"), getPolicyClaimedAmountsSummary);
+router.get("/:id/enhanced-claimed-amounts-summary", authenticate, authorize("admin", "hr_officer", "insurance_agent"), getEnhancedClaimedAmountsSummary);
+
+// Coverage validation routes
+router.get("/:id/validate-coverage-consistency", authenticate, authorize("admin", "hr_officer", "insurance_agent"), validatePolicyCoverageConsistency);
 
 // Policy usage (must come after other specific routes)
 router.get("/:id/usage", authenticate, authorize("admin", "hr_officer"), getPolicyUsage);

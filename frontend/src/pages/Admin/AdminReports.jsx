@@ -453,11 +453,16 @@ const AdminReports = () => {
   };
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+    <div className="p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl shadow-xl border-2 border-red-900/10">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-8 bg-white dark:bg-gray-800 rounded-xl p-6 border-2 border-red-900/10">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports</h1>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center">
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-[#151E3D] dark:text-white">Reports</h1>
+          </div>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Generate comprehensive reports for policies, claims, users, and financial data
           </p>
@@ -465,7 +470,7 @@ const AdminReports = () => {
         <div className="flex items-center gap-3">
           <button
             onClick={loadReportTemplates}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-lg hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh

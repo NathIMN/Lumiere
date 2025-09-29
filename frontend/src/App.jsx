@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { AllRoutes } from './routes/AllRoutes';
 
 function App() {
@@ -20,15 +22,19 @@ function App() {
 
   return (
     <AuthProvider>
-      <div className={isDark ? 'dark' : ''}>
-        <AllRoutes 
-          isDark={isDark}
-          isCollapsed={isCollapsed}
-          scrolled={scrolled}
-          onToggleTheme={toggleTheme}
-          onToggleSidebar={toggleSidebar}
-        />
-      </div>
+      <ToastProvider>
+        <NotificationProvider>
+          <div className={isDark ? 'dark' : ''}>
+            <AllRoutes 
+              isDark={isDark}
+              isCollapsed={isCollapsed}
+              scrolled={scrolled}
+              onToggleTheme={toggleTheme}
+              onToggleSidebar={toggleSidebar}
+            />
+          </div>
+        </NotificationProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

@@ -318,6 +318,27 @@ class VapiApiService {
       query: filters
     }, userToken);
   }
+
+  /**
+   * Formalize casual text into professional business language using VAPI
+   * @param {string} casualText - The casual text to formalize
+   * @param {string} userToken - Optional custom token
+   * @returns {Promise<Object>} Formalized text result
+   */
+  async formalizeText(casualText, userToken = null) {
+    try {
+      const formalizePrompt = `Please rewrite the following casual message into professional business language while maintaining the original meaning and intent. Make it appropriate for workplace communication. Keep it concise but polite:
+
+"${casualText}"
+
+Return only the formalized text without any explanations or additional text.`;
+
+      return this.processUserMessage(formalizePrompt, 'employee', userToken);
+    } catch (error) {
+      console.error('Error formalizing text:', error);
+      throw error;
+    }
+  }
 }
 
 export default new VapiApiService();

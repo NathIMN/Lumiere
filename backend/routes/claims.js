@@ -42,7 +42,7 @@ router.route("/:id")
 // Employee actions (questionnaire and submission)
 router.get("/:id/questionnaire",
    authenticate,
-   authorize("employee", "admin", "hr_officer"),
+   authorize("employee", "admin", "hr_officer", "insurance_agent"),
    getQuestionnaireQuestions
 );
 

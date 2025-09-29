@@ -845,10 +845,10 @@ const AgentOverview = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-
-      {/* Enhanced Header */}
-      <div className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      {/* Main Dashboard Content - Everything scrollable together */}
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header Section - Now part of main content */}
+        <div className="bg-white border border-gray-200 rounded-3xl p-6 mb-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-md">
@@ -885,7 +885,7 @@ const AgentOverview = () => {
             </div>
           </div>
 
-          {/* Status Bar */}
+          {/* Status Bar - Now inside main content */}
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-6 text-sm text-gray-600">
               <div className="flex items-center gap-2">
@@ -910,10 +910,8 @@ const AgentOverview = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Dashboard Content */}
-      <div className="max-w-7xl mx-auto p-6">
+        {/* Dashboard Content */}
         {error && (
           <div className="bg-rose-100 border border-rose-300 text-rose-700 px-6 py-4 rounded-2xl mb-8">
             <div className="flex items-center gap-3">
