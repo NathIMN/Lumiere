@@ -375,10 +375,17 @@ const MessagingPage = ({ userRole, config = {} }) => {
       
       if (response.success && response.data.formalizedMessage) {
         setMessageInput(response.data.formalizedMessage);
+        
+        // Show feedback to user if AI was unavailable
+        if (response.data.error) {
+          console.warn('AI formalization unavailable:', response.data.error);
+          // You could show a toast notification here if needed
+        }
       }
     } catch (error) {
       console.error('Failed to formalize message:', error);
-      // You might want to add a toast notification here
+      // Keep the original message and show a subtle warning
+      console.warn('AI formalization failed, keeping original message');
     } finally {
       setFormalizeLoading(false);
     }

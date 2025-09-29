@@ -1,5 +1,5 @@
 import asyncWrapper from '../middleware/async.js';
-import geminiService from '../services/geminiService.js';
+import openaiService from '../services/openaiService.js';
 
 // Send a message to the chatbot and get AI response
 const sendMessage = asyncWrapper(async (req, res) => {
@@ -11,7 +11,7 @@ const sendMessage = asyncWrapper(async (req, res) => {
 
     try {
         // Generate AI response
-        const aiResponse = await geminiService.generateResponse(message);
+        const aiResponse = await openaiService.generateResponse(message);
 
         res.status(200).json({
             success: true,
@@ -49,13 +49,13 @@ const streamMessage = asyncWrapper(async (req, res) => {
             'Access-Control-Allow-Headers': 'Cache-Control'
         });
 
-        // Get streaming response from Gemini
-        const stream = await geminiService.generateStreamResponse(message);
+        // Get streaming response from OpenAI
+        const stream = await openaiService.generateStreamResponse(message);
         
         let fullResponse = '';
         
         for await (const chunk of stream) {
-            const chunkText = chunk.text();
+            const chunkText = chunk.choices[0]?.delta?.content || '';
             fullResponse += chunkText;
             
             // Send chunk to client
@@ -92,23 +92,34 @@ const formalizeMessage = asyncWrapper(async (req, res) => {
     }
 
     try {
-        // Generate formalized version
-        const formalizedMessage = await geminiService.formalizeMessage(message);
+        // Generate formalized version (service now handles fallbacks gracefully)
+        const formalizedMessage = await openaiService.formalizeMessage(message);
+
+        // Check if the message was actually formalized or if it's a fallback
+        const wasFormalized = formalizedMessage !== message.trim();
 
         res.status(200).json({
             success: true,
             data: {
                 originalMessage: message,
-                formalizedMessage: formalizedMessage.trim(),
+                formalizedMessage: formalizedMessage,
+                wasFormalized: wasFormalized,
                 timestamp: new Date()
             }
         });
 
     } catch (error) {
+        // This should rarely happen now since service handles fallbacks
         console.error('Formalize error:', error);
-        res.status(500).json({ 
-            error: 'Failed to formalize message',
-            details: error.message 
+        res.status(200).json({
+            success: true,
+            data: {
+                originalMessage: message,
+                formalizedMessage: message.trim(),
+                wasFormalized: false,
+                error: 'AI service unavailable',
+                timestamp: new Date()
+            }
         });
     }
 });

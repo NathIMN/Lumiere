@@ -51,6 +51,8 @@ import {
    MobileVoiceAssistant
 } from "../pages/Employee";
 
+import MobileMessagingPage from "../pages/Mobile/MobileMessagingPage";
+
 
 const Logout = () => {
    const { logout } = useAuth();
@@ -79,6 +81,14 @@ export const AllRoutes = () => {
             <Route path="/logout" element={<Logout />} />
             <Route path="/debug" element={<DebugPage />} />
             <Route path="/mobile-assistant" element={<MobileVoiceAssistant />} />
+            <Route 
+               path="/mobile-messaging" 
+               element={
+                  <ProtectedRoute allowedRoles={["admin", "hr_officer", "employee", "insurance_agent"]}>
+                     <MobileMessagingPage />
+                  </ProtectedRoute>
+               } 
+            />
 
 
 
