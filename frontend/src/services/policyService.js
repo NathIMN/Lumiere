@@ -178,7 +178,15 @@ export const policyService = {
   // Employees can check their own, admin/hr/agent can check any
   getBeneficiaryClaimedAmounts: async (policyId, beneficiaryId = null) => {
     const queryParams = beneficiaryId ? `?beneficiaryId=${beneficiaryId}` : '';
-    return await apiRequest(`/${policyId}/claimed-amounts${queryParams}`);
+    
+    try {
+      // First try using custom policy ID endpoint (for policyId like "LG0001")
+      return await apiRequest(`/policy-id/${policyId}/claimed-amounts${queryParams}`);
+    } catch (error) {
+      // If that fails, try the MongoDB ObjectId endpoint as fallback
+      console.log('Trying fallback endpoint with MongoDB ObjectId:', error.message);
+      return await apiRequest(`/${policyId}/claimed-amounts${queryParams}`);
+    }
   },
 
   // Get claimed amounts summary for all beneficiaries (admin/hr/agent only)

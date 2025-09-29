@@ -30,10 +30,12 @@ import {
   Paperclip,
   Smile,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Edit3,
+  MoreHorizontal
 } from 'lucide-react';
 import messagingApiService from '../../services/messaging-api';
-import chatbotApiService from '../../services/chatbot-api';
+import geminiApiService from '../../services/gemini-api';
 import { useMessaging } from '../../hooks/useMessaging';
 import { messagingUtils } from '../../utils/messagingUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -67,6 +69,11 @@ const MessagingPage = ({ userRole, config = {} }) => {
   const [contactsLoading, setContactsLoading] = useState(false);
   const [messageLoading, setMessageLoading] = useState(false);
   const [formalizeLoading, setFormalizeLoading] = useState(false);
+  
+  // Message edit/delete state
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editMessageContent, setEditMessageContent] = useState("");
+  const [showMessageOptions, setShowMessageOptions] = useState(null);
   
   // Filtering and sorting
   const [statusFilter, setStatusFilter] = useState("all");
@@ -373,24 +380,95 @@ const MessagingPage = ({ userRole, config = {} }) => {
     setFormalizeLoading(true);
     
     try {
-      const response = await chatbotApiService.formalizeMessage(messageInput);
+      const response = await geminiApiService.formalizeText(messageInput);
       
-      if (response.success && response.data.formalizedMessage) {
-        setMessageInput(response.data.formalizedMessage);
-        
-        // Show feedback to user if AI was unavailable
-        if (response.data.error) {
-          console.warn('AI formalization unavailable:', response.data.error);
-          // You could show a toast notification here if needed
-        }
+      if (response.success && response.formalized) {
+        setMessageInput(response.formalized);
+      } else if (response.formalized) {
+        // Even if not successful, use the fallback formalization
+        setMessageInput(response.formalized);
       }
     } catch (error) {
       console.error('Failed to formalize message:', error);
-      // Keep the original message and show a subtle warning
-      console.warn('AI formalization failed, keeping original message');
+      // Show user-friendly error message or keep original text
     } finally {
       setFormalizeLoading(false);
     }
+  };  // Edit message function
+  const editMessage = async (messageId, newContent) => {
+    if (!newContent.trim()) {
+      setEditingMessageId(null);
+      setEditMessageContent("");
+      return;
+    }
+
+    try {
+      const response = await messagingApiService.editMessage(messageId, newContent);
+
+      if (response.success) {
+        // Update local messages
+        setMessages(prevMessages => 
+          prevMessages.map(msg => 
+            msg._id === messageId 
+              ? { ...msg, content: newContent.trim(), edited: true, editedAt: new Date() }
+              : msg
+          )
+        );
+
+        // Emit socket event for real-time update
+        if (socket) {
+          socket.emit('message_edited', {
+            messageId,
+            newContent: newContent.trim(),
+            conversationId: activeConversation._id
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to edit message:', error);
+    } finally {
+      setEditingMessageId(null);
+      setEditMessageContent("");
+    }
+  };
+
+  // Delete message function
+  const deleteMessage = async (messageId) => {
+    try {
+      const response = await messagingApiService.deleteMessage(messageId);
+
+      if (response.success) {
+        // Update local messages
+        setMessages(prevMessages => 
+          prevMessages.filter(msg => msg._id !== messageId)
+        );
+
+        // Emit socket event for real-time update
+        if (socket) {
+          socket.emit('message_deleted', {
+            messageId,
+            conversationId: activeConversation._id
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+    } finally {
+      setShowMessageOptions(null);
+    }
+  };
+
+  // Start editing a message
+  const startEditingMessage = (message) => {
+    setEditingMessageId(message._id);
+    setEditMessageContent(message.content);
+    setShowMessageOptions(null);
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditMessageContent("");
   };
 
   // Start conversation with contact
@@ -827,7 +905,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
                   const showAvatar = index === 0 || messages[index - 1].sender._id !== message.sender._id;
                   
                   return (
-                    <div key={message._id || message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <div key={message._id || message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
                       <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-xs lg:max-w-md`}>
                         {showAvatar && !isOwn && (
                           <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
@@ -836,20 +914,94 @@ const MessagingPage = ({ userRole, config = {} }) => {
                             </span>
                           </div>
                         )}
-                        <div
-                          className={`px-4 py-2 rounded-lg ${
-                            isOwn
-                              ? 'bg-red-900 text-white'
-                              : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
-                          }`}
-                        >
-                          <p className="text-sm">{message.content}</p>
-                          <div className={`flex items-center justify-end mt-1 space-x-1 ${isOwn ? 'text-rose-200' : 'text-gray-500 dark:text-gray-400'}`}>
-                            <span className="text-xs">
-                              {messagingUtils.formatTime(message.createdAt)}
-                            </span>
-                            {isOwn && getMessageStatusIcon(message)}
+                        <div className="relative group">
+                          <div
+                            className={`px-4 py-2 rounded-lg ${
+                              isOwn
+                                ? 'bg-red-900 text-white'
+                                : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
+                            }`}
+                          >
+                            {editingMessageId === message._id ? (
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editMessageContent}
+                                  onChange={(e) => setEditMessageContent(e.target.value)}
+                                  onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                      editMessage(message._id, editMessageContent);
+                                    } else if (e.key === 'Escape') {
+                                      cancelEditing();
+                                    }
+                                  }}
+                                  className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-900"
+                                  autoFocus
+                                />
+                                <div className="flex space-x-2 justify-end">
+                                  <button
+                                    onClick={cancelEditing}
+                                    className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => editMessage(message._id, editMessageContent)}
+                                    className="text-xs text-green-600 hover:text-green-700 px-2 py-1 rounded"
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <p className="text-sm">
+                                  {message.content}
+                                  {message.edited && (
+                                    <span className="ml-1 text-xs opacity-60">(edited)</span>
+                                  )}
+                                </p>
+                                <div className={`flex items-center justify-between mt-1 ${isOwn ? 'text-rose-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                  <div className="flex items-center space-x-1">
+                                    <span className="text-xs">
+                                      {messagingUtils.formatTime(message.createdAt)}
+                                    </span>
+                                    {isOwn && getMessageStatusIcon(message)}
+                                  </div>
+                                  {isOwn && (
+                                    <button
+                                      onClick={() => setShowMessageOptions(
+                                        showMessageOptions === message._id ? null : message._id
+                                      )}
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-black/10 rounded text-xs"
+                                    >
+                                      <MoreHorizontal className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
+                              </>
+                            )}
                           </div>
+                          
+                          {/* Message Options Dropdown */}
+                          {isOwn && showMessageOptions === message._id && (
+                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-50">
+                              <button
+                                onClick={() => startEditingMessage(message)}
+                                className="w-full px-3 py-1 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                onClick={() => deleteMessage(message._id)}
+                                className="w-full px-3 py-1 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 flex items-center space-x-2"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -19,6 +19,7 @@ import {
   bulkUpdateStatus,
   getPoliciesByAgent,
   getBeneficiaryClaimedAmounts,
+  getBeneficiaryClaimedAmountsByPolicyId,
   getPolicyClaimedAmountsSummary,
   validatePolicyCoverageConsistency,
   getEnhancedClaimedAmountsSummary,
@@ -51,6 +52,9 @@ router.route("/")
 
 // Get policy by custom policy ID (e.g., LG0001)
 router.get("/policy-id/:policyId", authenticate, authorize("admin", "hr_officer", "insurance_agent"), getPolicyByPolicyId);
+
+// Get claimed amounts by custom policy ID
+router.get("/policy-id/:policyId/claimed-amounts", authenticate, getBeneficiaryClaimedAmountsByPolicyId);
 
 // Policy management routes (admin only for destructive operations)
 router.route("/:id")

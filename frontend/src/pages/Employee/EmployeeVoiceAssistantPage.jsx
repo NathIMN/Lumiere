@@ -106,7 +106,7 @@ export const EmployeeVoiceAssistantPage = () => {
           <p className="text-sm">
             Need personalized help? Contact our support team at{' '}
             <a href="tel:1-800-LUMIERE" className="text-blue-600 dark:text-blue-400 font-medium">
-              1-800-LUMIERE
+              0716792331 or support@lumiere.lk
             </a>{' '}
             or use the live chat in your dashboard.
           </p>
