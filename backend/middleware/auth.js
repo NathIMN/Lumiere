@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Claim from "../models/Claim.js";
 import { createCustomError } from "../errors/custom-error.js";
 import asyncWrapper from "./async.js";
 

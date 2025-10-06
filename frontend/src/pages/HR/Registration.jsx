@@ -7,8 +7,6 @@ import PersonalInformation from "../../components/registration/PersonalInformati
 import EmploymentDetails from "../../components/registration/EmploymentDetails";
 import BankDetails from "../../components/registration/BankDetails";
 import Dependents from "../../components/registration/Dependents";
-import InsuranceProviderDetails from '../../components/registration/InsuaranceProviderDetails';
-import EmployeeProfileUpdate from '../../components/registration/EmployeeProfileUpdate';
 
 import { validateForm } from '../../utils/validation';
 import { initialFormData } from '../../utils/constants';

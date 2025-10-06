@@ -75,15 +75,15 @@ export const LumiereLanding = () => {
                >
                   <Card>
                      <h3 className="text-white">Card 1</h3>
-                     <p className="text-gray-400">Your content here</p>
+                     <img src="/demos/5.png" alt="" className='cover'/>
                   </Card>
                   <Card>
                      <h3 className="text-white">Card 2</h3>
-                     <p className="text-gray-400">Your content here</p>
+                     <img src="/demos/6.png" alt="" className='cover'/>
                   </Card>
                   <Card>
                      <h3 className="text-white">Card 3</h3>
-                     <p className="text-gray-400">Your content here</p>
+                     <img src="/demos/1.png" alt="" className='cover'/>
                   </Card>
                </CardSwap>
             </div>
