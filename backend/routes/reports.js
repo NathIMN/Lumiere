@@ -4,6 +4,7 @@ import {
   generatePoliciesReport,
   generateClaimsReport,
   generateFinancialReport,
+  generatePolicyUsersReport,
   generateCustomReport,
   getReportTemplates,
   scheduleReport,
@@ -53,7 +54,15 @@ router.get('/claims', authenticate, authorize('admin', 'hr_officer', 'insurance_
  * @access  Admin
  * @params  ?dateFrom=2024-01-01&dateTo=2024-12-31&period=monthly&format=pdf
  */
-router.get('/financial', authenticate, authorize('admin'), generateFinancialReport);
+router.get('/financial', authenticate, authorize('admin', 'hr_officer'), generateFinancialReport);
+
+/**
+ * @route   GET /api/reports/policy-users/:policyId
+ * @desc    Generate policy users report
+ * @access  Admin, HR, Insurance Agent
+ * @params  ?format=pdf
+ */
+router.get('/policy-users/:policyId', authenticate, authorize('admin', 'hr_officer', 'insurance_agent'), generatePolicyUsersReport);
 
 /**
  * @route   POST /api/reports/custom

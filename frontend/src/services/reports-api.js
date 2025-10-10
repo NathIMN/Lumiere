@@ -102,6 +102,19 @@ class ReportsApiService {
   }
 
   /**
+   * Generate policy users report
+   * @param {string} policyId - Policy ID
+   * @param {Object} filters - Report filters
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generatePolicyUsersReport(policyId, filters = {}) {
+    const queryParams = new URLSearchParams(filters).toString();
+    const endpoint = `/reports/policy-users/${policyId}${queryParams ? `?${queryParams}` : ''}`;
+    
+    return this.downloadReport(endpoint);
+  }
+
+  /**
    * Download report as PDF blob
    * @param {string} endpoint - API endpoint
    * @returns {Promise<Blob>} PDF blob

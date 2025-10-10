@@ -489,6 +489,11 @@ export const HRClaimReview = () => {
         ...(filters.endDate && { endDate: filters.endDate }),
       };
 
+      // For claims report from HR page, only include HR status claims
+      if (reportType === 'claims') {
+        reportFilters.hrOnly = true;
+      }
+
       Object.keys(reportFilters).forEach(key => {
         if (!reportFilters[key]) {
           delete reportFilters[key];

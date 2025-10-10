@@ -349,7 +349,7 @@ class ReportsService {
   /**
    * Generate Policies Report Data
    */
-  async generatePoliciesReport(filters = {}) {
+  async generatePoliciesReport(filters = {}, generatedBy = null) {
     try {
       let query = {};
 
@@ -440,7 +440,7 @@ class ReportsService {
   /**
    * Generate Policies PDF Report
    */
-  async generatePoliciesPDF(reportData, filters) {
+  async generatePoliciesPDF(reportData, filters, generatedBy = null) {
     try {
       const baseTemplate = await this.loadTemplate('base');
       const contentTemplate = await this.loadTemplate('policies-report');
@@ -449,7 +449,7 @@ class ReportsService {
       const templateData = {
         reportTitle: 'Policies Report',
         reportSubtitle: 'Comprehensive overview of insurance policies',
-        generatedBy: 'System Administrator',
+        generatedBy: generatedBy || 'System Administrator',
         generatedDate: moment().format('MMMM DD, YYYY'),
         reportPeriod: filters.dateFrom && filters.dateTo ? 
           `${moment(filters.dateFrom).format('MMM DD, YYYY')} - ${moment(filters.dateTo).format('MMM DD, YYYY')}` : 
@@ -481,12 +481,19 @@ class ReportsService {
   /**
    * Generate Claims Report Data
    */
-  async generateClaimsReport(filters = {}) {
+  async generateClaimsReport(filters = {}, generatedBy = null) {
     try {
       let query = {};
 
       if (filters.status) {
         query.status = filters.status;
+      }
+
+      // If hrOnly filter is specified, only include claims with HR status
+      if (filters.hrOnly === true || filters.hrOnly === 'true') {
+        query.claimStatus = 'hr';
+      } else if (filters.claimStatus) {
+        query.claimStatus = filters.claimStatus;
       }
 
       if (filters.claimType) {
@@ -555,16 +562,20 @@ class ReportsService {
   /**
    * Generate Claims PDF Report
    */
-  async generateClaimsPDF(reportData, filters) {
+  async generateClaimsPDF(reportData, filters, generatedBy = null) {
     try {
       const baseTemplate = await this.loadTemplate('base');
       const contentTemplate = await this.loadTemplate('claims-report');
       const logoBase64 = await this.loadLogo();
 
+      const reportSubtitle = filters.hrOnly === true || filters.hrOnly === 'true' ? 
+        'HR Claims Report - Claims Pending HR Review' : 
+        'Comprehensive overview of insurance claims';
+
       const templateData = {
         reportTitle: 'Claims Report',
-        reportSubtitle: 'Comprehensive overview of insurance claims',
-        generatedBy: 'System Administrator',
+        reportSubtitle: reportSubtitle,
+        generatedBy: generatedBy || 'System Administrator',
         generatedDate: moment().format('MMMM DD, YYYY'),
         reportPeriod: filters.dateFrom && filters.dateTo ? 
           `${moment(filters.dateFrom).format('MMM DD, YYYY')} - ${moment(filters.dateTo).format('MMM DD, YYYY')}` : 
@@ -596,7 +607,7 @@ class ReportsService {
   /**
    * Generate Financial Report Data
    */
-  async generateFinancialReport(filters = {}) {
+  async generateFinancialReport(filters = {}, generatedBy = null) {
     try {
       // This would integrate with actual financial data
       // For now, generating sample data structure
@@ -623,7 +634,7 @@ class ReportsService {
   /**
    * Generate Financial PDF Report
    */
-  async generateFinancialPDF(reportData, filters) {
+  async generateFinancialPDF(reportData, filters, generatedBy = null) {
     try {
       const baseTemplate = await this.loadTemplate('base');
       const contentTemplate = await this.loadTemplate('financial-report');
@@ -632,7 +643,7 @@ class ReportsService {
       const templateData = {
         reportTitle: 'Financial Report',
         reportSubtitle: 'Comprehensive financial performance overview',
-        generatedBy: 'System Administrator',
+        generatedBy: generatedBy || 'System Administrator',
         generatedDate: moment().format('MMMM DD, YYYY'),
         reportPeriod: filters.dateFrom && filters.dateTo ? 
           `${moment(filters.dateFrom).format('MMM DD, YYYY')} - ${moment(filters.dateTo).format('MMM DD, YYYY')}` : 
@@ -662,6 +673,136 @@ class ReportsService {
   }
 
   /**
+   * Generate Policy Users Report Data
+   */
+  async generatePolicyUsersReport(filters = {}, generatedBy = null) {
+    try {
+      if (!filters.policyId) {
+        throw new Error('Policy ID is required for policy users report');
+      }
+
+      // Get the specific policy with all its beneficiaries
+      const policy = await Policy.findById(filters.policyId)
+        .populate('beneficiaries', 'profile.firstName profile.lastName email profile.phoneNumber profile.address profile.dateOfBirth profile.gender employeeId')
+        .populate('insuranceAgent', 'profile.firstName profile.lastName email')
+        .lean();
+
+      if (!policy) {
+        throw new Error('Policy not found');
+      }
+
+      console.log('Policy data for report:', JSON.stringify(policy, null, 2));
+
+      // Format the policy data
+      const formattedPolicy = {
+        policyId: policy.policyId,
+        policyType: policy.policyType,
+        policyCategory: policy.policyCategory,
+        status: policy.status,
+        startDate: policy.validity?.startDate,
+        endDate: policy.validity?.endDate,
+        premium: {
+          amount: policy.premium?.amount || 0,
+          frequency: policy.premium?.frequency || 'N/A'
+        },
+        coverage: {
+          amount: policy.coverage?.coverageAmount || 0,
+          deductible: policy.coverage?.deductible || 0
+        },
+        agent: policy.insuranceAgent ? {
+          name: `${policy.insuranceAgent.profile?.firstName || 'N/A'} ${policy.insuranceAgent.profile?.lastName || 'N/A'}`,
+          email: policy.insuranceAgent.email
+        } : null
+      };
+
+      // Format beneficiaries data (these are the "users" of the policy)
+      const beneficiaries = policy.beneficiaries?.map(beneficiary => ({
+        beneficiaryId: beneficiary._id,
+        name: `${beneficiary.profile?.firstName || 'N/A'} ${beneficiary.profile?.lastName || 'N/A'}`,
+        email: beneficiary.email,
+        employeeId: beneficiary.employeeId,
+        phoneNumber: beneficiary.profile?.phoneNumber || 'N/A',
+        address: beneficiary.profile?.address || 'N/A',
+        dateOfBirth: beneficiary.profile?.dateOfBirth,
+        gender: beneficiary.profile?.gender || 'N/A'
+      })) || [];
+
+      return {
+        policy: formattedPolicy,
+        beneficiaries,
+        summary: {
+          totalBeneficiaries: beneficiaries.length,
+          totalCoverage: policy.coverage?.coverageAmount || 0
+        }
+      };
+    } catch (error) {
+      console.error('Error generating policy users report:', error);
+      throw new Error('Failed to generate policy users report');
+    }
+  }
+
+  /**
+   * Generate Policy Users PDF Report
+   */
+  async generatePolicyUsersPDF(reportData, filters, generatedBy = null) {
+    try {
+      const baseTemplate = await this.loadTemplate('base');
+      const contentTemplate = await this.loadTemplate('employee-policy-report');
+      const logoBase64 = await this.loadLogo();
+
+      // Transform data to match the employee-policy-report template structure
+      const transformedPolicy = {
+        policyId: reportData.policy.policyId,
+        policyType: reportData.policy.policyType?.toUpperCase() || 'N/A',
+        status: reportData.policy.status?.toUpperCase() || 'N/A',
+        coverageAmount: reportData.policy.coverage?.amount || 0,
+        premiumAmount: reportData.policy.premium?.amount || 0,
+        premiumFrequency: reportData.policy.premium?.frequency || 'N/A',
+        startDate: reportData.policy.startDate,
+        endDate: reportData.policy.endDate,
+        agentName: reportData.policy.agent?.name || 'N/A',
+        beneficiaries: reportData.beneficiaries.map(ben => ({
+          name: ben.name,
+          relationship: 'Beneficiary', // Default since we don't have relationship data
+          contact: ben.email,
+          percentage: reportData.beneficiaries.length > 1 ? 
+            `${Math.round(100 / reportData.beneficiaries.length)}` : '100'
+        }))
+      };
+
+      const templateData = {
+        reportTitle: 'Policy Beneficiaries Report',
+        reportSubtitle: `Beneficiaries for Policy ${reportData.policy.policyId}`,
+        generatedBy: generatedBy || 'System Administrator',
+        generatedDate: moment().format('MMMM DD, YYYY'),
+        reportPeriod: 'Current Policy Status',
+        totalRecords: reportData.beneficiaries.length,
+        reportType: 'Policy Beneficiaries',
+        currentYear: new Date().getFullYear(),
+        timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
+        logoBase64: logoBase64,
+        theme: this.getReportTheme('policies'),
+        summary: [
+          { label: 'Policy ID', value: reportData.policy.policyId },
+          { label: 'Policy Type', value: reportData.policy.policyType?.toUpperCase() || 'N/A' },
+          { label: 'Status', value: reportData.policy.status?.toUpperCase() || 'N/A' },
+          { label: 'Total Beneficiaries', value: reportData.summary.totalBeneficiaries },
+          { label: 'Coverage Amount', value: `$${reportData.summary.totalCoverage.toLocaleString()}` },
+          { label: 'Premium Amount', value: `$${(reportData.policy.premium?.amount || 0).toLocaleString()}` }
+        ],
+        policy: transformedPolicy
+      };
+
+      handlebars.registerPartial('content', contentTemplate);
+      const html = baseTemplate(templateData);
+      return await this.generatePDF(html);
+    } catch (error) {
+      console.error('Error generating policy users PDF:', error);
+      throw new Error('Failed to generate policy users PDF report');
+    }
+  }
+
+  /**
    * Generate Custom Report
    */
   async generateCustomReport(config) {
@@ -676,6 +817,8 @@ class ReportsService {
           return await this.generateClaimsReport(config.filters);
         case 'financial':
           return await this.generateFinancialReport(config.filters);
+        case 'policy-users':
+          return await this.generatePolicyUsersReport(config.filters);
         default:
           throw new Error('Invalid report type');
       }
@@ -700,6 +843,8 @@ class ReportsService {
           return await this.generateClaimsPDF(reportData, config.filters);
         case 'financial':
           return await this.generateFinancialPDF(reportData, config.filters);
+        case 'policy-users':
+          return await this.generatePolicyUsersPDF(reportData, config.filters);
         default:
           throw new Error('Invalid report type for PDF generation');
       }
