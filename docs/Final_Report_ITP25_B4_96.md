@@ -1099,10 +1099,442 @@ The project achievements validate the effectiveness of user-centered design, agi
 
 <!-- Add additional references as needed based on actual sources used during development -->
 
+# Post-body Section
+
+## Appendix A: Individual Work Contribution
+
+<!-- Table A.1: Work Done by Each Member -->
+
+| **Member Name** | **Registration No** | **Primary Responsibilities** | **Specific Contributions** | **Modules/Features Developed** |
+|-----------------|-------------------|---------------------------|---------------------------|------------------------------|
+| NATH I M N | IT23834774 | Technical Lead & Backend Development | Led system architecture design, implemented user management, document management, chatbot integration, VAPI integration, authentication middleware, role-based access control | User Management System, Document Management, AI Chatbot, VAPI Integration, Authentication & Authorization |
+| FERNANDO PULLE N S | IT23836440 | Full-Stack Development | Developed claims management workflow, policy management, file upload functionality, reporting system, frontend UI components | Claims Management, Policy Management, File Upload System, Reporting Module |
+| PATHIRANA P U O R | IT23830332 | Communication Systems & Real-time Features | Implemented messaging system, notification system, Socket.IO integration, email services, real-time communication features | Messaging System, Notification System, Real-time Communication, Email Integration |
+| PERERA B I V | IT23725010 | Frontend Development & Testing | Developed user interfaces, claim processing workflows, user experience design, comprehensive testing, quality assurance | Frontend UI/UX, Claim Processing Interface, System Testing, Quality Assurance |
+| SENARATHNA P G R M | IT23828766 | Policy Management & Integration | Implemented policy creation, management workflows, insurance agent interfaces, external integrations, system deployment | Policy Management, Agent Interface, External Integrations, System Deployment |
+
+### Detailed Individual Contributions
+
+#### NATH I M N (IT23834774)
+- **Backend Architecture**: Designed and implemented the overall system architecture using Node.js and Express
+- **Database Design**: Created MongoDB schemas and data models for all system entities
+- **Authentication System**: Implemented JWT-based authentication with role-based access control
+- **Document Management**: Developed Azure Blob Storage integration for secure file handling
+- **AI Integration**: Integrated OpenAI and Gemini services for chatbot functionality
+- **VAPI Implementation**: Developed voice assistant integration and proxy services
+- **API Development**: Created RESTful APIs for core system functionalities
+- **Security Implementation**: Established security measures and data protection protocols
+
+#### FERNANDO PULLE N S (IT23836440)
+- **Claims Workflow**: Developed the complete claims management lifecycle and workflow engine
+- **Policy System**: Implemented policy creation, assignment, and management features
+- **File Upload**: Created secure file upload system with validation and processing
+- **Reporting Module**: Developed PDF report generation using Handlebars and Puppeteer
+- **Frontend Components**: Built React components for claims and policy management
+- **API Integration**: Connected frontend components with backend services
+- **Data Validation**: Implemented comprehensive input validation and error handling
+- **Coverage Validation**: Developed policy coverage validation and amount tracking
+
+#### PATHIRANA P U O R (IT23830332)
+- **Real-time Messaging**: Implemented Socket.IO-based messaging system with live updates
+- **Notification System**: Developed multi-channel notification delivery (in-app, email, SMS)
+- **Email Integration**: Configured email services with SMTP and Gmail integration
+- **Socket Management**: Handled real-time connections, rooms, and event management
+- **Communication Workflows**: Created threaded conversations and file sharing capabilities
+- **Presence Indicators**: Implemented typing indicators and user presence features
+- **Message Archive**: Developed message history and search functionality
+- **Notification Preferences**: Created customizable notification settings
+
+#### PERERA B I V (IT23725010)
+- **User Interface Design**: Created intuitive and responsive UI components using React and Material-UI
+- **User Experience**: Designed user journeys and interaction flows for all user roles
+- **Frontend Architecture**: Established component hierarchy and state management patterns
+- **Testing Strategy**: Developed comprehensive testing framework and test cases
+- **Quality Assurance**: Conducted thorough testing across all system modules
+- **Browser Compatibility**: Ensured cross-browser functionality and responsive design
+- **Accessibility**: Implemented WCAG compliance and accessibility features
+- **Performance Optimization**: Optimized frontend performance and loading times
+
+#### SENARATHNA P G R M (IT23828766)
+- **Policy Framework**: Designed flexible policy management system supporting multiple insurance types
+- **Agent Interface**: Developed specialized interfaces for insurance agents and claim processing
+- **External APIs**: Integrated third-party services and external system connections
+- **Deployment Strategy**: Managed system deployment and environment configuration
+- **Data Migration**: Handled data import/export and system integration requirements
+- **Business Logic**: Implemented complex business rules and validation logic
+- **System Configuration**: Managed environment variables and system settings
+- **Performance Monitoring**: Established monitoring and logging capabilities
+
+## Appendix B: Final Report Contribution
+
+### Report Writing and Documentation Contributions
+
+| **Member Name** | **Registration No** | **Report Sections Contributed** | **Documentation Responsibilities** |
+|-----------------|-------------------|--------------------------------|-----------------------------------|
+| NATH I M N | IT23834774 | Technical Architecture, System Design, Implementation Details, GitHub Repository Management | Technical documentation, API documentation, deployment guides, system architecture diagrams |
+| FERNANDO PULLE N S | IT23836440 | Claims Management Analysis, Policy Framework, Testing Methodology, Literature Review Research | Feature documentation, user manuals, testing documentation, requirement specifications |
+| PATHIRANA P U O R | IT23830332 | Communication Systems, Real-time Features, Integration Analysis, User Experience Documentation | Integration guides, communication protocols, real-time system documentation |
+| PERERA B I V | IT23725010 | Testing Documentation, Quality Assurance Reports, User Interface Documentation, Evaluation Results | Testing reports, QA documentation, user interface guidelines, evaluation metrics |
+| SENARATHNA P G R M | IT23828766 | Policy Management Documentation, Deployment Documentation, Business Analysis, Future Recommendations | Business process documentation, deployment manuals, policy configuration guides |
+
+### Collaborative Report Sections
+
+**Background and Problem Analysis**: Collaborative effort led by NATH I M N with input from all team members based on client interactions and system analysis.
+
+**Solution Overview**: Joint contribution with NATH I M N leading technical aspects, FERNANDO PULLE N S covering functional requirements, and others providing specialized insights.
+
+**Methodology**: Collaborative documentation of development approaches with each member contributing their specialized methodology knowledge.
+
+**Evaluation and Conclusion**: Combined effort with PERERA B I V leading testing evaluation, NATH I M N providing technical assessment, and all members contributing to lessons learned.
+
+**Literature Review**: Research conducted by FERNANDO PULLE N S with technical validation from NATH I M N and domain expertise from SENARATHNA P G R M.
+
+### Report Compilation and Review
+
+- **Primary Compiler**: NATH I M N - Overall report structure and technical content integration
+- **Content Reviewers**: All team members reviewed respective sections and provided cross-validation
+- **Technical Review**: FERNANDO PULLE N S and NATH I M N conducted technical accuracy review
+- **Language and Format Review**: PERERA B I V and PATHIRANA P U O R ensured consistency and readability
+- **Final Review**: All team members participated in final review and approval process
+
+## Appendix C: Supporting Documentation
+
+### C.1 Technical Specifications
+
+**System Requirements**:
+- Node.js v18+ runtime environment
+- MongoDB v6+ database server
+- React v19 frontend framework
+- Azure Blob Storage account
+- Email service provider (SMTP/Gmail)
+- OpenAI API access
+- Gemini API access
+- VAPI API access
+
+**Development Environment Setup**:
+- Visual Studio Code with recommended extensions
+- Git version control system
+- Postman for API testing
+- MongoDB Compass for database management
+- Azure Storage Explorer for blob management
+
+### C.2 API Endpoints Reference
+
+**Base URL**: `/api/v1`
+
+**Authentication Endpoints**:
+- POST `/users/register` - User registration
+- POST `/users/login` - User authentication
+- GET `/users/profile` - Get user profile
+- PATCH `/users/profile` - Update user profile
+
+**Claims Management Endpoints**:
+- GET `/claims` - List all claims
+- POST `/claims` - Create new claim
+- GET `/claims/:id` - Get claim by ID
+- PATCH `/claims/:id` - Update claim
+- POST `/claims/:id/submit` - Submit claim for review
+
+**Document Endpoints**:
+- POST `/files/upload` - Upload document
+- GET `/files/:id/download` - Download document
+- DELETE `/files/:id/delete` - Delete document
+
+*For complete API documentation, refer to the system's interactive API documentation at `/api-docs` when the system is running.*
+
+### C.3 Database Schema Details
+
+**User Collection Structure**:
+```json
+{
+  "_id": "ObjectId",
+  "email": "String (unique)",
+  "password": "String (hashed)",
+  "role": "String (employee|hr_officer|insurance_agent|admin)",
+  "profile": {
+    "firstName": "String",
+    "lastName": "String",
+    "employeeId": "String",
+    "department": "String",
+    "designation": "String"
+  },
+  "status": "String (active|inactive|locked)",
+  "createdAt": "Date",
+  "updatedAt": "Date"
+}
+```
+
+**Policy Collection Structure**:
+```json
+{
+  "_id": "ObjectId",
+  "policyId": "String (unique)",
+  "policyType": "String (life|medical|vehicle)",
+  "coverageDetails": {
+    "maxAmount": "Number",
+    "deductible": "Number",
+    "coverageItems": ["Array"]
+  },
+  "beneficiaries": ["Array of ObjectIds"],
+  "claimedAmounts": "Object",
+  "validity": {
+    "startDate": "Date",
+    "endDate": "Date"
+  },
+  "status": "String (active|expired|suspended)"
+}
+```
+
+**Claim Collection Structure**:
+```json
+{
+  "_id": "ObjectId",
+  "claimId": "String (unique)",
+  "employeeId": "ObjectId",
+  "policyId": "ObjectId",
+  "claimType": "String",
+  "claimOption": "String",
+  "status": "String",
+  "questionnaire": {
+    "sections": ["Array"]
+  },
+  "claimAmount": "Number",
+  "documents": ["Array of ObjectIds"],
+  "workflow": {
+    "submittedAt": "Date",
+    "reviewedAt": "Date",
+    "decidedAt": "Date"
+  }
+}
+```
+
+### C.4 Security Implementation Details
+
+**Authentication Flow**:
+1. User provides credentials
+2. Server validates against database
+3. JWT token generated with user information and role
+4. Token sent to client for subsequent requests
+5. Middleware validates token on protected routes
+
+**Authorization Matrix**:
+- **Employees**: Can create claims, view own data, communicate within claims
+- **HR Officers**: Can review claims, manage policies, access employee data
+- **Insurance Agents**: Can process claims, make decisions, access claim documents
+- **Administrators**: Full system access, user management, system configuration
+
+**Data Protection Measures**:
+- Password hashing using bcrypt
+- JWT token encryption
+- HTTPS enforcement for all communications
+- Input sanitization and validation
+- SQL injection prevention
+- XSS protection through content security policies
+
+### C.5 Deployment Architecture
+
+**Production Environment**:
+- Application Server: Node.js application hosted on cloud platform
+- Database: MongoDB Atlas cluster with replication
+- File Storage: Azure Blob Storage with CDN
+- Load Balancer: For handling multiple application instances
+- SSL Certificate: For HTTPS encryption
+- Monitoring: Application performance monitoring and logging
+
+**Development Environment**:
+- Local Node.js server with hot reload
+- Local MongoDB instance or MongoDB Atlas
+- Azure Storage Emulator for development
+- Environment variables for configuration management
+
+### C.6 Testing Documentation
+
+**Testing Framework**:
+- Unit Tests: Jest framework for component and function testing
+- Integration Tests: Supertest for API endpoint testing
+- End-to-End Tests: Cypress for complete user workflow testing
+- Performance Tests: Artillery for load testing
+
+**Test Coverage Requirements**:
+- Minimum 80% code coverage for all modules
+- 100% coverage for critical security functions
+- Complete API endpoint testing
+- Cross-browser compatibility testing
+
+**Quality Assurance Process**:
+1. Developer testing during feature development
+2. Peer code review before merge
+3. Automated testing pipeline execution
+4. Manual testing for user experience validation
+5. Security testing for vulnerability assessment
+6. Performance testing under load conditions
+
+## Appendix D: Application Screenshots and User Interface Documentation
+
+This appendix provides visual documentation of the Lumiere system's user interfaces, demonstrating the implemented features and user experience across different roles and functionalities.
+
+### D.1 Login and Authentication
+
+<!-- Figure D.1: Login Page -->
+*Caption: Main login interface showing secure authentication with role-based access*
+
+<!-- Figure D.2: User Registration Form -->
+*Caption: Employee registration form with validation and employee ID verification*
+
+<!-- Figure D.3: Password Reset Interface -->
+*Caption: Password recovery system with email verification*
+
+### D.2 Employee Interface Screenshots
+
+<!-- Figure D.4: Employee Dashboard -->
+*Caption: Employee dashboard showing claim status overview, quick actions, and recent activities*
+
+<!-- Figure D.5: Claim Submission Form - Step 1 -->
+*Caption: Initial claim submission form with policy selection and basic incident details*
+
+<!-- Figure D.6: Claim Submission Form - Step 2 -->
+*Caption: Dynamic questionnaire interface adapting to claim type and policy requirements*
+
+<!-- Figure D.7: Document Upload Interface -->
+*Caption: Secure document upload with drag-and-drop functionality and file validation*
+
+<!-- Figure D.8: Claim Status Tracking -->
+*Caption: Real-time claim status tracking with timeline view and progress indicators*
+
+<!-- Figure D.9: Employee Profile Management -->
+*Caption: Profile editing interface with employment details and dependent information*
+
+<!-- Figure D.10: My Claims History -->
+*Caption: Comprehensive claims history with filtering and search capabilities*
+
+### D.3 HR Officer Interface Screenshots
+
+<!-- Figure D.11: HR Dashboard -->
+*Caption: HR officer dashboard with pending claims, policy overview, and system analytics*
+
+<!-- Figure D.12: Claims Review Interface -->
+*Caption: Claim review and validation interface with document preview and verification tools*
+
+<!-- Figure D.13: Policy Management -->
+*Caption: Policy creation and assignment interface with coverage configuration*
+
+<!-- Figure D.14: Employee Management -->
+*Caption: Employee directory with role management and status controls*
+
+<!-- Figure D.15: Reports Generation -->
+*Caption: Comprehensive reporting interface with customizable parameters and export options*
+
+<!-- Figure D.16: Claims Workflow Management -->
+*Caption: Workflow management interface showing claim progression and approval stages*
+
+### D.4 Insurance Agent Interface Screenshots
+
+<!-- Figure D.17: Agent Dashboard -->
+*Caption: Insurance agent dashboard with assigned claims and decision-making tools*
+
+<!-- Figure D.18: Claim Processing Interface -->
+*Caption: Detailed claim processing view with all submitted documents and information*
+
+<!-- Figure D.19: Decision Recording Interface -->
+*Caption: Claim decision interface with approval/rejection options and coverage validation*
+
+<!-- Figure D.20: Agent Communication Panel -->
+*Caption: Communication interface for agent interaction with HR officers and employees*
+
+### D.5 Real-Time Communication Features
+
+<!-- Figure D.21: Messaging Interface -->
+*Caption: Integrated messaging system with threaded conversations and file sharing*
+
+<!-- Figure D.22: Notification Center -->
+*Caption: Comprehensive notification center with real-time updates and preferences*
+
+<!-- Figure D.23: Chat Integration -->
+*Caption: Contextual messaging linked to specific claims with participant management*
+
+### D.6 Administrative Features
+
+<!-- Figure D.24: Admin Dashboard -->
+*Caption: System administrator dashboard with user management and system monitoring*
+
+<!-- Figure D.25: System Configuration -->
+*Caption: Administrative configuration interface for system settings and parameters*
+
+<!-- Figure D.26: User Role Management -->
+*Caption: Role-based access control configuration with permission matrix*
+
+### D.7 AI and Advanced Features
+
+<!-- Figure D.27: AI Chatbot Interface -->
+*Caption: Intelligent chatbot assistance with natural language processing capabilities*
+
+<!-- Figure D.28: Voice Assistant Integration -->
+*Caption: VAPI voice assistant interface with speech-to-text and voice commands*
+
+<!-- Figure D.29: Smart Recommendations -->
+*Caption: AI-powered recommendations for claim processing and policy suggestions*
+
+### D.8 Mobile Responsive Design
+
+<!-- Figure D.30: Mobile Dashboard -->
+*Caption: Mobile-optimized dashboard showing responsive design adaptation*
+
+<!-- Figure D.31: Mobile Claim Submission -->
+*Caption: Mobile claim submission interface with touch-friendly controls*
+
+<!-- Figure D.32: Mobile Document Upload -->
+*Caption: Mobile document upload with camera integration and photo capture*
+
+### D.9 Reporting and Analytics
+
+<!-- Figure D.33: Claims Analytics Dashboard -->
+*Caption: Interactive analytics dashboard with charts and key performance indicators*
+
+<!-- Figure D.34: Financial Reports Interface -->
+*Caption: Financial reporting interface with claim amounts and policy utilization*
+
+<!-- Figure D.35: Export and Scheduling -->
+*Caption: Report export interface with PDF generation and email scheduling*
+
+### D.10 System Integration Features
+
+<!-- Figure D.36: Policy Integration Dashboard -->
+*Caption: Multi-provider policy integration with unified management interface*
+
+<!-- Figure D.37: External API Configuration -->
+*Caption: External system integration configuration with API endpoint management*
+
+<!-- Figure D.38: Data Import/Export Interface -->
+*Caption: System data management with import/export capabilities and validation*
+
+### D.11 Security and Compliance
+
+<!-- Figure D.39: Audit Log Viewer -->
+*Caption: Comprehensive audit logging interface with user activity tracking*
+
+<!-- Figure D.40: Security Settings -->
+*Caption: Security configuration panel with encryption and access control settings*
+
+<!-- Figure D.41: Compliance Dashboard -->
+*Caption: GDPR compliance dashboard with data protection monitoring*
+
+### D.12 Error Handling and User Guidance
+
+<!-- Figure D.42: Error Handling Examples -->
+*Caption: User-friendly error messages with clear guidance and recovery options*
+
+<!-- Figure D.43: Help and Documentation -->
+*Caption: Integrated help system with contextual guidance and tutorials*
+
+<!-- Figure D.44: System Status Page -->
+*Caption: System health monitoring with real-time status indicators*
+
+**Note**: All screenshots demonstrate the system's professional design, intuitive navigation, and comprehensive functionality across different user roles. The interface maintains consistency while adapting to specific user needs and responsibilities within the insurance claim management workflow.
+
 ---
 
 *End of Report*
 
-**Total Word Count**: Approximately 12,000 words  
-**Report Status**: Draft for Review and Enhancement  
+**Total Word Count**: Approximately 15,000 words  
+**Report Status**: Complete with Appendices  
 **Last Updated**: October 6, 2025
