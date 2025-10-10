@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import InsuranceApiService from "../../services/insurance-api";
+import reportsApiService from '../../services/reports-api';
 import {
    Shield, Car, Heart, Calendar, DollarSign, FileText, Users,
-   AlertCircle, Plus, Eye, Download, Loader2, RefreshCw, CheckCircle
+   AlertCircle, Plus, Eye, Download, Loader2, RefreshCw, CheckCircle, Receipt
 } from 'lucide-react';
 
 export const EmployeePolicy = () => {
@@ -95,6 +96,24 @@ export const EmployeePolicy = () => {
       }
    }
 
+   // Report generation function
+   const generatePolicyReport = async (policyId) => {
+      try {
+         const blob = await reportsApiService.generateEmployeePolicyReport(policyId);
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `policy-report-${policyId}-${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         window.URL.revokeObjectURL(url);
+      } catch (error) {
+         console.error('Error generating policy report:', error);
+         alert('Failed to generate policy report. Please try again.');
+      }
+   };
+
    const PolicyCard = ({ policy }) => {
       const daysUntilExpiry = getDaysUntilExpiry(policy.validity.endDate);
       const isExpiringSoon = daysUntilExpiry <= 30 && daysUntilExpiry > 0;
@@ -185,7 +204,11 @@ export const EmployeePolicy = () => {
                      >
                         <Eye className="w-4 h-4" />
                      </button>
-                     <button className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors" title="Download">
+                     <button 
+                        onClick={() => generatePolicyReport(policy.policyId)}
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors" 
+                        title="Download Policy Report"
+                     >
                         <Download className="w-4 h-4" />
                      </button>
                   </div>

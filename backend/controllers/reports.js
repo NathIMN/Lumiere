@@ -300,6 +300,117 @@ const scheduleReport = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Generate Individual Claim Report
+ * @route   GET /api/reports/employee/claim/:claimId
+ * @access  Employee (own claims only)
+ */
+const generateEmployeeClaimReport = asyncHandler(async (req, res) => {
+  const { claimId } = req.params;
+  const { format = 'pdf' } = req.query;
+  const employeeId = req.user.userId || req.user.id;
+
+  console.log('generateEmployeeClaimReport called:');
+  console.log('claimId:', claimId);
+  console.log('employeeId:', employeeId);
+  console.log('user object:', req.user);
+
+  // Validate that the claim belongs to the requesting employee
+  const reportData = await reportsService.generateEmployeeClaimReport(claimId, employeeId);
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateEmployeeClaimPDF(reportData);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="claim-report-${claimId}-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @desc    Generate Employee Claims Summary Report
+ * @route   GET /api/reports/employee/claims-summary
+ * @access  Employee (own claims only)
+ */
+const generateEmployeeClaimsSummaryReport = asyncHandler(async (req, res) => {
+  const { 
+    dateFrom, 
+    dateTo, 
+    status,
+    claimType,
+    format = 'pdf' 
+  } = req.query;
+  const employeeId = req.user.userId || req.user.id;
+
+  console.log('generateEmployeeClaimsSummaryReport called:');
+  console.log('employeeId:', employeeId);
+  console.log('filters:', { dateFrom, dateTo, status, claimType });
+
+  // Validate query parameters
+  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+    throw new CustomError('Invalid date range: dateFrom cannot be after dateTo', StatusCodes.BAD_REQUEST);
+  }
+
+  const filters = {
+    employeeId,
+    dateFrom: dateFrom ? new Date(dateFrom) : null,
+    dateTo: dateTo ? new Date(dateTo) : null,
+    status,
+    claimType
+  };
+
+  const reportData = await reportsService.generateEmployeeClaimsSummaryReport(filters);
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateEmployeeClaimsSummaryPDF(reportData, filters);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="my-claims-summary-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      filters: filters,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @desc    Generate Individual Policy Report
+ * @route   GET /api/reports/employee/policy/:policyId
+ * @access  Employee (own policies only)
+ */
+const generateEmployeePolicyReport = asyncHandler(async (req, res) => {
+  const { policyId } = req.params;
+  const { format = 'pdf' } = req.query;
+  const employeeId = req.user.userId || req.user.id;
+
+  // Validate that the policy includes the requesting employee
+  const reportData = await reportsService.generateEmployeePolicyReport(policyId, employeeId);
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateEmployeePolicyPDF(reportData);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="policy-report-${policyId}-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
 export {
   generateUsersReport,
   generatePoliciesReport,
@@ -307,5 +418,8 @@ export {
   generateFinancialReport,
   generateCustomReport,
   getReportTemplates,
-  scheduleReport
+  scheduleReport,
+  generateEmployeeClaimReport,
+  generateEmployeeClaimsSummaryReport,
+  generateEmployeePolicyReport
 };

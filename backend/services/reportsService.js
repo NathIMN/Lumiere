@@ -763,6 +763,508 @@ class ReportsService {
 
     return filtersList.length > 0 ? filtersList : ['No filters applied'];
   }
+
+  /**
+   * Generate Employee Individual Claim Report Data
+   */
+  async generateEmployeeClaimReport(claimId, employeeId) {
+    try {
+      console.log('Looking for claim:', claimId, 'for employee:', employeeId);
+      
+      // Try multiple approaches to find the claim
+      let claim = await Claim.findOne({
+        claimId: claimId,
+        employeeId: employeeId
+      })
+      .populate('policy', 'policyId')
+      .populate('employeeId', 'profile.firstName profile.lastName email')
+      .populate('decision.decidedBy', 'profile.firstName profile.lastName')
+      .populate('documents')
+      .lean();
+
+      // If not found by claimId, try by _id in case claimId is actually the mongo _id
+      if (!claim) {
+        console.log('Not found by claimId, trying by _id');
+        try {
+          claim = await Claim.findOne({
+            _id: claimId,
+            employeeId: employeeId
+          })
+          .populate('policy', 'policyId')
+          .populate('employeeId', 'profile.firstName profile.lastName email')
+          .populate('decision.decidedBy', 'profile.firstName profile.lastName')
+          .populate('documents')
+          .lean();
+        } catch (idError) {
+          console.log('_id lookup failed:', idError.message);
+        }
+      }
+
+      // If still not found, try without employee restriction to see if claim exists at all
+      if (!claim) {
+        console.log('Claim not found with employee restriction, checking if claim exists');
+        const claimExists = await Claim.findOne({ claimId: claimId }).lean();
+        if (claimExists) {
+          console.log('Claim exists but employee mismatch:', claimExists.employeeId, 'vs', employeeId);
+        } else {
+          console.log('Claim does not exist with claimId:', claimId);
+        }
+      }
+
+      if (!claim) {
+        throw new Error('Claim not found or access denied');
+      }
+
+      console.log('Found claim:', claim._id);
+
+      // Format the claim data for the report
+      const reportData = {
+        claim: {
+          claimId: claim.claimId || claim._id.toString().slice(-8).toUpperCase(),
+          policyId: claim.policy?.policyId || 'N/A',
+          claimType: claim.claimType || 'General',
+          claimOption: claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || 'N/A',
+          incidentDate: claim.incidentDate,
+          submissionDate: claim.createdAt,
+          status: claim.claimStatus,
+          requestedAmount: claim.claimAmount?.requested || 0,
+          approvedAmount: claim.claimAmount?.approved || null,
+          description: claim.incidentDescription || claim.description,
+          decision: claim.decision ? {
+            status: claim.decision.status,
+            date: claim.decision.decidedAt,
+            decidedBy: claim.decision.decidedBy ? 
+              `${claim.decision.decidedBy.profile?.firstName || 'N/A'} ${claim.decision.decidedBy.profile?.lastName || 'N/A'}` : 'N/A',
+            reason: claim.decision.reason
+          } : null,
+          documents: claim.documents ? claim.documents.map(doc => ({
+            documentType: doc.documentType || 'General',
+            fileName: doc.originalName || doc.filename || 'N/A',
+            uploadDate: doc.uploadDate || doc.createdAt,
+            status: doc.status || 'active'
+          })) : [],
+          timeline: this.buildClaimTimeline(claim)
+        },
+        employee: {
+          name: claim.employeeId ? 
+            `${claim.employeeId.profile?.firstName || 'N/A'} ${claim.employeeId.profile?.lastName || 'N/A'}` : 'N/A',
+          email: claim.employeeId?.email || 'N/A'
+        }
+      };
+
+      return reportData;
+    } catch (error) {
+      console.error('Error generating employee claim report:', error);
+      throw new Error('Failed to generate employee claim report');
+    }
+  }
+
+  /**
+   * Build claim timeline from claim data
+   */
+  buildClaimTimeline(claim) {
+    const timeline = [];
+    
+    timeline.push({
+      date: claim.createdAt,
+      status: 'submitted',
+      action: 'Claim Submitted',
+      notes: 'Initial claim submission by employee'
+    });
+
+    if (claim.decision?.decidedAt) {
+      timeline.push({
+        date: claim.decision.decidedAt,
+        status: claim.decision.status,
+        action: `Claim ${claim.decision.status}`,
+        notes: claim.decision.reason || 'Decision made by reviewer'
+      });
+    }
+
+    if (claim.settlementDate) {
+      timeline.push({
+        date: claim.settlementDate,
+        status: 'settled',
+        action: 'Claim Settled',
+        notes: 'Payment processed and claim closed'
+      });
+    }
+
+    return timeline.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }
+
+  /**
+   * Generate Employee Individual Claim PDF Report
+   */
+  async generateEmployeeClaimPDF(reportData) {
+    try {
+      const baseTemplate = await this.loadTemplate('base');
+      const contentTemplate = await this.loadTemplate('employee-claim-report');
+      const logoBase64 = await this.loadLogo();
+
+      const templateData = {
+        reportTitle: 'Individual Claim Report',
+        reportSubtitle: `Detailed report for claim ${reportData.claim.claimId}`,
+        generatedBy: reportData.employee.name,
+        generatedDate: moment().format('MMMM DD, YYYY'),
+        reportPeriod: 'Individual Claim',
+        totalRecords: 1,
+        reportType: 'Individual Claim',
+        currentYear: new Date().getFullYear(),
+        timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
+        logoBase64: logoBase64,
+        theme: this.getReportTheme('claims'),
+        ...reportData
+      };
+
+      handlebars.registerPartial('content', contentTemplate);
+      const html = baseTemplate(templateData);
+      return await this.generatePDF(html);
+    } catch (error) {
+      console.error('Error generating employee claim PDF:', error);
+      throw new Error('Failed to generate employee claim PDF report');
+    }
+  }
+
+  /**
+   * Generate Employee Claims Summary Report Data
+   */
+  async generateEmployeeClaimsSummaryReport(filters) {
+    try {
+      let query = { employeeId: filters.employeeId };
+
+      console.log('generateEmployeeClaimsSummaryReport called with filters:', filters);
+      console.log('Initial employeeId query:', query);
+      console.log('Employee ID type:', typeof filters.employeeId);
+
+      if (filters.status) {
+        query.claimStatus = filters.status;
+      }
+
+      if (filters.claimType) {
+        query.claimType = filters.claimType;
+      }
+
+      if (filters.dateFrom && filters.dateTo) {
+        query.createdAt = {
+          $gte: filters.dateFrom,
+          $lte: filters.dateTo
+        };
+      }
+
+      console.log('Final MongoDB query:', query);
+
+      const claims = await Claim.find(query)
+        .populate('policy', 'policyId')
+        .populate('employeeId', 'profile.firstName profile.lastName email')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      console.log('Found claims count:', claims.length);
+      console.log('Sample claim:', claims[0] ? {
+        claimId: claims[0].claimId,
+        employeeId: claims[0].employeeId,
+        claimStatus: claims[0].claimStatus
+      } : 'No claims found');
+
+      // If no claims found, try alternative queries
+      if (claims.length === 0) {
+        console.log('No claims found, trying alternative queries...');
+        
+        // Try with string employeeId
+        const stringQuery = { employeeId: String(filters.employeeId) };
+        const stringClaims = await Claim.find(stringQuery).lean();
+        console.log('Claims with string employeeId:', stringClaims.length);
+        
+        // Try finding any claims for debugging
+        const anyClaims = await Claim.find({}).limit(3).lean();
+        console.log('Any claims in database (sample):', anyClaims.map(c => ({
+          claimId: c.claimId,
+          employeeId: c.employeeId,
+          employeeIdType: typeof c.employeeId
+        })));
+      }
+
+      // Generate statistics
+      const totalClaims = claims.length;
+      const approvedClaims = claims.filter(c => c.claimStatus === 'approved').length;
+      const rejectedClaims = claims.filter(c => c.claimStatus === 'rejected').length;
+      const pendingClaims = claims.filter(c => ['hr', 'insurer', 'employee'].includes(c.claimStatus)).length;
+      const totalRequested = claims.reduce((sum, c) => sum + (c.claimAmount?.requested || 0), 0);
+      const totalApproved = claims.filter(c => c.claimStatus === 'approved')
+        .reduce((sum, c) => sum + (c.claimAmount?.approved || 0), 0);
+
+      // Group by claim type
+      const claimsByType = claims.reduce((acc, claim) => {
+        const type = claim.claimType || 'Other';
+        if (!acc[type]) {
+          acc[type] = {
+            type,
+            totalClaims: 0,
+            approvedClaims: 0,
+            totalRequested: 0,
+            totalApproved: 0
+          };
+        }
+        acc[type].totalClaims++;
+        if (claim.claimStatus === 'approved') {
+          acc[type].approvedClaims++;
+          acc[type].totalApproved += claim.claimAmount?.approved || 0;
+        }
+        acc[type].totalRequested += claim.claimAmount?.requested || 0;
+        return acc;
+      }, {});
+
+      // Calculate success rates
+      Object.values(claimsByType).forEach(typeData => {
+        typeData.successRate = typeData.totalClaims > 0 ? 
+          ((typeData.approvedClaims / typeData.totalClaims) * 100).toFixed(1) : '0.0';
+      });
+
+      // Group by status
+      const claimsByStatus = claims.reduce((acc, claim) => {
+        const status = claim.claimStatus || 'unknown';
+        if (!acc[status]) {
+          acc[status] = {
+            status,
+            count: 0,
+            totalAmount: 0
+          };
+        }
+        acc[status].count++;
+        acc[status].totalAmount += claim.claimAmount?.requested || 0;
+        return acc;
+      }, {});
+
+      // Calculate percentages
+      Object.values(claimsByStatus).forEach(statusData => {
+        statusData.percentage = totalClaims > 0 ? 
+          ((statusData.count / totalClaims) * 100).toFixed(1) : '0.0';
+      });
+
+      return {
+        claims: claims.map(claim => ({
+          claimId: claim.claimId || claim._id.toString().slice(-8).toUpperCase(),
+          policyId: claim.policy?.policyId || 'N/A',
+          claimType: claim.claimType || 'General',
+          claimOption: claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || 'N/A',
+          incidentDate: claim.incidentDate,
+          submissionDate: claim.createdAt,
+          status: claim.claimStatus,
+          requestedAmount: claim.claimAmount?.requested || 0,
+          approvedAmount: claim.claimAmount?.approved || null
+        })),
+        summary: {
+          totalClaims,
+          approvedClaims,
+          rejectedClaims,
+          pendingClaims,
+          totalRequested,
+          totalApproved,
+          approvalRate: totalClaims > 0 ? ((approvedClaims / totalClaims) * 100).toFixed(1) : '0.0'
+        },
+        claimsByType: Object.values(claimsByType),
+        claimsByStatus: Object.values(claimsByStatus)
+      };
+    } catch (error) {
+      console.error('Error generating employee claims summary report:', error);
+      throw new Error('Failed to generate employee claims summary report');
+    }
+  }
+
+  /**
+   * Generate Employee Claims Summary PDF Report
+   */
+  async generateEmployeeClaimsSummaryPDF(reportData, filters) {
+    try {
+      const baseTemplate = await this.loadTemplate('base');
+      const contentTemplate = await this.loadTemplate('employee-claims-summary-report');
+      const logoBase64 = await this.loadLogo();
+
+      const templateData = {
+        reportTitle: 'My Claims Summary Report',
+        reportSubtitle: 'Comprehensive overview of all submitted claims',
+        generatedBy: 'Employee',
+        generatedDate: moment().format('MMMM DD, YYYY'),
+        reportPeriod: filters.dateFrom && filters.dateTo ? 
+          `${moment(filters.dateFrom).format('MMM DD, YYYY')} - ${moment(filters.dateTo).format('MMM DD, YYYY')}` : 
+          'All Time',
+        totalRecords: reportData.claims.length,
+        reportType: 'Claims Summary',
+        currentYear: new Date().getFullYear(),
+        timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
+        logoBase64: logoBase64,
+        theme: this.getReportTheme('claims'),
+        summary: [
+          { label: 'Total Claims', value: reportData.summary.totalClaims },
+          { label: 'Approved Claims', value: reportData.summary.approvedClaims },
+          { label: 'Pending Claims', value: reportData.summary.pendingClaims },
+          { label: 'Approval Rate', value: `${reportData.summary.approvalRate}%` }
+        ],
+        ...reportData
+      };
+
+      handlebars.registerPartial('content', contentTemplate);
+      const html = baseTemplate(templateData);
+      return await this.generatePDF(html);
+    } catch (error) {
+      console.error('Error generating employee claims summary PDF:', error);
+      throw new Error('Failed to generate employee claims summary PDF report');
+    }
+  }
+
+  /**
+   * Generate Employee Policy Report Data
+   */
+  async generateEmployeePolicyReport(policyId, employeeId) {
+    try {
+      const policy = await Policy.findOne({
+        policyId: policyId,
+        $or: [
+          { 'beneficiaries': employeeId },
+          { 'employeesIds': employeeId }
+        ]
+      })
+      .populate('insuranceAgent', 'profile.firstName profile.lastName email')
+      .populate('beneficiaries', 'profile.firstName profile.lastName email phone')
+      .populate('documents')
+      .lean();
+
+      if (!policy) {
+        throw new Error('Policy not found or access denied');
+      }
+
+      // Get related claims for this policy by this employee
+      const claims = await Claim.find({
+        policy: policy._id,
+        employeeId: employeeId
+      }).lean();
+
+      // Format policy data for the report
+      const reportData = {
+        policy: {
+          policyId: policy.policyId || policy._id.toString().slice(-8).toUpperCase(),
+          policyType: policy.policyType,
+          status: policy.status,
+          coverageAmount: policy.coverage?.coverageAmount || 0,
+          premiumAmount: policy.premium?.amount || 0,
+          premiumFrequency: policy.premium?.frequency || 'N/A',
+          startDate: policy.validity?.startDate,
+          endDate: policy.validity?.endDate,
+          agentName: policy.insuranceAgent ? 
+            `${policy.insuranceAgent.profile?.firstName || 'N/A'} ${policy.insuranceAgent.profile?.lastName || 'N/A'}` : 'Unassigned',
+          beneficiaries: policy.beneficiaries ? policy.beneficiaries.map(ben => ({
+            name: `${ben.profile?.firstName || 'N/A'} ${ben.profile?.lastName || 'N/A'}`,
+            relationship: ben.relationship || 'N/A',
+            contact: ben.email || ben.phone || 'N/A',
+            percentage: ben.percentage || 'N/A'
+          })) : [],
+          coverageDetails: this.formatCoverageDetails(policy),
+          premiumHistory: [], // This would come from payment records
+          documents: policy.documents ? policy.documents.map(doc => ({
+            documentType: doc.documentType || 'General',
+            fileName: doc.originalName || doc.filename || 'N/A',
+            uploadDate: doc.uploadDate || doc.createdAt,
+            status: doc.status || 'active'
+          })) : [],
+          claims: claims.map(claim => ({
+            claimId: claim.claimId || claim._id.toString().slice(-8).toUpperCase(),
+            claimType: claim.claimType || 'General',
+            submissionDate: claim.createdAt,
+            status: claim.claimStatus,
+            requestedAmount: claim.claimAmount?.requested || 0,
+            approvedAmount: claim.claimAmount?.approved || null
+          }))
+        }
+      };
+
+      return reportData;
+    } catch (error) {
+      console.error('Error generating employee policy report:', error);
+      throw new Error('Failed to generate employee policy report');
+    }
+  }
+
+  /**
+   * Format coverage details based on policy type
+   */
+  formatCoverageDetails(policy) {
+    const details = [];
+    
+    if (policy.policyType === 'life') {
+      if (policy.coverage?.lifeInsurance) {
+        details.push({
+          type: 'Life Insurance',
+          amount: policy.coverage.lifeInsurance.coverageAmount || 0,
+          deductible: 0,
+          description: 'Basic life insurance coverage'
+        });
+      }
+    } else if (policy.policyType === 'vehicle') {
+      if (policy.coverage?.vehicleInsurance) {
+        const vehicleCoverage = policy.coverage.vehicleInsurance;
+        if (vehicleCoverage.comprehensive) {
+          details.push({
+            type: 'Comprehensive',
+            amount: vehicleCoverage.comprehensive.coverageAmount || 0,
+            deductible: vehicleCoverage.comprehensive.deductible || 0,
+            description: 'Comprehensive vehicle coverage'
+          });
+        }
+        if (vehicleCoverage.collision) {
+          details.push({
+            type: 'Collision',
+            amount: vehicleCoverage.collision.coverageAmount || 0,
+            deductible: vehicleCoverage.collision.deductible || 0,
+            description: 'Collision damage coverage'
+          });
+        }
+        if (vehicleCoverage.liability) {
+          details.push({
+            type: 'Liability',
+            amount: vehicleCoverage.liability.coverageAmount || 0,
+            deductible: 0,
+            description: 'Third-party liability coverage'
+          });
+        }
+      }
+    }
+
+    return details;
+  }
+
+  /**
+   * Generate Employee Policy PDF Report
+   */
+  async generateEmployeePolicyPDF(reportData) {
+    try {
+      const baseTemplate = await this.loadTemplate('base');
+      const contentTemplate = await this.loadTemplate('employee-policy-report');
+      const logoBase64 = await this.loadLogo();
+
+      const templateData = {
+        reportTitle: 'Individual Policy Report',
+        reportSubtitle: `Detailed report for policy ${reportData.policy.policyId}`,
+        generatedBy: 'Employee',
+        generatedDate: moment().format('MMMM DD, YYYY'),
+        reportPeriod: 'Individual Policy',
+        totalRecords: 1,
+        reportType: 'Policy Report',
+        currentYear: new Date().getFullYear(),
+        timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
+        logoBase64: logoBase64,
+        theme: this.getReportTheme('policies'),
+        ...reportData
+      };
+
+      handlebars.registerPartial('content', contentTemplate);
+      const html = baseTemplate(templateData);
+      return await this.generatePDF(html);
+    } catch (error) {
+      console.error('Error generating employee policy PDF:', error);
+      throw new Error('Failed to generate employee policy PDF report');
+    }
+  }
 }
 
 export default new ReportsService();

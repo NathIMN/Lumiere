@@ -1,0 +1,114 @@
+{{!-- {{#if summary}}
+<div class="table-section">
+    <h2 class="table-title">Claims Summary</h2>
+    <div class="summary-cards">
+        {{#each summary}}
+        <div class="summary-card">
+            <h4>{{label}}</h4>
+            <div class="value">{{value}}</div>
+        </div>
+        {{/each}}
+    </div>
+</div>
+{{/if}} --}}
+
+<div class="table-section large-table cols-9">
+    <h2 class="table-title">My Claims History</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Claim ID</th>
+                <th>Policy ID</th>
+                <th>Claim Type</th>
+                <th>Claim Option</th>
+                <th>Incident Date</th>
+                <th>Submission Date</th>
+                <th>Status</th>
+                <th>Requested Amount</th>
+                <th>Approved Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each claims}}
+            <tr>
+                <td class="id-col">{{claimId}}</td>
+                <td class="id-col">{{policyId}}</td>
+                <td>{{claimType}}</td>
+                <td>{{claimOption}}</td>
+                <td>{{formatDate incidentDate}}</td>
+                <td>{{formatDate submissionDate}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td>${{formatCurrency requestedAmount}}</td>
+                <td>{{#if approvedAmount}}${{formatCurrency approvedAmount}}{{else}}N/A{{/if}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+{{#if claimsByType}}
+<div class="letterhead">
+    <div class="letterhead-left">
+        <div class="company-name">LUMIERE INSURANCE</div>
+        <h1 class="report-title">{{reportTitle}}</h1>
+        <p class="report-subtitle">{{reportSubtitle}}</p>
+    </div>
+    <div class="letterhead-right">
+        <img src="data:image/svg+xml;base64,{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
+    </div>
+</div>
+
+<div class="table-section cols-6">
+    <h2 class="table-title">Claims by Type</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Claim Type</th>
+                <th>Total Claims</th>
+                <th>Approved Claims</th>
+                <th>Total Requested</th>
+                <th>Total Approved</th>
+                <th>Success Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each claimsByType}}
+            <tr>
+                <td>{{type}}</td>
+                <td>{{totalClaims}}</td>
+                <td>{{approvedClaims}}</td>
+                <td>${{formatCurrency totalRequested}}</td>
+                <td>${{formatCurrency totalApproved}}</td>
+                <td>{{successRate}}%</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if claimsByStatus}}
+<div class="table-section cols-6">
+    <h2 class="table-title">Claims by Status</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Count</th>
+                <th>Percentage</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each claimsByStatus}}
+            <tr>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td>{{count}}</td>
+                <td>{{percentage}}%</td>
+                <td>${{formatCurrency totalAmount}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap } from 'lucide-react';
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap, BarChart3, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import InsuranceApiService from "../../services/insurance-api";
 import DocumentApiService from "../../services/document-api";
+import reportsApiService from '../../services/reports-api';
 
 export const EmployeeClaims = () => {
    const [activeFilter, setActiveFilter] = useState('all');
@@ -366,6 +367,69 @@ export const EmployeeClaims = () => {
 
    const getValidDocumentTypes = (claimType, claimOption) => {
       return InsuranceApiService.getValidDocumentTypesForClaim(claimType, claimOption);
+   };
+
+   // Report generation functions
+   const generateIndividualClaimReport = async (claimId) => {
+      try {
+         const blob = await reportsApiService.generateEmployeeClaimReport(claimId);
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `claim-report-${claimId}-${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         window.URL.revokeObjectURL(url);
+      } catch (error) {
+         console.error('Error generating claim report:', error);
+         alert('Failed to generate claim report. Please try again.');
+      }
+   };
+
+   const generateClaimsSummaryReport = async () => {
+      try {
+         // Map display status back to database status
+         let statusFilter = undefined;
+         if (activeFilter !== 'all') {
+            switch (activeFilter) {
+               case 'processing':
+                  // Don't filter by status, let backend handle all processing statuses
+                  statusFilter = undefined;
+                  break;
+               case 'incomplete':
+                  statusFilter = 'employee';
+                  break;
+               default:
+                  statusFilter = activeFilter; // draft, approved, rejected
+            }
+         }
+
+         const filters = {
+            status: statusFilter,
+            claimType: undefined // Could add filter for claim type
+         };
+         
+         // Remove undefined values
+         Object.keys(filters).forEach(key => {
+            if (filters[key] === undefined) {
+               delete filters[key];
+            }
+         });
+
+         const blob = await reportsApiService.generateEmployeeClaimsSummaryReport(filters);
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `my-claims-summary-${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         window.URL.revokeObjectURL(url);
+      } catch (error) {
+         console.error('Error generating claims summary report:', error);
+         alert('Failed to generate claims summary report. Please try again.');
+      }
    };
 
    // Document Upload Modal Component
@@ -840,6 +904,21 @@ export const EmployeeClaims = () => {
 
                                  {/* Action Buttons */}
                                  <div className="flex gap-2">
+                                    {/* Report Button - Show for all submitted claims */}
+                                    {claim.claimStatus !== 'draft' && (
+                                       <button
+                                          className="flex items-center justify-center gap-1 px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-800/40 dark:text-purple-300 group-hover:scale-105"
+                                          onClick={(e) => {
+                                             e.stopPropagation();
+                                             generateIndividualClaimReport(claim.claimId);
+                                          }}
+                                          title="Generate claim report"
+                                       >
+                                          <Download size={14} />
+                                          <span className="hidden sm:inline">Report</span>
+                                       </button>
+                                    )}
+
                                     {/* Upload Documents Button - Show for draft, employee, and processing claims */}
                                     {['draft', 'employee', 'hr', 'insurer'].includes(claim.claimStatus) && (
                                        <button
@@ -925,9 +1004,12 @@ export const EmployeeClaims = () => {
                   <Download size={16} />
                   Refresh Claims
                </button>
-               <button className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-neutral-900 hover:bg-purple-200 dark:hover:bg-neutral-700 rounded-full text-purple-700 dark:text-purple-300 transition-colors duration-200">
-                  <Download size={16} />
-                  Export All
+               <button 
+                  onClick={generateClaimsSummaryReport}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-neutral-900 hover:bg-green-200 dark:hover:bg-neutral-700 rounded-full text-green-700 dark:text-green-300 transition-colors duration-200"
+               >
+                  <BarChart3 size={16} />
+                  Claims Summary Report
                </button>
                <button className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-neutral-900 hover:bg-purple-200 dark:hover:bg-neutral-700 rounded-full text-purple-700 dark:text-purple-300 transition-colors duration-200">
                   <MessageSquare size={16} />

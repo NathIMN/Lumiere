@@ -1,0 +1,179 @@
+<div class="table-section cols-6">
+    <h2 class="table-title">Policy Information</h2>
+    <table class="data-table">
+        <tbody>
+            <tr>
+                <td><strong>Policy ID</strong></td>
+                <td>{{policy.policyId}}</td>
+            </tr>
+            <tr>
+                <td><strong>Policy Type</strong></td>
+                <td>{{policy.policyType}}</td>
+            </tr>
+            <tr>
+                <td><strong>Status</strong></td>
+                <td><span class="status {{policy.status}}">{{policy.status}}</span></td>
+            </tr>
+            <tr>
+                <td><strong>Coverage Amount</strong></td>
+                <td>${{formatCurrency policy.coverageAmount}}</td>
+            </tr>
+            <tr>
+                <td><strong>Premium Amount</strong></td>
+                <td>${{formatCurrency policy.premiumAmount}}</td>
+            </tr>
+            <tr>
+                <td><strong>Premium Frequency</strong></td>
+                <td>{{policy.premiumFrequency}}</td>
+            </tr>
+            <tr>
+                <td><strong>Start Date</strong></td>
+                <td>{{formatDate policy.startDate}}</td>
+            </tr>
+            <tr>
+                <td><strong>End Date</strong></td>
+                <td>{{formatDate policy.endDate}}</td>
+            </tr>
+            <tr>
+                <td><strong>Insurance Agent</strong></td>
+                <td>{{policy.agentName}}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+{{#if policy.beneficiaries}}
+<div class="table-section">
+    <h2 class="table-title">Beneficiaries</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Relationship</th>
+                <th>Contact</th>
+                <th>Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each policy.beneficiaries}}
+            <tr>
+                <td>{{name}}</td>
+                <td>{{relationship}}</td>
+                <td>{{contact}}</td>
+                <td>{{percentage}}%</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if policy.coverageDetails}}
+<div class="table-section">
+    <h2 class="table-title">Coverage Details</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Coverage Type</th>
+                <th>Coverage Amount</th>
+                <th>Deductible</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each policy.coverageDetails}}
+            <tr>
+                <td>{{type}}</td>
+                <td>${{formatCurrency amount}}</td>
+                <td>${{formatCurrency deductible}}</td>
+                <td>{{description}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if policy.premiumHistory}}
+<div class="table-section">
+    <h2 class="table-title">Premium Payment History</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Payment Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Payment Method</th>
+                <th>Reference</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each policy.premiumHistory}}
+            <tr>
+                <td>{{formatDate paymentDate}}</td>
+                <td>${{formatCurrency amount}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td>{{paymentMethod}}</td>
+                <td>{{reference}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if policy.claims}}
+<div class="table-section">
+    <h2 class="table-title">Related Claims</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Claim ID</th>
+                <th>Claim Type</th>
+                <th>Submission Date</th>
+                <th>Status</th>
+                <th>Requested Amount</th>
+                <th>Approved Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each policy.claims}}
+            <tr>
+                <td class="id-col">{{claimId}}</td>
+                <td>{{claimType}}</td>
+                <td>{{formatDate submissionDate}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td>${{formatCurrency requestedAmount}}</td>
+                <td>{{#if approvedAmount}}${{formatCurrency approvedAmount}}{{else}}N/A{{/if}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if policy.documents}}
+<div class="table-section">
+    <h2 class="table-title">Policy Documents</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Document Type</th>
+                <th>File Name</th>
+                <th>Upload Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each policy.documents}}
+            <tr>
+                <td>{{documentType}}</td>
+                <td>{{fileName}}</td>
+                <td>{{formatDate uploadDate}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
