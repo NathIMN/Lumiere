@@ -17,8 +17,10 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  FileText,
 } from "lucide-react";
 import userApiService from "../../services/user-api";
+import reportsApiService from "../../services/reports-api";
 
 export const AdminHrOfficers = () => {
   const [hrOfficers, setHrOfficers] = useState([]);
@@ -43,6 +45,8 @@ export const AdminHrOfficers = () => {
   });
   const [errors, setErrors] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
   // Fetch HR officers on component mount
   useEffect(() => {
@@ -230,6 +234,66 @@ export const AdminHrOfficers = () => {
     }
   };
 
+  // Show success/error messages
+  const showMessage = (message, isError = false) => {
+    if (isError) {
+      setError(message);
+      setSuccess('');
+    } else {
+      setSuccess(message);
+      setError('');
+    }
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      setError('');
+      setSuccess('');
+    }, 5000);
+  };
+
+  // Handle HR officers report generation
+  const handleGenerateHROfficersReport = async () => {
+    try {
+      setLoading(true);
+      
+      // Prepare filters based on current page filters
+      const reportFilters = {
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        format: 'pdf'
+      };
+
+      // Remove undefined values
+      Object.keys(reportFilters).forEach(key => {
+        if (reportFilters[key] === undefined) {
+          delete reportFilters[key];
+        }
+      });
+
+      // Get the report blob (using users report for HR officers)
+      const blob = await reportsApiService.generateUsersReport({ 
+        ...reportFilters, 
+        role: 'hr_officer' 
+      });
+      
+      // Create download link and trigger download (same as AdminReports.jsx)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hr-officers-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showMessage('HR Officers report downloaded successfully');
+    } catch (err) {
+      console.error('Error generating HR officers report:', err);
+      showMessage(err.message || 'Failed to generate HR officers report', true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Reset form
   const resetForm = () => {
     setFormData({
@@ -322,6 +386,25 @@ export const AdminHrOfficers = () => {
         </button>
       </div>
 
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex items-center">
+            <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+            <span className="text-green-800">{success}</span>
+          </div>
+        </div>
+      )}
+      
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center">
+            <XCircle className="w-5 h-5 text-red-500 mr-2" />
+            <span className="text-red-800">{error}</span>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-red-900/10">
         <div className="relative flex-1">
@@ -348,6 +431,14 @@ export const AdminHrOfficers = () => {
             <option value="terminated">Terminated</option>
           </select>
         </div>
+        <button
+          onClick={handleGenerateHROfficersReport}
+          disabled={loading}
+          className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Generate Report
+        </button>
       </div>
 
       {/* Statistics Cards */}

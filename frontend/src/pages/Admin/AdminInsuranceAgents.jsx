@@ -20,8 +20,10 @@ import {
   Building,
   Shield,
   CreditCard,
+  FileText,
 } from "lucide-react";
 import userApiService from "../../services/user-api";
+import reportsApiService from "../../services/reports-api";
 
 export const AdminInsuranceAgents = () => {
   const [insuranceAgents, setInsuranceAgents] = useState([]);
@@ -53,6 +55,8 @@ export const AdminInsuranceAgents = () => {
   });
   const [errors, setErrors] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   // Fetch insurance agents on component mount
   useEffect(() => {
@@ -187,6 +191,21 @@ export const AdminInsuranceAgents = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Show message helper function
+  const showMessage = (message, type = "success") => {
+    if (type === "success") {
+      setSuccess(message);
+      setError("");
+    } else {
+      setError(message);
+      setSuccess("");
+    }
+    setTimeout(() => {
+      setSuccess("");
+      setError("");
+    }, 5000);
   };
 
   // Handle create insurance agent
@@ -350,6 +369,29 @@ export const AdminInsuranceAgents = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Handle generate insurance agents report
+  const handleGenerateInsuranceAgentsReport = async () => {
+    try {
+      const blob = await reportsApiService.generateUsersReport({
+        role: 'insurance_agent'
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `insurance-agents-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      showMessage("Insurance agents report generated and downloaded successfully!");
+    } catch (error) {
+      console.error("Error generating insurance agents report:", error);
+      showMessage("Failed to generate insurance agents report. Please try again.", "error");
+    }
+  };
+
   return (
     <div className="p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl shadow-xl border-2 border-red-900/10">
       {/* Header */}
@@ -402,7 +444,43 @@ export const AdminInsuranceAgents = () => {
             <option value="terminated">Terminated</option>
           </select>
         </div>
+        <button
+          onClick={handleGenerateInsuranceAgentsReport}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200"
+        >
+          <FileText className="w-4 h-4" />
+          Generate Insurance Agents Report
+        </button>
       </div>
+
+      {/* Success/Error Messages */}
+      {(success || error) && (
+        <div className="mb-6">
+          {success && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              <span>{success}</span>
+            </div>
+          )}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Report Generation */}
+      {/* <div className="mb-6 bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-red-900/10">
+        <button
+          onClick={handleGenerateInsuranceAgentsReport}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200"
+        >
+          <FileText className="w-4 h-4" />
+          Generate Insurance Agents Report
+        </button>
+      </div> */}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

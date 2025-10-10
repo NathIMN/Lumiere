@@ -19,10 +19,12 @@ import {
   TrendingUp,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  FileText
 } from 'lucide-react';
 import insuranceApiService from '../../services/insurance-api';
 import userApiService from '../../services/user-api';
+import reportsApiService from '../../services/reports-api';
 
 export const AdminPolicies = () => {
   // State management
@@ -275,6 +277,48 @@ export const AdminPolicies = () => {
         console.error('Error deleting policy:', err);
         showMessage('Failed to delete policy. Please try again.', true);
       }
+    }
+  };
+
+  // Handle policies report generation
+  const handleGeneratePoliciesReport = async () => {
+    try {
+      setLoading(true);
+      
+      // Prepare filters based on current page filters
+      const reportFilters = {
+        policyType: filters.policyType || undefined,
+        status: filters.status || undefined,
+        insuranceAgent: filters.insuranceAgent || undefined,
+        format: 'pdf'
+      };
+
+      // Remove undefined values
+      Object.keys(reportFilters).forEach(key => {
+        if (reportFilters[key] === undefined) {
+          delete reportFilters[key];
+        }
+      });
+
+      // Get the report blob
+      const blob = await reportsApiService.generatePoliciesReport(reportFilters);
+      
+      // Create download link and trigger download (same as AdminReports.jsx)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `policies-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showMessage('Policies report downloaded successfully');
+    } catch (err) {
+      console.error('Error generating policies report:', err);
+      showMessage(err.message || 'Failed to generate policies report', true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -547,6 +591,15 @@ export const AdminPolicies = () => {
                   </option>
                 ))}
               </select>
+              
+              <button
+                onClick={handleGeneratePoliciesReport}
+                disabled={loading}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Generate Report
+              </button>
             </div>
           </div>
         </div>
