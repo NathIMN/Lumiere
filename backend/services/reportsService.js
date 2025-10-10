@@ -196,6 +196,8 @@ class ReportsService {
           bottom: '15px',
           left: '15px'
         },
+        // Optimize for large tables
+        pageRanges: '',
         ...options
       };
 
