@@ -382,7 +382,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
 
   const claims = await Claim.find(query)
     .populate("policy", "policyNumber policyType provider policyId")
-    .populate("employeeId", "userId firstName lastName email")
+    .populate("employeeId", "userId profile fullname email employment")
     .populate("documents", "filename originalName uploadedAt")
     .sort(sortOptions)
     .skip(skip)
@@ -462,8 +462,8 @@ const getClaimsRequiringAction = asyncWrapper(async (req, res) => {
   }
 
   const claims = await Claim.find(query)
-    .populate("policy", "policyNumber policyType provider")
-    .populate("employeeId", "firstName lastName email")
+    .populate("policy", "policyNumber policyId policyType provider")
+  .populate("employeeId", "userId profile fullname email employment")
     .sort({ createdAt: -1 })
     .limit(20);
 
