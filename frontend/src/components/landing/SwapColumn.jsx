@@ -98,7 +98,7 @@ const SwapColumnFeature = () => {
           : 'opacity-75 scale-95'
       }`}>
         <div className="inline-flex items-center bg-red-900 text-white px-3 py-1 rounded-full text-sm font-medium">
-          Get noticed
+          Featuring
         </div>
         
         

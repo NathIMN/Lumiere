@@ -10,6 +10,7 @@ import {LogoLoop} from '../../components/LogoLoop';
 import SwapColumn from '../../components/landing/SwapColumn';
 import {CardSwap, Card} from '../../components/CardSwap';
 import { SiReact, SiNextdotjs, SiTypescript, SiTailwindcss } from 'react-icons/si';
+import FAQ from '../../components/landing/FAQ';
 
 const techLogos = [
   { node: <SiReact />, title: "React", href: "https://react.dev" },
@@ -116,7 +117,7 @@ export const LumiereLanding = () => {
         //style=color: "#14094fff'
       />
     </div>
-
+      <FAQ />
         <section id="reviews">
         <LandingFooter />
 </section>
