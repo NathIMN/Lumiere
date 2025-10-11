@@ -1,0 +1,201 @@
+{
+  "apiBase": "/api/v1",
+  "routes": {
+    "documents": {
+      "base": "/documents",
+      "endpoints": [
+        { "method": "GET", "path": "/", "controller": "documents.getAllDocuments" },
+        { "method": "POST", "path": "/", "controller": "documents.createDocument" },
+        { "method": "GET", "path": "/:id", "controller": "documents.getDocumentById" },
+        { "method": "PATCH", "path": "/:id", "controller": "documents.updateDocument" },
+        { "method": "DELETE", "path": "/:id", "controller": "documents.deleteDocument" },
+        { "method": "GET", "path": "/stats/overview", "controller": "documents.getDocumentStats" },
+        { "method": "GET", "path": "/reference/:type/:refId", "controller": "documents.getDocumentsByReference" },
+        { "method": "GET", "path": "/user/:userId", "controller": "documents.getUserDocuments" },
+        { "method": "PATCH", "path": "/:id/verify", "controller": "documents.verifyDocument" },
+        { "method": "PATCH", "path": "/:id/archive", "controller": "documents.archiveDocument" }
+      ]
+    },
+    "files": {
+      "base": "/files",
+      "endpoints": [
+        { "method": "POST", "path": "/upload", "controller": "documentUpload.uploadDocument" },
+        { "method": "POST", "path": "/upload/multiple", "controller": "documentUpload.uploadMultipleDocuments" },
+        { "method": "GET", "path": "/:id/download", "controller": "documentUpload.downloadDocument" },
+        { "method": "DELETE", "path": "/:id/delete", "controller": "documentUpload.deleteDocumentFile" }
+      ]
+    },
+    "users": {
+      "base": "/users",
+      "endpoints": [
+        { "method": "POST", "path": "/register", "controller": "users.registerUser" },
+        { "method": "POST", "path": "/login", "controller": "users.loginUser" },
+        { "method": "GET", "path": "/profile", "controller": "users.getProfile" },
+        { "method": "PATCH", "path": "/profile", "controller": "users.updateProfile" },
+        { "method": "PATCH", "path": "/change-password", "controller": "users.changePassword" },
+        { "method": "GET", "path": "/", "controller": "users.getAllUsers" },
+        { "method": "POST", "path": "/", "controller": "users.createUser" },
+        { "method": "GET", "path": "/:id", "controller": "users.getUserById" },
+        { "method": "PATCH", "path": "/:id", "controller": "users.updateUser" },
+        { "method": "DELETE", "path": "/:id", "controller": "users.deleteUser" },
+        { "method": "GET", "path": "/stats/overview", "controller": "users.getUserStats" },
+        { "method": "PATCH", "path": "/:id/status", "controller": "users.updateUserStatus" },
+        { "method": "PATCH", "path": "/:id/reset-password", "controller": "users.resetPassword" }
+      ]
+    },
+    "policies": {
+      "base": "/policies",
+      "endpoints": [
+        { "method": "GET", "path": "/", "controller": "policies.getAllPolicies" },
+        { "method": "POST", "path": "/", "controller": "policies.createPolicy" },
+        { "method": "GET", "path": "/my-policies", "controller": "policies.getUserPolicies" },
+        { "method": "GET", "path": "/my-agent-policies", "controller": "policies.getAgentPolicies" },
+        { "method": "GET", "path": "/stats/overview", "controller": "policies.getPolicyStats" },
+        { "method": "GET", "path": "/stats/expiring", "controller": "policies.getExpiringPolicies" },
+        { "method": "GET", "path": "/eligibility/:policyType", "controller": "policies.checkPolicyEligibility" },
+        { "method": "GET", "path": "/agent/:agentId", "controller": "policies.getPoliciesByAgent" },
+        { "method": "PATCH", "path": "/bulk/status", "controller": "policies.bulkUpdateStatus" },
+        { "method": "GET", "path": "/policy-id/:policyId", "controller": "policies.getPolicyByPolicyId" },
+        { "method": "GET", "path": "/policy-id/:policyId/claimed-amounts", "controller": "policies.getBeneficiaryClaimedAmountsByPolicyId" },
+        { "method": "GET", "path": "/:id", "controller": "policies.getPolicyById" },
+        { "method": "PATCH", "path": "/:id", "controller": "policies.updatePolicy" },
+        { "method": "DELETE", "path": "/:id", "controller": "policies.deletePolicy" },
+        { "method": "PATCH", "path": "/:id/status", "controller": "policies.updatePolicyStatus" },
+        { "method": "PATCH", "path": "/:id/renew", "controller": "policies.renewPolicy" },
+        { "method": "PATCH", "path": "/:id/beneficiaries/add", "controller": "policies.addBeneficiary" },
+        { "method": "PATCH", "path": "/:id/beneficiaries/remove", "controller": "policies.removeBeneficiary" },
+        { "method": "GET", "path": "/:id/claimed-amounts", "controller": "policies.getBeneficiaryClaimedAmounts" },
+        { "method": "GET", "path": "/:id/claimed-amounts/summary", "controller": "policies.getPolicyClaimedAmountsSummary" },
+        { "method": "GET", "path": "/:id/enhanced-claimed-amounts-summary", "controller": "policies.getEnhancedClaimedAmountsSummary" },
+        { "method": "GET", "path": "/:id/validate-coverage-consistency", "controller": "policies.validatePolicyCoverageConsistency" },
+        { "method": "GET", "path": "/:id/usage", "controller": "policies.getPolicyUsage" }
+      ]
+    },
+    "questionnaireTemplates": {
+      "base": "/questionnaireTemplates",
+      "endpoints": [
+        { "method": "GET", "path": "/combinations/valid", "controller": "questionnaireTemplates.getValidCombinations" },
+        { "method": "GET", "path": "/combinations/missing", "controller": "questionnaireTemplates.getMissingCombinations" },
+        { "method": "POST", "path": "/validate", "controller": "questionnaireTemplates.validateTemplate" },
+        { "method": "GET", "path": "/by-type/:claimType/:claimOption", "controller": "questionnaireTemplates.getTemplatesByType" },
+        { "method": "GET", "path": "/", "controller": "questionnaireTemplates.getAllTemplates" },
+        { "method": "POST", "path": "/", "controller": "questionnaireTemplates.createTemplate" },
+        { "method": "GET", "path": "/:id", "controller": "questionnaireTemplates.getTemplateById" },
+        { "method": "PATCH", "path": "/:id", "controller": "questionnaireTemplates.updateTemplate" },
+        { "method": "DELETE", "path": "/:id", "controller": "questionnaireTemplates.deleteTemplate" },
+        { "method": "POST", "path": "/:id/clone", "controller": "questionnaireTemplates.cloneTemplate" },
+        { "method": "PATCH", "path": "/:id/toggle-status", "controller": "questionnaireTemplates.toggleTemplateStatus" },
+        { "method": "DELETE", "path": "/:id/hard-delete", "controller": "questionnaireTemplates.hardDeleteTemplate" }
+      ]
+    },
+    "claims": {
+      "base": "/claims",
+      "endpoints": [
+        { "method": "GET", "path": "/stats/overview", "controller": "claims.getClaimStatistics" },
+        { "method": "GET", "path": "/actions/pending", "controller": "claims.getClaimsRequiringAction" },
+        { "method": "GET", "path": "/", "controller": "claims.getAllClaims" },
+        { "method": "POST", "path": "/", "controller": "claims.createClaim" },
+        { "method": "GET", "path": "/:id", "controller": "claims.getClaimById" },
+        { "method": "GET", "path": "/:id/questionnaire", "controller": "claims.getQuestionnaireQuestions" },
+        { "method": "GET", "path": "/:id/questionnaire/section/:sectionId", "controller": "claims.getSectionQuestions" },
+        { "method": "PATCH", "path": "/:id/questionnaire/answer", "controller": "claims.updateQuestionnaireAnswer" },
+        { "method": "PATCH", "path": "/:id/questionnaire/section/:sectionId/submit-answers", "controller": "claims.submitSectionAnswers" },
+        { "method": "PATCH", "path": "/:id/questionnaire/submit-answers", "controller": "claims.submitQuestionnaireAnswers" },
+        { "method": "PATCH", "path": "/:id/submit", "controller": "claims.submitClaim" },
+        { "method": "POST", "path": "/:id/documents/upload", "controller": "claims.uploadClaimDocuments" },
+        { "method": "POST", "path": "/:id/documents/upload/multiple", "controller": "claims.uploadMultipleDocumentsForClaim" },
+        { "method": "GET", "path": "/:id/documents", "controller": "claims.getClaimDocuments" },
+        { "method": "PATCH", "path": "/:id/forward", "controller": "claims.forwardToInsurer" },
+        { "method": "PATCH", "path": "/:id/decision", "controller": "claims.makeDecision" },
+        { "method": "PATCH", "path": "/:id/return", "controller": "claims.returnClaim" },
+        { "method": "PATCH", "path": "/:id/status", "controller": "claims.updateClaimStatus" },
+        { "method": "DELETE", "path": "/by-id/:id", "controller": "claims.deleteClaimById" }
+      ]
+    },
+    "messages": {
+      "base": "/messages",
+      "endpoints": [
+        { "method": "GET", "path": "/conversations", "controller": "messages.getConversations" },
+        { "method": "GET", "path": "/contacts", "controller": "messages.getAvailableContacts" },
+        { "method": "GET", "path": "/unread-count", "controller": "messages.getUnreadCount" },
+        { "method": "GET", "path": "/search", "controller": "messages.searchMessages" },
+        { "method": "GET", "path": "/conversation/:recipientId", "controller": "messages.getConversation" },
+        { "method": "POST", "path": "/send", "controller": "messages.sendMessage" },
+        { "method": "PATCH", "path": "/conversation/:recipientId/read", "controller": "messages.markConversationAsRead" },
+        { "method": "PUT", "path": "/:messageId", "controller": "messages.editMessage" },
+        { "method": "DELETE", "path": "/:messageId", "controller": "messages.deleteMessage" }
+      ]
+    },
+    "notifications": {
+      "base": "/notifications",
+      "endpoints": [
+        { "method": "POST", "path": "/send/in-app", "controller": "notifications.sendInAppNotification" },
+        { "method": "POST", "path": "/send/email", "controller": "notifications.sendEmailNotification" },
+        { "method": "POST", "path": "/send/combined", "controller": "notifications.sendCombinedNotification" },
+        { "method": "POST", "path": "/send/bulk", "controller": "notifications.sendBulkNotification" },
+        { "method": "GET", "path": "/", "controller": "notifications.getUserNotifications" },
+        { "method": "GET", "path": "/unread-count", "controller": "notifications.getUnreadCount" },
+        { "method": "PATCH", "path": "/:notificationId/read", "controller": "notifications.markNotificationAsRead" },
+        { "method": "PATCH", "path": "/mark-all-read", "controller": "notifications.markAllNotificationsAsRead" },
+        { "method": "DELETE", "path": "/:notificationId", "controller": "notifications.deleteNotification" }
+      ]
+    },
+    "reports": {
+      "base": "/reports",
+      "endpoints": [
+        { "method": "GET", "path": "/templates", "controller": "reports.getReportTemplates" },
+        { "method": "GET", "path": "/users", "controller": "reports.generateUsersReport" },
+        { "method": "GET", "path": "/policies", "controller": "reports.generatePoliciesReport" },
+        { "method": "GET", "path": "/claims", "controller": "reports.generateClaimsReport" },
+        { "method": "GET", "path": "/financial", "controller": "reports.generateFinancialReport" },
+        { "method": "POST", "path": "/custom", "controller": "reports.generateCustomReport" },
+        { "method": "POST", "path": "/schedule", "controller": "reports.scheduleReport" }
+      ]
+    },
+    "vapi": {
+      "base": "/vapi",
+      "endpoints": [
+        { "method": "POST", "path": "/webhook", "controller": "vapi.handleWebhook" },
+        { "method": "GET", "path": "/public-key", "controller": "vapi.getPublicKey" },
+        { "method": "POST", "path": "/assistant/create", "controller": "vapi.createAssistant" },
+        { "method": "GET", "path": "/assistant/config", "controller": "vapi.getAssistantConfig" },
+        { "method": "POST", "path": "/function-call", "controller": "vapi.handleFunctionCall" },
+        { "method": "PATCH", "path": "/assistant/:assistantId/config", "controller": "vapi.updateAssistantConfig" },
+        { "method": "POST", "path": "/call/create", "controller": "vapi.createCall" },
+        { "method": "GET", "path": "/calls/history", "controller": "vapi.getCallHistory" },
+        { "method": "GET", "path": "/metrics", "controller": "vapi.getAssistantMetrics" },
+        { "method": "POST", "path": "/execute-function", "controller": "vapi.executeFunction" },
+        { "method": "POST", "path": "/api-call", "controller": "vapi.executeApiCall" },
+        { "method": "POST", "path": "/db-operation", "controller": "vapi.executeDbOperation" },
+        { "method": "POST", "path": "/test-function", "controller": "vapi.testFunction" }
+      ]
+    },
+    "chatbot": {
+      "base": "/chatbot",
+      "endpoints": [
+        { "method": "POST", "path": "/message", "controller": "chatbot.sendMessage" },
+        { "method": "POST", "path": "/formalize", "controller": "chatbot.formalizeMessage" },
+        { "method": "POST", "path": "/stream", "controller": "chatbot.streamMessage" }
+      ]
+    }
+  },
+  "models": [
+    "User", "Policy", "Claim", "Document", "Message", "Notification", "QuestionnaireTemplate"
+  ],
+  "services": [
+    "azureBlobService", "emailService", "openaiService", "geminiService", "reportsService", "vapiService", "vapiProxyService"
+  ],
+  "sockets": {
+    "events": ["join_conversation", "send_message", "mark_as_read", "typing_start", "typing_stop"],
+    "rooms": ["user:<userId>", "conversation:<conversationId>"]
+  },
+  "env": {
+    "backend": [
+      "PORT", "MONGO_URI", "JWT_SECRET", "CLIENT_URL",
+      "AZURE_STORAGE_CONNECTION_STRING", "AZURE_CONTAINER_NAME",
+      "EMAIL_PROVIDER", "SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASS", "GMAIL_USER", "GMAIL_PASS",
+      "OPENAI_API_KEY", "GEMINI_API_KEY", "VAPI_PRIVATE_API_KEY", "VAPI_PUBLIC_API_KEY"
+    ],
+    "frontend": ["VITE_API_BASE_URL", "VITE_GEMINI_API_KEY"]
+  }
+}

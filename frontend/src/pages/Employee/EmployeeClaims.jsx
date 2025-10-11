@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap } from 'lucide-react';
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap, BarChart3, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import InsuranceApiService from "../../services/insurance-api";
 import DocumentApiService from "../../services/document-api";
+import reportsApiService from '../../services/reports-api';
+import LoadingScreen from './LoadingScreen';
 
 export const EmployeeClaims = () => {
    const [activeFilter, setActiveFilter] = useState('all');
@@ -80,11 +82,19 @@ export const EmployeeClaims = () => {
       }
    };
 
+   const getCategoryBackground = (claimType) => {
+  switch (claimType) {
+    case 'life': return 'bg-red-50/50 dark:bg-red-950/10';
+    case 'vehicle': return 'bg-blue-50/50 dark:bg-blue-950/10';
+    default: return 'bg-white dark:bg-neutral-900';
+  }
+};
+
    const getCategoryIcon = (claimType) => {
       switch (claimType) {
-         case 'life': return <User className="text-pink-500 dark:text-pink-400" size={20} />;
-         case 'vehicle': return <Car className="text-blue-500 dark:text-blue-400" size={20} />;
-         default: return <FileText className="text-gray-500 dark:text-gray-400" size={20} />;
+         case 'life': return <User className="text-red-700 dark:text-red-400" size={30} />;
+         case 'vehicle': return <Car className="text-blue-700 dark:text-blue-400" size={30} />;
+         default: return <FileText className="text-gray-700 dark:text-gray-400" size={20} />;
       }
    };
 
@@ -366,6 +376,69 @@ export const EmployeeClaims = () => {
 
    const getValidDocumentTypes = (claimType, claimOption) => {
       return InsuranceApiService.getValidDocumentTypesForClaim(claimType, claimOption);
+   };
+
+   // Report generation functions
+   const generateIndividualClaimReport = async (claimId) => {
+      try {
+         const blob = await reportsApiService.generateEmployeeClaimReport(claimId);
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `claim-report-${claimId}-${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         window.URL.revokeObjectURL(url);
+      } catch (error) {
+         console.error('Error generating claim report:', error);
+         alert('Failed to generate claim report. Please try again.');
+      }
+   };
+
+   const generateClaimsSummaryReport = async () => {
+      try {
+         // Map display status back to database status
+         let statusFilter = undefined;
+         if (activeFilter !== 'all') {
+            switch (activeFilter) {
+               case 'processing':
+                  // Don't filter by status, let backend handle all processing statuses
+                  statusFilter = undefined;
+                  break;
+               case 'incomplete':
+                  statusFilter = 'employee';
+                  break;
+               default:
+                  statusFilter = activeFilter; // draft, approved, rejected
+            }
+         }
+
+         const filters = {
+            status: statusFilter,
+            claimType: undefined // Could add filter for claim type
+         };
+         
+         // Remove undefined values
+         Object.keys(filters).forEach(key => {
+            if (filters[key] === undefined) {
+               delete filters[key];
+            }
+         });
+
+         const blob = await reportsApiService.generateEmployeeClaimsSummaryReport(filters);
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `my-claims-summary-${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         document.body.removeChild(link);
+         window.URL.revokeObjectURL(url);
+      } catch (error) {
+         console.error('Error generating claims summary report:', error);
+         alert('Failed to generate claims summary report. Please try again.');
+      }
    };
 
    // Document Upload Modal Component
@@ -659,13 +732,8 @@ export const EmployeeClaims = () => {
 
    if (loading) {
       return (
-         <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
-            <div className="max-w-7xl mx-auto">
-               <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
-                  <p className="mt-4 text-gray-600 dark:text-neutral-300">Loading your claims...</p>
-               </div>
-            </div>
+         <div className="min-h-screen dark:bg-neutral-800 p-6">
+{loading && <LoadingScreen />}
          </div>
       );
    }
@@ -702,7 +770,7 @@ export const EmployeeClaims = () => {
                      <h1 className="text-4xl font-light text-gray-900 dark:text-white mb-2">Claims Portal</h1>
                      <p className="text-gray-600 dark:text-neutral-400">Manage your submissions and track progress</p>
                   </div>
-                  <button onClick={() => (navigate("/employee/claims/form"))} className="bg-[#ff7a66] hover:bg-[#ff6b57] dark:bg-[#ff7a66] dark:hover:bg-[#ff6b57] px-6 py-3 rounded-full text-white font-medium flex items-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl">
+                  <button onClick={() => (navigate("/employee/claims/form"))} className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-full hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105">
                      <Plus size={20} />
                      New Claim
                   </button>
@@ -745,7 +813,7 @@ export const EmployeeClaims = () => {
                         placeholder="Search claims by ID, type, or option..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent shadow-sm"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent shadow-sm"
                      />
                   </div>
                   <div className="flex gap-2">
@@ -754,7 +822,7 @@ export const EmployeeClaims = () => {
                            key={filter}
                            onClick={() => setActiveFilter(filter)}
                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeFilter === filter
-                                 ? 'bg-[#ff7a66] text-white shadow-md'
+                                 ? 'bg-red-900 text-white shadow-md'
                                  : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
                               }`}
                         >
@@ -772,7 +840,7 @@ export const EmployeeClaims = () => {
                   return (
                      <div
                         key={claim._id}
-                        className={`bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] border-l-4 shadow-sm ${getCategoryColor(claim.claimType)} group`}
+className={`border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] shadow-sm ${getCategoryBackground(claim.claimType)}`}
                         style={{ animationDelay: `${index * 100}ms` }}
                      >
                         <div className="p-6">
@@ -840,6 +908,21 @@ export const EmployeeClaims = () => {
 
                                  {/* Action Buttons */}
                                  <div className="flex gap-2">
+                                    {/* Report Button - Show for all submitted claims */}
+                                    {claim.claimStatus !== 'draft' && (
+                                       <button
+                                          className="flex items-center justify-center gap-1 px-3 py-2 rounded-full text-xs font-medium transition-all duration-200 bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/30 dark:hover:bg-purple-800/40 dark:text-purple-300 group-hover:scale-105"
+                                          onClick={(e) => {
+                                             e.stopPropagation();
+                                             generateIndividualClaimReport(claim.claimId);
+                                          }}
+                                          title="Generate claim report"
+                                       >
+                                          <Download size={14} />
+                                          <span className="hidden sm:inline">Report</span>
+                                       </button>
+                                    )}
+
                                     {/* Upload Documents Button - Show for draft, employee, and processing claims */}
                                     {['draft', 'employee', 'hr', 'insurer'].includes(claim.claimStatus) && (
                                        <button
@@ -872,7 +955,7 @@ export const EmployeeClaims = () => {
                         <div className="px-6 pb-4">
                            <div className="w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-1">
                               <div
-                                 className="bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400 h-1 rounded-full transition-all duration-1000"
+                                 className="bg-gradient-to-r from-red-700 to-red-900 dark:from-purple-400 dark:to-blue-400 h-1 rounded-full transition-all duration-1000"
                                  style={{
                                     width: claim.claimStatus === 'draft' ? '10%' :
                                        claim.claimStatus === 'employee' ? '27%' :
@@ -925,9 +1008,12 @@ export const EmployeeClaims = () => {
                   <Download size={16} />
                   Refresh Claims
                </button>
-               <button className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-neutral-900 hover:bg-purple-200 dark:hover:bg-neutral-700 rounded-full text-purple-700 dark:text-purple-300 transition-colors duration-200">
-                  <Download size={16} />
-                  Export All
+               <button 
+                  onClick={generateClaimsSummaryReport}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-neutral-900 hover:bg-green-200 dark:hover:bg-neutral-700 rounded-full text-green-700 dark:text-green-300 transition-colors duration-200"
+               >
+                  <BarChart3 size={16} />
+                  Claims Summary Report
                </button>
                <button className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-neutral-900 hover:bg-purple-200 dark:hover:bg-neutral-700 rounded-full text-purple-700 dark:text-purple-300 transition-colors duration-200">
                   <MessageSquare size={16} />

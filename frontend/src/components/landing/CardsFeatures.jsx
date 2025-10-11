@@ -22,7 +22,7 @@ export const CardsFeatures = () => {
           <CardTitle>Do a thing</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-8 rounded-t-2xl bg-white p-4 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <span className="block text-center font-semibold text-indigo-50">
-              FEATURE DEMO HERE
+              <img src="/demos/1.png" alt="" />
             </span>
           </div>
         </BounceCard>
@@ -30,7 +30,7 @@ export const CardsFeatures = () => {
           <CardTitle>Do another thing</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-8 rounded-t-2xl bg-white p-4 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <span className="block text-center font-semibold text-orange-50">
-              FEATURE DEMO HERE
+              <img src="/demos/2.png" alt="" />
             </span>
           </div>
         </BounceCard>
@@ -40,7 +40,7 @@ export const CardsFeatures = () => {
           <CardTitle>And this too</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-8 rounded-t-2xl bg-white p-4 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <span className="block text-center font-semibold text-emerald-50">
-              FEATURE DEMO HERE
+              <img src="/demos/3.png" alt="" />
             </span>
           </div>
         </BounceCard>
@@ -48,7 +48,7 @@ export const CardsFeatures = () => {
           <CardTitle>And finally this</CardTitle>
           <div className="absolute bottom-0 left-4 right-4 top-32 translate-y-8 rounded-t-2xl bg-white p-4 transition-transform duration-[250ms] group-hover:translate-y-4 group-hover:rotate-[2deg]">
             <span className="block text-center font-semibold text-red-50">
-              FEATURE DEMO HERE
+              <img src="/demos/4.png" alt="" />
             </span>
           </div>
         </BounceCard>

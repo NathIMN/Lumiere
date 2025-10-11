@@ -83,6 +83,7 @@
         
         .table-section {
             margin-bottom: 30px;
+            /* Remove page-break-inside: avoid to allow table pagination */
         }
         
         .table-title {
@@ -153,6 +154,8 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             border: 1px solid var(--table-border);
             table-layout: auto;
+            /* Allow table to break across pages */
+            page-break-inside: auto;
         }
         
         .data-table th {
@@ -165,6 +168,11 @@
             vertical-align: middle;
             border-right: 1px solid var(--table-header-border);
             width: auto;
+        }
+        
+        .data-table thead {
+            /* Ensure header appears on each page */
+            display: table-header-group;
         }
         
         .data-table th:last-child {
@@ -180,6 +188,12 @@
             text-overflow: ellipsis;
             vertical-align: middle;
             line-height: 1.3;
+        }
+        
+        .data-table tbody tr {
+            /* Allow row breaks when necessary, but try to keep together */
+            page-break-inside: avoid;
+            page-break-after: auto;
         }
         
         .data-table td:last-child {
@@ -204,6 +218,25 @@
         .cols-8 { font-size: 10px; }
         .cols-9 { font-size: 9px; }
         .cols-10 { font-size: 8px; }
+        
+        /* Improved text handling for different column types */
+        .data-table td {
+            max-width: 150px; /* Prevent extremely wide cells */
+        }
+        
+        .data-table td.email-col {
+            max-width: 120px;
+            font-size: 9px;
+        }
+        
+        .data-table td.id-col {
+            max-width: 80px;
+            font-family: monospace;
+        }
+        
+        .data-table td.name-col {
+            max-width: 100px;
+        }
         
         .status {
             padding: 2px 6px;
@@ -234,6 +267,39 @@
         
         .page-break {
             page-break-before: always;
+        }
+        
+        /* Styles for better table pagination */
+        .large-table {
+            page-break-inside: auto;
+        }
+        
+        .large-table .data-table {
+            margin-bottom: 0;
+        }
+        
+        .large-table thead tr {
+            page-break-after: avoid;
+        }
+        
+        .large-table tbody tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        
+        /* Ensure table headers repeat on new pages */
+        .data-table thead tr {
+            page-break-after: avoid;
+            page-break-inside: avoid;
+        }
+        
+        /* Hide letterhead repetition for table continuations */
+        .table-continuation {
+            page-break-before: always;
+        }
+        
+        .table-continuation .letterhead {
+            display: none;
         }
         
         @media print {
@@ -272,7 +338,7 @@
             }
             
             .table-section {
-                page-break-inside: avoid;
+                /* Remove page-break-inside: avoid for proper pagination */
                 margin-bottom: 25px;
             }
             
