@@ -9,7 +9,7 @@ import {
   Eye,
   Users,
   Calendar,
-  DollarSign,
+  Coins,
   AlertTriangle,
   X,
   Save,
@@ -514,12 +514,12 @@ export const AdminPolicies = () => {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mr-4">
-                  <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <Coins className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Coverage</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${stats.typeStats?.reduce((total, stat) => total + (stat.totalCoverage || 0), 0)?.toLocaleString() || '0'}
+                    LKR {stats.typeStats?.reduce((total, stat) => total + (stat.totalCoverage || 0), 0)?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
@@ -671,10 +671,10 @@ export const AdminPolicies = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              ${policy.coverage.coverageAmount?.toLocaleString() || '0'}
+                              LKR {policy.coverage.coverageAmount?.toLocaleString() || '0'}
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Premium: ${policy.premium.amount?.toLocaleString() || '0'} 
+                              Premium: LKR {policy.premium.amount?.toLocaleString() || '0'} 
                               {policy.premium.frequency && ` (${policy.premium.frequency})`}
                             </div>
                           </div>
@@ -1097,7 +1097,7 @@ export const AdminPolicies = () => {
                     
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                       <div className="text-sm text-blue-800 dark:text-blue-200">
-                        <strong>Total Coverage Amount: ${formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
+                        <strong>Total Coverage Amount: LKR {formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
                       </div>
                     </div>
                   </div>
@@ -1393,7 +1393,7 @@ export const AdminPolicies = () => {
                     
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                       <div className="text-sm text-blue-800 dark:text-blue-200">
-                        <strong>Total Coverage Amount: ${formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
+                        <strong>Total Coverage Amount: LKR {formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
                       </div>
                     </div>
                   </div>
@@ -1494,19 +1494,19 @@ export const AdminPolicies = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Total Coverage:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${selectedPolicy.coverage.coverageAmount?.toLocaleString() || '0'}
+                        LKR {selectedPolicy.coverage.coverageAmount?.toLocaleString() || '0'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Deductible:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${selectedPolicy.coverage.deductible?.toLocaleString() || '0'}
+                        LKR {selectedPolicy.coverage.deductible?.toLocaleString() || '0'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Premium:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${selectedPolicy.premium.amount?.toLocaleString() || '0'} ({selectedPolicy.premium.frequency})
+                        LKR {selectedPolicy.premium.amount?.toLocaleString() || '0'} ({selectedPolicy.premium.frequency})
                       </span>
                     </div>
                   </div>
@@ -1527,7 +1527,7 @@ export const AdminPolicies = () => {
                           {detail.description}
                         </p>
                         <p className="text-lg font-semibold text-blue-600 dark:text-blue-400 mt-2">
-                          ${detail.limit?.toLocaleString() || '0'}
+                          LKR {detail.limit?.toLocaleString() || '0'}
                         </p>
                       </div>
                     ))}
