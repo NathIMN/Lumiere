@@ -1,0 +1,636 @@
+﻿
+
+
+
+Topic		: Unified System for Insurance Claim Management
+ 
+ 
+ 
+Group no 	 	: ITP25_B4_96
+ 
+ 
+ 
+Campus                  : Malabe
+
+
+Reg NoNameEmailContact NoIT23834774NATH I M Nit23834774@my.sliit.lk+94 77 429 0347IT23836440FERNANDO PULLE N Sit23836440@my.sliit.lk+94 70 311 4390IT23830332PATHIRANA P U O Rit23830332@my.sliit.lk+94 71 679 2331IT23725010PERERA B I Vit23725010@my.sliit.lk+94 70 134 6360IT23828766SENARATHNA P G R Mit23828766@my.sliit.lk+94 71 777 6610Contents
+Background	4
+Progress	6
+GitHub Repository	10
+ER Diagram	11
+Normalized Schema	12
+Test Cases	13
+High Level System Diagram	15
+Network Design Diagram	16
+Innovative features of Lumiere	17
+Commercializing Lumiere	18
+Individualized Progress	19
+NATH I M N (IT23834774)	19
+FERNANDO PULLE N S (IT23836440)	22
+PATHIRANA P U O R (IT23830332)	25
+PERERA B I V (IT23725010)	30
+SENARATHNA P G R M (IT23828766)	34
+References	37
+
+
+
+
+
+
+
+
+
+
+
+Background
+
+We are developing our application, Lumiere: A Unified System for Insurance Claim Management, as per request of our client, a senior business analyst for the Janashakthi Group of Companies[1], a prominent Sri Lankan conglomerate with business interests spanning insurance, finance, real estate, and investment. Some of the companies within the group are, Janashakthi Insurance PLC[2],  Janashakthi Finance PLC[3], First Capital Limited[4] and Janashakthi Corporate Services Limited[5].
+Within the organization, employees are often covered under group insurance policies for life and medical coverage, and in some cases, individual vehicle insurance. These policies are maintained through partnerships with multiple third party insurance providers. Currently, companies within the Janashakthi Group handle most of their insurance claim processing manually, relying on physical document submissions to the HR departments.
+Since this is a very time consuming and confusing task, they are seeking a web based solution to standardize the operations occurring within the company more systematically. 
+We are developing this system based on our client's requirements, with a focus on streamlining the insurance claim process, enabling both employees and HR staff to efficiently manage claims, communicate, and carry out related tasks with improved accuracy and convenience.
+
+
+Progress
+
+During the time period given for development, the Lumiere team has managed to complete almost all individual components to enable a functioning backend. Along the development time frame, we were able to also implement decent UI/UX, forming an almost complete prototype of the Claim Management System.
+
+IDUser StoryStatusMemberUM-001As a new user, I want to register with my employee ID so that I can access the systemcompletedPERERA B I VUM-002As a user, I want to securely login to access my accountcompletedPERERA B I VUM-003As an admin, I want to assign different roles to users so they access appropriate featurescompletedFERNANDO PULLE N SUM-004As a user, I want to update my profile informationcompletedPERERA B I VUM-005As a user, I want to reset my password if I forget itcompletedFERNANDO PULLE N SUM-006As an admin, I want to activate/deactivate user accountscompletedNATH I M NUM-007As an admin, I want to track user login activity for securitycompletedNATH I M NPM-001As an admin, I want to create new insurance policies for employeescompletedSENARATHNA P G R MPM-002As an HR officer, I want to assign policies to employees based on their designationCompletedNATH I M NPM-003As an employee, I want to view my active insurance policies and coverage detailscompletedSENARATHNA P G R MPM-004As an admin, I want to manage policy renewals and expiration datesCompletedFERNANDO PULLE N SPM-005As an HR officer, I want to modify policy details when neededCompletedPERERA B I VPM-006As an admin, I want to generate reports on policy utilizationCompletedFERNANDO PULLE N SPM-007As an admin, I want to categorize policies by type (life, medical, vehicle)CompletedSENARATHNA P G R MCM-001As an employee, I want to submit insurance claims with supporting documentsCompletedFERNANDO PULLE N SCM-002As an employee, I want to track the status of my submitted claimsCompletedFERNANDO PULLE N SCM-003As an HR officer, I want to review and validate submitted claimsCompletedPERERA B I VCM-004As an HR officer, I want to forward validated claims to insurance agentsCompletedPERERA B I VCM-005As an insurance agent, I want to process forwarded claims and make decisionsCompletedSENARATHNA P G R MCM-006As a user, I want to view my claim history and previous decisionsCompletedFERNANDO PULLE N SCM-007As an admin, I want to analyze claim patterns and processing timesCompletedPERERA B I VCM-008As an insurance agent, I want to process multiple claims efficientlyCompletedSENARATHNA P G R MDM-001As a user, I want to upload documents securely for my claimsCompletedFERNANDO PULLE N SDM-002As a system, I want to store documents securely with proper organizationCompletedNATH I M NDM-003As a user, I want to view uploaded documents associated with claimsCompletedNATH I M NDM-004As a system, I want to automatically classify documents by typeCompletedNATH I M NDM-005As a user, I want to search for documents using keywords or filtersCompletedNATH I M NDM-006As a user, I want to maintain versions of updated documentsCompletedNATH I M NDM-007As an HR officer, I want to securely share documents with insurance agentsCompletedNATH I M NMS-001As a user, I want to send direct messages to other stakeholdersCompletedPATHIRANA P U O RMS-002As an HR officer, I want to create group conversations for claim discussionsCompletedPATHIRANA P U O RMS-003As a user, I want to receive notifications for new messagesCompletedPATHIRANA P U O RMS-004As a user, I want to share files through messagesCompletedPATHIRANA P U O RMS-005As a user, I want to search through my message historyCompletedPATHIRANA P U O RMS-006As a system, I want to archive old messages for storage optimizationCompletedPATHIRANA P U O RMS-007As a user, I want messages to be contextually linked to specific claimsCompletedPATHIRANA P U O RNS-001As a user, I want to receive email notifications for important updatesCompletedPATHIRANA P U O RNS-002As a user, I want to see notifications within the applicationCompletedPATHIRANA P U O RNS-003As a user, I want to receive SMS notifications for critical updatesCompletedPATHIRANA P U O RNS-004As a user, I want to customize my notification preferencesCompletedPATHIRANA P U O RNS-005As a system, I want to send scheduled notifications for deadlines and remindersCompletedPATHIRANA P U O RNS-006As a user, I want to view my notification historyCompletedPATHIRANA P U O RNS-007As a user, I want to receive push notifications on my mobile deviceCompletedPATHIRANA P U O RCB-001As a user, I want to ask common questions and get instant answersCompletedFERNANDO PULLE N SCB-002As an employee, I want the chatbot to guide me through the claim processCompletedNATH I M NCB-003As a user, I want to ask about my policy details through the chatbotCompletedNATH I M NCB-004As an admin, I want to update the chatbot's knowledge baseCompletedNATH I M NCB-005As a user, I want the chatbot to escalate complex queries to human agentsCompletedNATH I M NCB-006As a user, I want to interact with the chatbot in my preferred languageCompletedNATH I M NCB-007As an admin, I want to analyze chatbot interactions to improve responsescompletedNATH I M N
+
+GitHub Repository
+
+https://github.com/NathIMN/Lumiere/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ER Diagram
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Normalized Schema
+
+Test Cases
+
+Test Case IDSystemTest Case DescriptionExpected ResultTC01User ManagementNew user registers with valid employee IDRegistration succeeds, email verification sentTC02User ManagementUser tries to login with correct credentialsLogin successful, JWT token generatedTC03User ManagementUser tries to login with wrong passwordLogin fails with error messageTC04Policy ManagementAdmin creates a new insurance policy with valid dataPolicy is saved and visible in policy dashboardTC05Policy ManagementHR assigns a policy to an employeeAssignment is successful, employee notifiedTC06Claims ManagementEmployee submits a claim with all required documentsClaim submission succeeds, confirmation displayedTC07Claims ManagementEmployee tracks status of a submitted claimStatus displayed correctly with timeline updatesTC08Claims ManagementHR reviews and approves a claimClaim status updated to approved, notifications sentTC09Claims ManagementHR forwards claim to insurance agentClaim appears in agent dashboard, forwarding notification sentTC10Claims ManagementInsurance agent processes the claimDecision recorded, reimbursement calculated correctlyTC11Document ManagementUser uploads a supporting documentDocument uploaded successfully, visible in document viewerTC12Messaging SystemUser sends a direct message regarding a claimMessage delivered and stored, recipient notifiedTC13Messaging SystemHR creates a group discussion for claim reviewGroup created, members added, notifications sentTC14Notifications SystemSystem sends email notification for new claim updateUser receives email with correct contentTC15AI Chat-botEmployee asks chatbot for claim guidanceChatbot provides correct step-by-step instructions
+
+High Level System Diagram
+
+
+Network Design Diagram 
+
+
+
+Innovative features of Lumiere
+
+* AI chatbot with voice → Provides users with an interactive assistant that can understand voice commands and respond in natural language, making claim handling faster and more user-friendly.
+
+* AI-powered message formalizer → Automatically rewrites user messages into professional, clear formats to improve communication between clients and insurance agents.
+
+
+* Dynamic questionnaire to determine claim type and option → Adjusts questions in real time based on user responses, ensuring accurate claim categorization and reducing manual form filling.
+
+* Real-time notifications and communications with Socket.IO → Keep users and agents instantly updated on claim progress and enables live messaging for faster resolutions.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Commercializing Lumiere
+
+Our commercialization strategy as the Lumiere developers involves offering a stable, centralized insurance claims management platform that is focused on solving real problems faced by insurance companies, HR departments, and employees. With several layers of pricing of a subscription-based SaaS model, we aim to cater to organizations with a size ranging from small HR departments to large multinational insurance companies. Core features like user management, policy tracking, and claim submission will be part of every plan, but higher-end tiers will include premium modules like AI-driven chat support, automatic claim review, and sophisticated analytics dashboards.
+To ensure mass adoption, Lumiere will offer seamless onboarding, role-specific training, and committed customer support. We will also offer customization and integration services so institutions are able to customize Lumiere to their unique workflows, compliance needs, and branding requirements. The white-labeling options will also enable insurers and HR solution providers to resell Lumiere under their own brand, opening up new revenue streams.
+Our strategy is to concentrate on continuous innovation through regular updates, feedback-driven feature enhancement, and partnerships with insurers and technology partners. In doing so, we are not just bringing Lumiere as a product, but also as a sustainable platform in the long term for digital insurance claim transformation.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Individualized Progress
+
+
+NATH I M N (IT23834774)
+
+Worked on, 
+* Document Management API
+* AI Chatbot
+Lumiere Document Management Module allows users to securely upload, store, and view documents required for claims. It includes features like document classification, search, and sharing. The AI Chatbot Module provides intelligent support for employees by answering common questions, guiding claim submissions, and escalating complex issues to human agents when needed.
+Tasks completed:
+* Document upload API development
+* Secure storage and file validation
+* Document viewing and download functionality
+* Chatbot UI component setup
+* Integration with knowledge base for basic Q&A
+* Claim process guidance feature
+Tasks to do:
+* Document classification automation with metadata extraction
+* Advanced chatbot integration for policy information queries
+* UI/UX improvements for chatbot interactions
+
+Pseudocodes, 
+// Function: getAllDocuments
+BEGIN
+  Extract type, docType, userId, refId, status from request query
+  Build filter object using these parameters (default status = active)
+
+  Find all documents matching filter
+  Sort results by newest first
+
+  RETURN success with count and documents
+END
+
+// Function: createDocument
+BEGIN
+  Create new document using request body
+  RETURN success with created document
+END
+
+// Function: deleteDocument
+BEGIN
+  Extract documentID and permanent flag from request
+
+  IF permanent = true THEN
+      Permanently remove document
+  ELSE
+      Mark document as "deleted"
+  ENDIF
+
+  IF not found THEN
+      RETURN error "No document found"
+  ENDIF
+
+  IF user exists THEN
+      Log access with user ID and role as "delete"
+  ENDIF
+
+  RETURN success with deletion message and document
+END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+FERNANDO PULLE N S (IT23836440)
+
+Worked on, 
+* Claim Management 
+The Claims Management Module allows employees to submit, track, and review insurance claims, while HR officers and insurance agents process them efficiently. It ensures transparency and reduces delays through workflows and dashboards.
+Tasks completed:
+* Claim submission form with validation
+* Document upload integration with claims
+* Claim tracking dashboard with status updates
+* Claim review workflow for HR officers
+* Forwarding validated claims to insurance agents
+Tasks to do:
+* Bulk claim processing for agents
+* Claim analytics dashboard for admins
+* Advanced notifications for claim status changes
+
+Pseudocodes, 
+// Function: createClaim
+BEGIN
+  Extract employeeId, policy, claimType, claimOption from request body
+  Extract userId from authenticated user
+
+  IF any required field is missing THEN
+      RETURN error "Required fields are missing"
+  ENDIF
+
+  IF claimType is not "life" or "vehicle" THEN
+      RETURN error "Invalid claim type"
+  ENDIF
+
+  // Check permission: employee can only create own claim
+  IF userId != employeeId AND user role not in ["admin", "hr_officer"] THEN
+      RETURN error "Permission denied"
+  ENDIF
+
+  Create claimData object with employeeId, policy, claimType, status = "draft"
+  IF claimType = "life" THEN
+      Add lifeClaimOption
+  ELSE
+      Add vehicleClaimOption
+  ENDIF
+
+  Save claim to database
+
+  TRY
+      Load questionnaire for the claim
+      RETURN success response with claim and next step
+  CATCH error
+      Delete claim (rollback)
+      RETURN error message
+  ENDTRY
+END
+
+// Function: getClaimById
+BEGIN
+  Extract claimId from request parameters
+
+  Find claim in database by ID
+    Include policy details, employee details, documents, questionnaire, HR & insurer info
+
+  IF claim not found THEN
+      RETURN error "No claim found"
+  ENDIF
+
+  // Permission check
+  IF user role = "employee" AND claim.employeeId != userId THEN
+      RETURN error "Permission denied"
+  ENDIF
+
+  RETURN success response with claim details
+END
+
+
+
+
+
+PATHIRANA P U O R (IT23830332)
+
+Worked on, 
+* Messaging API
+* Notification Management
+The Messaging and Notifications Module facilitates seamless communication between employees, HR officers, and insurance agents. It provides direct and group messaging, contextual claim discussions, and real-time notifications across multiple channels.
+Tasks completed:
+* Direct messaging system with chat interface
+* Group conversation setup for claim-related discussions
+* Email and in-app notification integration
+* Claim-context messaging feature
+* File sharing in messages
+Tasks to do:
+* Push notification support for mobile devices
+* Advanced message search and archiving
+* UI/UX improvements for messaging dashboard
+
+Pseudocodes, 
+FUNCTION getConversation(request, response, next):
+    # Extract recipientId from URL params
+    recipientId ← request.params.recipientId
+    
+    # Extract pagination values (default: page=1, limit=50)
+    page ← request.query.page OR 1
+    limit ← request.query.limit OR 50
+
+    # Step 1: Validate recipient exists
+    recipient ← FIND User BY ID(recipientId)
+    IF recipient DOES NOT EXIST:
+        RETURN error "Recipient not found" (404)
+
+    # Step 2: Check conversation permission between roles
+    IF NOT isConversationAllowed(request.user.role, recipient.role):
+        RETURN error "Conversation not allowed" (403)
+
+    # Step 3: Get conversation messages with pagination
+    messages ← Message.getConversation(
+                  senderId = request.user.userId,
+                  recipientId = recipientId,
+                  limit = limit,
+                  page = page
+               )
+
+    # Step 4: Count total messages in conversation
+    conversationId ← Message.generateConversationId(request.user.userId, recipientId)
+    totalMessages ← COUNT documents WHERE conversationId = conversationId
+
+    # Step 5: Send response with messages + pagination + recipient info
+    RETURN {
+        success: true,
+        messages: messages,
+        pagination: {
+            page: page,
+            limit: limit,
+            totalMessages: totalMessages,
+            totalPages: CEIL(totalMessages / limit)
+        },
+        recipient: {
+            id: recipient._id,
+            userId: recipient.userId,
+            name: recipient.fullName,
+            role: recipient.role
+        }
+    }
+END FUNCTION
+FUNCTION sendMessage(request, response, next):
+    # Extract data from request body
+    recipientId ← request.body.recipientId
+    content ← TRIM(request.body.content)
+    messageType ← request.body.messageType OR "text"
+
+    # Step 1: Validate input
+    IF recipientId IS EMPTY OR content IS EMPTY:
+        RETURN error "Recipient and content are required" (400)
+
+    # Step 2: Validate recipient exists
+    recipient ← FIND User BY ID(recipientId)
+    IF recipient DOES NOT EXIST:
+        RETURN error "Recipient not found" (404)
+
+    # Step 3: Check if conversation is allowed between roles
+    IF NOT isConversationAllowed(request.user.role, recipient.role):
+        RETURN error "Not authorized to send message" (403)
+
+    # Step 4: Create a conversation ID
+    conversationId ← Message.generateConversationId(request.user.userId, recipientId)
+
+    # Step 5: Create and save the message
+    message ← CREATE Message {
+                 conversationId: conversationId,
+                 sender: request.user.userId,
+                 recipient: recipientId,
+                 content: content,
+                 messageType: messageType
+              }
+
+    # Step 6: Populate sender & recipient info for response
+    POPULATE message.sender WITH (userId, firstName, lastName, role)
+    POPULATE message.recipient WITH (userId, firstName, lastName, role)
+
+    # Step 7: Return success response
+    RETURN {
+        success: true,
+        message: "Message sent successfully",
+        data: message
+    }
+END FUNCTION
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PERERA B I V (IT23725010)
+
+Worked on, 
+* User Management
+The User Management Module manages user registration, authentication, roles, and profiles. It ensures secure access to the system with proper role-based permissions and account control.
+Tasks completed:
+* User registration with employee ID
+* Secure login with JWT and password encryption
+* Role-based access with permission middleware
+* Profile management (view/edit, image upload)
+* Password reset workflow
+Tasks to do:
+* User activity logs with login tracking
+* Account activation/deactivation by admins
+* UX/UI improvements for user dashboards
+
+Pseudocodes, 
+FUNCTION registerUser(request, response, next):
+    # Extract fields from request body
+    email ← request.body.email
+    password ← request.body.password
+    role ← request.body.role
+
+    # Step 1: Check if user already exists
+    existingUser ← FIND User BY email
+    IF existingUser EXISTS:
+        RETURN error "User with this email already exists" (400)
+
+    # Step 2: Create new user (password hashing handled by model middleware)
+    user ← CREATE User WITH request.body
+
+    # Step 3: Generate authentication token
+    token ← generateToken(user._id)
+
+    # Step 4: Remove password before sending response
+    userResponse ← COPY user TO plainObject
+    DELETE userResponse.password
+
+    # Step 5: Send response
+    RETURN {
+        success: true,
+        message: "User registered successfully",
+        user: userResponse,
+        token: token
+    }
+END FUNCTION
+FUNCTION loginUser(request, response, next):
+    # Extract login details
+    email ← request.body.email
+    password ← request.body.password
+
+    # Step 1: Validate required fields
+    IF email IS EMPTY OR password IS EMPTY:
+        RETURN error "Please provide email and password" (400)
+
+    # Step 2: Find user (include password for verification)
+    user ← FIND User BY email WITH password
+    IF user DOES NOT EXIST:
+        RETURN error "Invalid email or password" (401)
+
+    # Step 3: Check if account is locked
+    IF user.isLocked = TRUE:
+        RETURN error "Account is temporarily locked" (423)
+
+    # Step 4: Validate password
+    isPasswordValid ← user.comparePassword(password)
+
+    IF isPasswordValid = FALSE:
+        # Increase login attempts
+        user.loginAttempts ← user.loginAttempts + 1
+
+        # Lock account after 5 failed attempts for 30 minutes
+        IF user.loginAttempts >= 5:
+            user.lockUntil ← NOW + 30 minutes
+
+        SAVE user
+        RETURN error "Invalid email or password" (401)
+
+    # Step 5: Reset login attempts and lock if successful
+    user.loginAttempts ← 0
+    user.lockUntil ← undefined
+
+    # Update last login timestamp
+    user.lastLogin ← CURRENT DATE
+    SAVE user
+
+    # Step 6: Generate authentication token
+    token ← generateToken(user._id)
+
+    # Step 7: Remove password before sending response
+    userResponse ← COPY user TO plainObject
+    DELETE userResponse.password
+
+    # Step 8: Send success response
+    RETURN {
+        success: true,
+        message: "Login successful",
+        user: userResponse,
+        token: token
+    }
+END FUNCTION
+
+
+SENARATHNA P G R M (IT23828766)
+
+Worked on, 
+Policy Management
+The Policy Management Module helps admins and HR officers create, assign, and manage insurance policies. Employees can view and track their policies, while admins can monitor utilization through reports.
+Tasks completed:
+* Policy creation form with type definitions
+* Policy assignment to employees with mapping
+* Policy viewing dashboard for employees
+* Policy renewal workflow with notifications
+* Policy modification interface with version control
+Tasks to do:
+* Policy categorization (life, medical, vehicle, etc.)
+* Advanced policy reports and analytics dashboard
+* UI/UX improvements for policy dashboards
+
+Pseudocodes, 
+// Function: Create a new policy
+// Only allowed for admin/HR
+function createPolicy(request, response):
+
+    Extract insuranceAgent and beneficiaries from request body
+
+    // Validate insurance agent
+    Find user by insuranceAgent ID
+    If agent does not exist:
+        Return error "Insurance agent not found"
+    If agent.role is not "insurance_agent":
+        Return error "User is not an insurance agent"
+
+    // Validate beneficiaries
+    If beneficiaries list exists:
+        Find all users in beneficiaries list with role employee or executive
+        If count of validBeneficiaries != count of provided beneficiaries:
+            Return error "One or more beneficiaries invalid"
+
+    // Create new policy
+    policy = Create Policy with request body
+
+    // Populate agent and beneficiary details before returning
+    Populate insuranceAgent and beneficiaries fields
+
+    Return success response with policy details
+
+// Function: Get all policies with filters + pagination
+function getAllPolicies(request, response):
+
+    Extract filters from request query: 
+        policyType, policyCategory, status, insuranceAgent, search, page, limit
+
+    Initialize empty query object
+
+    If policyType exists → add to query
+    If policyCategory exists → add to query
+    If status exists → add to query
+    If insuranceAgent exists → add to query
+
+    If search exists:
+        Add OR condition to query for matching policyId or notes
+
+    Calculate skip = (page - 1) * limit
+
+    // Fetch policies with filters
+    policies = Find policies using query
+                Populate agent, beneficiaries, documents
+                Sort by createdAt descending
+                Skip "skip" records
+                Limit to "limit"
+
+    totalPolicies = Count documents with same query
+    totalPages = totalPolicies / limit
+
+    Return success response with pagination + policies
+
+
+
+
+References
+
+[1]. "Home," Janashakthi Group. https://www.jxg.lk/
+
+[2]. "Home - Janashakthi Insurance PLC," www.janashakthi.com. https://www.janashakthi.com/
+
+‌[3]. "Home," Janashakthi Finance, Jul. 28, 2025. https://www.janashakthifinance.lk/
+
+[4]. "Home - FirstCap Limited," FirstCap Limited, Aug. 2025. https://firstcapltd.com/
+
+[5]. Jcsl.lk, 2025. https://jcsl.lk/ (accessed Aug. 06, 2025).
+
+
+
+	
+
+
+
+

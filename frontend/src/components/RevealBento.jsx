@@ -89,7 +89,7 @@ const LocationBlock = () => (
 
 const EmailListBlock = () => (
   <Block className="col-span-12 md:col-span-9">
-    <p className="mb-3 text-lg">Join my mailing list</p>
+    <p className="mb-3 text-lg">Join our mailing list</p>
     <form onSubmit={(e) => e.preventDefault()} className="flex items-center gap-2">
       <input
         type="email"

@@ -1,1639 +1,1621 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   Plus,
   Search,
   Filter,
-  MoreVertical,
-  Edit,
+  Edit3,
   Trash2,
   Eye,
+  Users,
+  Calendar,
+  DollarSign,
+  AlertTriangle,
+  X,
+  Save,
+  ChevronLeft,
+  ChevronRight,
+  BarChart3,
+  TrendingUp,
+  Clock,
   CheckCircle,
   XCircle,
-  AlertTriangle,
-  Clock,
-  Users,
-  DollarSign,
-  Calendar,
-  FileText,
-  Loader2,
-} from "lucide-react";
-import { policyService } from "../../services/policyService";
-import userApiService from "../../services/user-api";
+  FileText
+} from 'lucide-react';
+import insuranceApiService from '../../services/insurance-api';
+import userApiService from '../../services/user-api';
+import reportsApiService from '../../services/reports-api';
 
 export const AdminPolicies = () => {
+  // State management
   const [policies, setPolicies] = useState([]);
   const [insuranceAgents, setInsuranceAgents] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // UI State
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState(null);
+  
+  // Form state
   const [formData, setFormData] = useState({
-    policyType: "",
-    policyCategory: "",
-    insuranceAgent: "",
+    policyType: '',
+    policyCategory: '',
+    insuranceAgent: '',
     coverage: {
-      coverageAmount: "",
-      deductible: "",
-      typeLife: [],
-      typeVehicle: [],
-      coverageDetails: [
-        {
-          type: "",
-          description: "",
-          limit: ""
-        }
-      ],
-    },
-    premium: {
-      amount: "",
-      frequency: "monthly",
+      coverageAmount: '',
+      deductible: '',
+      coverageDetails: []
     },
     validity: {
-      startDate: "",
-      endDate: "",
+      startDate: '',
+      endDate: ''
     },
-    notes: "",
+    premium: {
+      amount: '',
+      frequency: 'monthly'
+    },
+    status: 'active',
+    notes: ''
   });
-  const [errors, setErrors] = useState({});
-  const [actionLoading, setActionLoading] = useState(false);
+  
+  // Filter and pagination state
+  const [filters, setFilters] = useState({
+    search: '',
+    policyType: '',
+    policyCategory: '',
+    status: '',
+    insuranceAgent: ''
+  });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0
+  });
 
-  // Fetch policies on component mount
+  // Coverage type definitions
+  const lifeCoverageTypes = [
+    { type: 'life_cover', description: 'Life insurance and death benefits' },
+    { type: 'hospitalization', description: 'Hospital stays and medical treatments' },
+    { type: 'surgical_benefits', description: 'Surgical procedures and related costs' },
+    { type: 'outpatient', description: 'Outpatient treatments and consultations' },
+    { type: 'prescription_drugs', description: 'Prescription medications and pharmacy costs' }
+  ];
+
+  const vehicleCoverageTypes = [
+    { type: 'collision', description: 'Collision damage and repairs' },
+    { type: 'liability', description: 'Third-party liability coverage' },
+    { type: 'comprehensive', description: 'Comprehensive vehicle protection' },
+    { type: 'personal_accident', description: 'Personal accident and injury coverage' }
+  ];
+
+  // Load initial data
   useEffect(() => {
-    fetchPolicies();
-    fetchInsuranceAgents();
-  }, []);
+    loadData();
+  }, [filters, pagination.page, pagination.limit]);
 
-  const fetchPolicies = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const response = await policyService.getAllPolicies();
-      setPolicies(response.policies || []);
-    } catch (error) {
-      console.error("Failed to fetch policies:", error);
+      
+      // Load policies with current filters
+      const policiesResponse = await insuranceApiService.getPolicies({
+        ...filters,
+        page: pagination.page,
+        limit: pagination.limit
+      });
+      
+      setPolicies(policiesResponse.policies);
+      setPagination(prev => ({
+        ...prev,
+        total: policiesResponse.totalPolicies,
+        pages: policiesResponse.totalPages
+      }));
+      
+      // Load insurance agents if not already loaded
+      if (insuranceAgents.length === 0) {
+        const agentsResponse = await userApiService.getUsers({ role: 'insurance_agent' });
+        setInsuranceAgents(agentsResponse.users || []);
+      }
+      
+      // Load statistics
+      const statsResponse = await insuranceApiService.getPolicyStatistics();
+      setStats(statsResponse.stats);
+      
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Failed to load policies. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchInsuranceAgents = async () => {
-    try {
-      console.log("Fetching insurance agents...");
-      const response = await userApiService.getUsersByRole('insurance_agent');
-      console.log("Insurance agents response:", response);
-      
-      if (response && response.users && Array.isArray(response.users)) {
-        setInsuranceAgents(response.users);
-        console.log(`Successfully loaded ${response.users.length} insurance agents`);
-      } else {
-        console.warn("No insurance agents found or invalid response format");
-        setInsuranceAgents([]);
-      }
-    } catch (error) {
-      console.error("Failed to fetch insurance agents:", error);
-      setInsuranceAgents([]);
-    }
-  };
-
-  // Filter policies based on search and status
-  const filteredPolicies = policies.filter((policy) => {
-    const matchesSearch = 
-      policy.policyId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      policy.policyType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      policy.policyCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      policy.insuranceAgent?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      policy.insuranceAgent?.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesStatus = statusFilter === "all" || policy.status === statusFilter;
-    const matchesType = typeFilter === "all" || policy.policyType === typeFilter;
-
-    return matchesSearch && matchesStatus && matchesType;
-  });
-
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setFormData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value
-        }
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-
-    // Clear error for this field
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: null
-      }));
-    }
-  };
-
-  // Handle coverage type checkbox changes
-  const handleCoverageTypeChange = (type, coverageType) => {
-    const key = type === 'life' ? 'typeLife' : 'typeVehicle';
-    setFormData(prev => ({
-      ...prev,
-      coverage: {
-        ...prev.coverage,
-        [key]: prev.coverage[key].includes(coverageType)
-          ? prev.coverage[key].filter(t => t !== coverageType)
-          : [...prev.coverage[key], coverageType]
-      }
-    }));
-  };
-
-  // Handle coverage details changes
-  const handleCoverageDetailChange = (index, field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      coverage: {
-        ...prev.coverage,
-        coverageDetails: prev.coverage.coverageDetails.map((detail, i) =>
-          i === index ? { ...detail, [field]: value } : detail
-        )
-      }
-    }));
-  };
-
-  // Add new coverage detail
-  const addCoverageDetail = () => {
-    setFormData(prev => ({
-      ...prev,
-      coverage: {
-        ...prev.coverage,
-        coverageDetails: [...prev.coverage.coverageDetails, { type: "", description: "", limit: "" }]
-      }
-    }));
-  };
-
-  // Remove coverage detail
-  const removeCoverageDetail = (index) => {
-    if (formData.coverage.coverageDetails.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        coverage: {
-          ...prev.coverage,
-          coverageDetails: prev.coverage.coverageDetails.filter((_, i) => i !== index)
-        }
-      }));
-    }
-  };
-
-  // Validate form data
-  const validateForm = (isEdit = false) => {
-    const newErrors = {};
-
-    if (!formData.policyType) {
-      newErrors.policyType = "Policy type is required";
-    }
-
-    if (!formData.policyCategory) {
-      newErrors.policyCategory = "Policy category is required";
-    }
-
-    if (!formData.insuranceAgent) {
-      newErrors.insuranceAgent = "Insurance agent is required";
-    }
-
-    if (!formData.coverage.coverageAmount || formData.coverage.coverageAmount <= 0) {
-      newErrors['coverage.coverageAmount'] = "Valid coverage amount is required";
-    }
-
-    if (!formData.premium.amount || formData.premium.amount <= 0) {
-      newErrors['premium.amount'] = "Valid premium amount is required";
-    }
-
-    if (!formData.validity.startDate) {
-      newErrors['validity.startDate'] = "Start date is required";
-    }
-
-    if (!formData.validity.endDate) {
-      newErrors['validity.endDate'] = "End date is required";
-    }
-
-    if (formData.validity.startDate && formData.validity.endDate) {
-      if (new Date(formData.validity.startDate) >= new Date(formData.validity.endDate)) {
-        newErrors['validity.endDate'] = "End date must be after start date";
-      }
-    }
-
-    // Validate coverage types based on policy type
-    if (formData.policyType === 'life' && formData.coverage.typeLife.length === 0) {
-      newErrors.coverageType = "At least one life coverage type is required";
-    }
-    if (formData.policyType === 'vehicle' && formData.coverage.typeVehicle.length === 0) {
-      newErrors.coverageType = "At least one vehicle coverage type is required";
-    }
-
-    // Validate coverage details
-    formData.coverage.coverageDetails.forEach((detail, index) => {
-      if (!detail.type) {
-        newErrors[`coverageDetail_${index}_type`] = "Coverage type is required";
-      }
-      if (!detail.description) {
-        newErrors[`coverageDetail_${index}_description`] = "Description is required";
-      }
-      if (!detail.limit || detail.limit <= 0) {
-        newErrors[`coverageDetail_${index}_limit`] = "Valid limit is required";
-      }
-    });
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Handle create policy
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) return;
-
-    try {
-      setActionLoading(true);
-      await policyService.createPolicy(formData);
-      await fetchPolicies();
-      setShowCreateModal(false);
-      resetForm();
-    } catch (error) {
-      console.error("Failed to create policy:", error);
-      setErrors({ general: error.message || "Failed to create policy" });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Handle update policy
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm(true)) return;
-
-    try {
-      setActionLoading(true);
-      await policyService.updatePolicy(selectedPolicy._id, formData);
-      await fetchPolicies();
-      setShowEditModal(false);
-      resetForm();
-    } catch (error) {
-      console.error("Failed to update policy:", error);
-      setErrors({ general: error.message || "Failed to update policy" });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Handle delete policy
-  const handleDelete = async (policyId) => {
-    const policy = policies.find(p => p._id === policyId);
-    
-    // Check if policy has beneficiaries
-    if (policy?.beneficiaries && policy.beneficiaries.length > 0) {
-      alert("Cannot delete policy with beneficiaries. Remove all beneficiaries first.");
-      return;
-    }
-
-    if (!window.confirm("Are you sure you want to delete this policy?")) return;
-
-    try {
-      setActionLoading(true);
-      await policyService.deletePolicy(policyId);
-      await fetchPolicies();
-    } catch (error) {
-      console.error("Failed to delete policy:", error);
-      alert(error.message || "Failed to delete policy");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Handle status update
-  const handleStatusUpdate = async (policyId, newStatus) => {
-    try {
-      setActionLoading(true);
-      await policyService.updatePolicyStatus(policyId, newStatus);
-      await fetchPolicies();
-    } catch (error) {
-      console.error("Failed to update policy status:", error);
-      alert(error.message || "Failed to update policy status");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Reset form
   const resetForm = () => {
     setFormData({
-      policyType: "",
-      policyCategory: "",
-      insuranceAgent: "",
+      policyType: '',
+      policyCategory: '',
+      insuranceAgent: '',
       coverage: {
-        coverageAmount: "",
-        deductible: "",
-        typeLife: [],
-        typeVehicle: [],
-        coverageDetails: [
-          {
-            type: "",
-            description: "",
-            limit: ""
-          }
-        ],
-      },
-      premium: {
-        amount: "",
-        frequency: "monthly",
+        coverageAmount: '',
+        deductible: '',
+        coverageDetails: []
       },
       validity: {
-        startDate: "",
-        endDate: "",
-      },
-      notes: "",
-    });
-    setErrors({});
-    setSelectedPolicy(null);
-  };
-
-  // Open edit modal with selected policy data
-  const openEditModal = (policy) => {
-    setSelectedPolicy(policy);
-    setFormData({
-      policyType: policy.policyType || "",
-      policyCategory: policy.policyCategory || "",
-      insuranceAgent: policy.insuranceAgent?._id || "",
-      coverage: {
-        coverageAmount: policy.coverage?.coverageAmount || "",
-        deductible: policy.coverage?.deductible || "",
-        coverageDetails: policy.coverage?.coverageDetails || "",
+        startDate: '',
+        endDate: ''
       },
       premium: {
-        amount: policy.premium?.amount || "",
-        frequency: policy.premium?.frequency || "monthly",
+        amount: '',
+        frequency: 'monthly'
       },
-      validity: {
-        startDate: policy.validity?.startDate ? new Date(policy.validity.startDate).toISOString().split('T')[0] : "",
-        endDate: policy.validity?.endDate ? new Date(policy.validity.endDate).toISOString().split('T')[0] : "",
-      },
-      terms: policy.terms || "",
-      notes: policy.notes || "",
+      status: 'active',
+      notes: ''
     });
-    setShowEditModal(true);
   };
 
-  // Open view modal
-  const openViewModal = (policy) => {
-    setSelectedPolicy(policy);
-    setShowViewModal(true);
+  // Initialize coverage details based on policy type
+  const initializeCoverageDetails = (policyType) => {
+    const coverageTypes = policyType === 'life' ? lifeCoverageTypes : vehicleCoverageTypes;
+    return coverageTypes.map(ct => ({
+      type: ct.type,
+      description: ct.description,
+      limit: ''
+    }));
   };
 
-  // Get status color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "active":
-        return "text-green-600 bg-green-50 border-green-200";
-      case "expired":
-        return "text-red-600 bg-red-50 border-red-200";
-      case "cancelled":
-        return "text-gray-600 bg-gray-50 border-gray-200";
-      case "suspended":
-        return "text-yellow-600 bg-yellow-50 border-yellow-200";
-      case "pending":
-        return "text-blue-600 bg-blue-50 border-blue-200";
-      default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
+  // Handle policy type change and initialize coverage
+  const handlePolicyTypeChange = (type) => {
+    const coverageDetails = initializeCoverageDetails(type);
+    setFormData(prev => ({
+      ...prev,
+      policyType: type,
+      coverage: {
+        ...prev.coverage,
+        coverageDetails
+      }
+    }));
+  };
+
+  // Calculate total coverage amount
+  const calculateTotalCoverage = (coverageDetails) => {
+    return coverageDetails.reduce((total, detail) => {
+      const limit = detail.limit === '' || detail.limit === null || detail.limit === undefined ? 0 : parseInt(detail.limit, 10);
+      return total + (isNaN(limit) ? 0 : limit);
+    }, 0);
+  };
+
+  // Simple string-only conversion for form inputs - keep everything as strings until API submission
+  const safeIntegerConversion = (value) => {
+    if (value === '' || value === null || value === undefined) {
+      return '';
+    }
+    // Remove any non-numeric characters except for the first negative sign
+    const cleanValue = value.toString().replace(/[^0-9-]/g, '').replace(/(?!^)-/g, '');
+    // If it's empty after cleaning, return empty string
+    if (cleanValue === '' || cleanValue === '-') {
+      return '';
+    }
+    // Return the cleaned numeric string (no conversion to number)
+    return cleanValue;
+  };
+
+  // Convert form data to API format (convert empty strings to integers)
+  const prepareFormDataForAPI = (data) => {
+    const prepared = { ...data };
+    
+    console.log('BEFORE CONVERSION - Coverage Details:');
+    data.coverage.coverageDetails.forEach((detail, i) => {
+      console.log(`  ${i}: ${detail.type} = "${detail.limit}" (type: ${typeof detail.limit})`);
+    });
+    
+    // Convert premium amount to integer
+    prepared.premium = {
+      ...prepared.premium,
+      amount: prepared.premium.amount === '' ? 0 : parseInt(prepared.premium.amount, 10)
+    };
+    
+    // Convert coverage amounts to integers
+    prepared.coverage = {
+      ...prepared.coverage,
+      deductible: prepared.coverage.deductible === '' ? 0 : parseInt(prepared.coverage.deductible, 10),
+      coverageDetails: prepared.coverage.coverageDetails.map(detail => ({
+        ...detail,
+        limit: detail.limit === '' ? 0 : parseInt(detail.limit, 10)
+      }))
+    };
+    
+    console.log('AFTER CONVERSION - Coverage Details:');
+    prepared.coverage.coverageDetails.forEach((detail, i) => {
+      console.log(`  ${i}: ${detail.type} = ${detail.limit} (type: ${typeof detail.limit})`);
+    });
+    
+    // Recalculate total coverage amount
+    prepared.coverage.coverageAmount = calculateTotalCoverage(prepared.coverage.coverageDetails);
+    
+    console.log('CALCULATED TOTAL COVERAGE:', prepared.coverage.coverageAmount);
+    
+    // Ensure validity is preserved (it should already be there from the spread operator)
+    console.log('prepareFormDataForAPI - validity before return:', prepared.validity);
+    
+    return prepared;
+  };
+
+  const showMessage = (message, isError = false) => {
+    if (isError) {
+      setError(message);
+      setSuccess('');
+    } else {
+      setSuccess(message);
+      setError('');
+    }
+    
+    setTimeout(() => {
+      setError('');
+      setSuccess('');
+    }, 5000);
+  };
+
+  // Handle policy deletion
+  const handleDeletePolicy = async (policy) => {
+    // Check if policy has beneficiaries
+    if (policy.beneficiaries && policy.beneficiaries.length > 0) {
+      showMessage('Cannot delete policy with existing beneficiaries. Remove all beneficiaries first.', true);
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete policy ${policy.policyId}? This action cannot be undone.`)) {
+      try {
+        await insuranceApiService.deletePolicy(policy._id);
+        showMessage('Policy deleted successfully');
+        loadData(); // Refresh the list
+      } catch (err) {
+        console.error('Error deleting policy:', err);
+        showMessage('Failed to delete policy. Please try again.', true);
+      }
     }
   };
 
-  // Format date
-  const formatDate = (dateString) => {
-    return dateString ? new Date(dateString).toLocaleDateString() : "N/A";
+  // Handle policies report generation
+  const handleGeneratePoliciesReport = async () => {
+    try {
+      setLoading(true);
+      
+      // Prepare filters based on current page filters
+      const reportFilters = {
+        policyType: filters.policyType || undefined,
+        status: filters.status || undefined,
+        insuranceAgent: filters.insuranceAgent || undefined,
+        format: 'pdf'
+      };
+
+      // Remove undefined values
+      Object.keys(reportFilters).forEach(key => {
+        if (reportFilters[key] === undefined) {
+          delete reportFilters[key];
+        }
+      });
+
+      // Get the report blob
+      const blob = await reportsApiService.generatePoliciesReport(reportFilters);
+      
+      // Create download link and trigger download (same as AdminReports.jsx)
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `policies-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      showMessage('Policies report downloaded successfully');
+    } catch (err) {
+      console.error('Error generating policies report:', err);
+      showMessage(err.message || 'Failed to generate policies report', true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return amount ? `$${parseFloat(amount).toLocaleString()}` : "N/A";
+  // Handle policy creation
+  const handleCreatePolicy = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!formData.policyType || !formData.policyCategory || !formData.insuranceAgent) {
+        showMessage('Please fill in all required fields.', true);
+        return;
+      }
+      
+      // Prepare data for API (convert empty strings to numbers)
+      const apiData = prepareFormDataForAPI(formData);
+      
+      // Debug: Log the prepared data
+      
+      // Validate coverage details - only check filled limits
+      const invalidLimits = apiData.coverage.coverageDetails.filter(detail => 
+        detail.limit !== '' && detail.limit !== 0 && detail.limit <= 0
+      );
+      if (invalidLimits.length > 0) {
+        showMessage('All non-empty coverage limits must be greater than 0.', true);
+        return;
+      }
+      
+      // Create policy using the enhanced API method
+      let response;
+      if (apiData.policyType === 'life') {
+        response = await insuranceApiService.createLifePolicyWithAllCoverageTypes(apiData, apiData.coverage.coverageDetails);
+      } else {
+        response = await insuranceApiService.createVehiclePolicyWithAllCoverageTypes(apiData);
+      }
+      
+      showMessage('Policy created successfully');
+      setShowCreateModal(false);
+      resetForm();
+      loadData(); // Refresh the list
+      
+    } catch (err) {
+      console.error('Error creating policy:', err);
+      showMessage(err.message || 'Failed to create policy. Please try again.', true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-        <span className="ml-2 text-gray-600">Loading policies...</span>
-      </div>
-    );
-  }
+  // Handle policy update
+  const handleUpdatePolicy = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!formData.policyCategory || !formData.insuranceAgent) {
+        showMessage('Please fill in all required fields.', true);
+        return;
+      }
+      
+      // Prepare data for API (convert empty strings to numbers)
+      const apiData = prepareFormDataForAPI(formData);
+      
+      // Debug: Log the prepared data
+      
+      // Validate coverage details if they exist - only check filled limits
+      const invalidLimits = apiData.coverage.coverageDetails ? 
+        apiData.coverage.coverageDetails.filter(detail => 
+          detail.limit !== '' && detail.limit !== 0 && detail.limit <= 0
+        ) : [];
+      if (invalidLimits.length > 0) {
+        showMessage('All non-empty coverage limits must be greater than 0.', true);
+        return;
+      }
+      
+      console.log('UPDATE: Form Data validity:', formData.validity);
+      console.log('UPDATE: API Data validity:', apiData.validity);
+      console.log('UPDATE: Sending API Data:', JSON.stringify(apiData, null, 2));
+      
+      await insuranceApiService.updatePolicy(selectedPolicy._id, apiData);
+      
+      showMessage('Policy updated successfully');
+      setShowEditModal(false);
+      setSelectedPolicy(null);
+      resetForm();
+      loadData(); // Refresh the list
+      
+    } catch (err) {
+      console.error('Error updating policy:', err);
+      console.error('Error details:', err.details);
+      console.error('Full error object:', JSON.stringify(err, null, 2));
+      showMessage(err.message || 'Failed to update policy. Please try again.', true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Policy Management</h1>
-        <p className="text-gray-600">Manage insurance policies and coverage details</p>
-        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-700">
-            <strong>Note:</strong> As an admin, you can create, edit, and delete policies. 
-            Beneficiary management (adding/removing beneficiaries) is handled by HR Officers.
-          </p>
-        </div>
-      </div>
-
-      {/* Actions and Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search policies..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border-2 border-red-900/10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="w-12 h-12 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center mr-4">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-[#151E3D] dark:text-white">
+                  Policy Management
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage insurance policies, coverage, and agent assignments
+                </p>
+              </div>
             </div>
+            
+            <button
+              onClick={() => {
+                resetForm();
+                setShowCreateModal(true);
+              }}
+              className="flex items-center px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-lg hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Policy
+            </button>
+          </div>
+        </div>
 
+        {/* Success/Error Messages */}
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+              <span className="text-green-800">{success}</span>
+            </div>
+          </div>
+        )}
+        
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <XCircle className="w-5 h-5 text-red-500 mr-2" />
+              <span className="text-red-800">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Statistics Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
+                  <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Policies</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalPolicies}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mr-4">
+                  <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Active Policies</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.activePolicies}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900 rounded-lg flex items-center justify-center mr-4">
+                  <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Expiring Soon</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.expiringPolicies}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mr-4">
+                  <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Coverage</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    ${stats.typeStats?.reduce((total, stat) => total + (stat.totalCoverage || 0), 0)?.toLocaleString() || '0'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Filters and Search */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search policies by ID or notes..."
+                  value={filters.search}
+                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+            
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-wrap gap-3">
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={filters.policyType}
+                onChange={(e) => setFilters(prev => ({ ...prev, policyType: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="pending">Pending</option>
-                <option value="expired">Expired</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="suspended">Suspended</option>
-              </select>
-
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Types</option>
+                <option value="">All Types</option>
                 <option value="life">Life Insurance</option>
                 <option value="vehicle">Vehicle Insurance</option>
               </select>
-
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              
+              <select
+                value={filters.policyCategory}
+                onChange={(e) => setFilters(prev => ({ ...prev, policyCategory: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
-                <Plus className="h-4 w-4" />
-                Add Policy
+                <option value="">All Categories</option>
+                <option value="individual">Individual</option>
+                <option value="group">Group</option>
+              </select>
+              
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="expired">Expired</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="suspended">Suspended</option>
+                <option value="pending">Pending</option>
+              </select>
+              
+              <select
+                value={filters.insuranceAgent}
+                onChange={(e) => setFilters(prev => ({ ...prev, insuranceAgent: e.target.value }))}
+                className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">All Agents</option>
+                {insuranceAgents.map(agent => (
+                  <option key={agent._id} value={agent._id}>
+                    {agent.profile?.firstName} {agent.profile?.lastName}
+                  </option>
+                ))}
+              </select>
+              
+              <button
+                onClick={handleGeneratePoliciesReport}
+                disabled={loading}
+                className="flex items-center px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Generate Report
               </button>
             </div>
           </div>
         </div>
 
-        {/* Policy Statistics */}
-        <div className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield className="h-8 w-8 text-blue-600" />
-                <div>
-                  <p className="text-sm text-blue-600 font-medium">Total Policies</p>
-                  <p className="text-2xl font-bold text-blue-900">{policies.length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-8 w-8 text-green-600" />
-                <div>
-                  <p className="text-sm text-green-600 font-medium">Active</p>
-                  <p className="text-2xl font-bold text-green-900">
-                    {policies.filter(p => p.status === 'active').length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <div className="flex items-center gap-3">
-                <Clock className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <p className="text-sm text-yellow-600 font-medium">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-900">
-                    {policies.filter(p => p.status === 'pending').length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-red-50 p-4 rounded-lg">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-8 w-8 text-red-600" />
-                <div>
-                  <p className="text-sm text-red-600 font-medium">Expired</p>
-                  <p className="text-2xl font-bold text-red-900">
-                    {policies.filter(p => p.status === 'expired').length}
-                  </p>
-                </div>
-              </div>
-            </div>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
-        </div>
-      </div>
-
-      {/* Policies Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left p-4 font-semibold text-gray-900">Policy</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Type</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Agent</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Coverage</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Premium</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Status</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Validity</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Beneficiaries</th>
-                <th className="text-left p-4 font-semibold text-gray-900">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPolicies.length > 0 ? (
-                filteredPolicies.map((policy) => (
-                  <tr key={policy._id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Shield className="h-5 w-5 text-blue-600" />
+        ) : (
+          <>
+            {/* Policies Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Policy Details
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Type & Category
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Coverage
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Agent
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {policies.map((policy) => (
+                      <tr key={policy._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              {policy.policyId}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Created: {new Date(policy.createdAt).toLocaleDateString()}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Expires: {new Date(policy.validity.endDate).toLocaleDateString()}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{policy.policyId}</p>
-                          <p className="text-sm text-gray-600">{policy.policyCategory}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="capitalize text-gray-900">{policy.policyType}</span>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="text-gray-900">
-                          {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
-                        </p>
-                        <p className="text-sm text-gray-600">{policy.insuranceAgent?.email}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="font-medium text-gray-900">{formatCurrency(policy.coverage?.coverageAmount)}</p>
-                      {policy.coverage?.deductible && (
-                        <p className="text-sm text-gray-600">Deductible: {formatCurrency(policy.coverage.deductible)}</p>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <p className="font-medium text-gray-900">{formatCurrency(policy.premium?.amount)}</p>
-                      <p className="text-sm text-gray-600 capitalize">{policy.premium?.frequency}</p>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(policy.status)}`}>
-                        {policy.status?.charAt(0).toUpperCase() + policy.status?.slice(1)}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="text-sm text-gray-900">{formatDate(policy.validity?.startDate)}</p>
-                        <p className="text-sm text-gray-600">to {formatDate(policy.validity?.endDate)}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-900">{policy.beneficiaries?.length || 0}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              policy.policyType === 'life' 
+                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            }`}>
+                              {policy.policyType === 'life' ? 'Life' : 'Vehicle'}
+                            </span>
+                            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              {policy.policyCategory}
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                              ${policy.coverage.coverageAmount?.toLocaleString() || '0'}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Premium: ${policy.premium.amount?.toLocaleString() || '0'} 
+                              {policy.premium.frequency && ` (${policy.premium.frequency})`}
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-8 w-8">
+                              <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                <Users className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                {policy.insuranceAgent?.profile?.firstName} {policy.insuranceAgent?.profile?.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {policy.insuranceAgent?.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            policy.status === 'active' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : policy.status === 'expired'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              : policy.status === 'suspended'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                          }`}>
+                            {policy.status}
+                          </span>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => {
+                                setSelectedPolicy(policy);
+                                setShowDetailsModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setSelectedPolicy(policy);
+                                // Pre-fill form with current policy data, converting numbers to strings
+                                setFormData({
+                                  policyType: policy.policyType,
+                                  policyCategory: policy.policyCategory,
+                                  insuranceAgent: policy.insuranceAgent?._id || '',
+                                  coverage: {
+                                    ...policy.coverage,
+                                    coverageAmount: policy.coverage.coverageAmount ? policy.coverage.coverageAmount.toString() : '',
+                                    deductible: policy.coverage.deductible ? policy.coverage.deductible.toString() : '',
+                                    coverageDetails: policy.coverage.coverageDetails.map(detail => ({
+                                      ...detail,
+                                      limit: detail.limit ? detail.limit.toString() : ''
+                                    }))
+                                  },
+                                  validity: {
+                                    startDate: policy.validity?.startDate ? 
+                                      new Date(policy.validity.startDate).toISOString().split('T')[0] : '',
+                                    endDate: policy.validity?.endDate ? 
+                                      new Date(policy.validity.endDate).toISOString().split('T')[0] : ''
+                                  },
+                                  premium: {
+                                    ...policy.premium,
+                                    amount: policy.premium.amount ? policy.premium.amount.toString() : ''
+                                  },
+                                  status: policy.status,
+                                  notes: policy.notes || ''
+                                });
+                                setShowEditModal(true);
+                              }}
+                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                              title="Edit Policy"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            
+                            <button
+                              onClick={() => handleDeletePolicy(policy)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                              title="Delete Policy"
+                              disabled={policy.beneficiaries && policy.beneficiaries.length > 0}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Pagination */}
+              {pagination.pages > 1 && (
+                <div className="bg-white dark:bg-gray-800 px-4 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 sm:px-6">
+                  <div className="flex-1 flex justify-between sm:hidden">
+                    <button
+                      onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                      disabled={pagination.page === 1}
+                      className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.pages, prev.page + 1) }))}
+                      disabled={pagination.page === pagination.pages}
+                      className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                  <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        Showing{' '}
+                        <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span>
+                        {' '}to{' '}
+                        <span className="font-medium">
+                          {Math.min(pagination.page * pagination.limit, pagination.total)}
+                        </span>
+                        {' '}of{' '}
+                        <span className="font-medium">{pagination.total}</span>
+                        {' '}results
+                      </p>
+                    </div>
+                    <div>
+                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                         <button
-                          onClick={() => openViewModal(policy)}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="View Policy"
+                          onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                          disabled={pagination.page === 1}
+                          className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => openEditModal(policy)}
-                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Edit Policy"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(policy._id)}
-                          disabled={policy.beneficiaries?.length > 0}
-                          className={`p-2 rounded-lg transition-colors ${
-                            policy.beneficiaries?.length > 0
-                              ? 'text-gray-400 cursor-not-allowed'
-                              : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-                          }`}
-                          title={policy.beneficiaries?.length > 0 ? "Cannot delete policy with beneficiaries" : "Delete Policy"}
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          <ChevronLeft className="h-5 w-5" />
                         </button>
                         
-                        {/* Status Update Dropdown */}
-                        <div className="relative">
-                          <select
-                            value={policy.status}
-                            onChange={(e) => handleStatusUpdate(policy._id, e.target.value)}
-                            className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          >
-                            <option value="active">Active</option>
-                            <option value="pending">Pending</option>
-                            <option value="expired">Expired</option>
-                            <option value="cancelled">Cancelled</option>
-                            <option value="suspended">Suspended</option>
-                          </select>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="9" className="p-8 text-center text-gray-500">
-                    No policies found matching your criteria.
-                  </td>
-                </tr>
+                        {/* Page numbers */}
+                        {[...Array(Math.min(5, pagination.pages))].map((_, index) => {
+                          const page = index + 1;
+                          return (
+                            <button
+                              key={page}
+                              onClick={() => setPagination(prev => ({ ...prev, page }))}
+                              className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                                page === pagination.page
+                                  ? 'z-10 bg-blue-50 border-blue-500 text-blue-600 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-400'
+                                  : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        })}
+                        
+                        <button
+                          onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.pages, prev.page + 1) }))}
+                          disabled={pagination.page === pagination.pages}
+                          className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </nav>
+                    </div>
+                  </div>
+                </div>
               )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Create Policy Modal */}
       {showCreateModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center p-4 z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Policy</h2>
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Create New Policy
+              </h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
-            <form onSubmit={handleCreate} className="p-6 space-y-6">
-              {errors.general && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-600 text-sm">{errors.general}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Policy Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Policy Type *
-                  </label>
-                  <select
-                    name="policyType"
-                    value={formData.policyType}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.policyType ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select Policy Type</option>
-                    <option value="life">Life Insurance</option>
-                    <option value="vehicle">Vehicle Insurance</option>
-                  </select>
-                  {errors.policyType && (
-                    <p className="text-red-500 text-xs mt-1">{errors.policyType}</p>
-                  )}
-                </div>
-
-                {/* Policy Category */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Policy Category *
-                  </label>
-                  <select
-                    name="policyCategory"
-                    value={formData.policyCategory}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.policyCategory ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select Policy Category</option>
-                    <option value="individual">Individual</option>
-                    <option value="group">Group</option>
-                  </select>
-                  {errors.policyCategory && (
-                    <p className="text-red-500 text-xs mt-1">{errors.policyCategory}</p>
-                  )}
+            <div className="p-6">
+              <form onSubmit={handleCreatePolicy} className="space-y-6">
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Policy Type *
+                    </label>
+                    <select
+                      value={formData.policyType}
+                      onChange={(e) => handlePolicyTypeChange(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">Select Policy Type</option>
+                      <option value="life">Life Insurance</option>
+                      <option value="vehicle">Vehicle Insurance</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Policy Category *
+                    </label>
+                    <select
+                      value={formData.policyCategory}
+                      onChange={(e) => setFormData(prev => ({ ...prev, policyCategory: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="">Select Category</option>
+                      <option value="individual">Individual</option>
+                      <option value="group">Group</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Insurance Agent */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Insurance Agent *
                   </label>
                   <select
-                    name="insuranceAgent"
                     value={formData.insuranceAgent}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.insuranceAgent ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                    onChange={(e) => setFormData(prev => ({ ...prev, insuranceAgent: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select Insurance Agent</option>
                     {insuranceAgents.map(agent => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.profile?.firstName} {agent.profile?.lastName}
+                        {agent.profile?.firstName} {agent.profile?.lastName} - {agent.email}
                       </option>
                     ))}
                   </select>
-                  {errors.insuranceAgent && (
-                    <p className="text-red-500 text-xs mt-1">{errors.insuranceAgent}</p>
-                  )}
                 </div>
 
-                {/* Coverage Amount */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Coverage Amount *
-                  </label>
-                  <input
-                    type="number"
-                    name="coverage.coverageAmount"
-                    value={formData.coverage.coverageAmount}
-                    onChange={handleInputChange}
-                    placeholder="100000"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['coverage.coverageAmount'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['coverage.coverageAmount'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['coverage.coverageAmount']}</p>
-                  )}
-                </div>
-
-                {/* Deductible */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Deductible
-                  </label>
-                  <input
-                    type="number"
-                    name="coverage.deductible"
-                    value={formData.coverage.deductible}
-                    onChange={handleInputChange}
-                    placeholder="1000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Premium Amount */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Premium Amount *
-                  </label>
-                  <input
-                    type="number"
-                    name="premium.amount"
-                    value={formData.premium.amount}
-                    onChange={handleInputChange}
-                    placeholder="200"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['premium.amount'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['premium.amount'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['premium.amount']}</p>
-                  )}
-                </div>
-
-                {/* Premium Frequency */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Premium Frequency
-                  </label>
-                  <select
-                    name="premium.frequency"
-                    value={formData.premium.frequency}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="semi-annual">Semi-Annual</option>
-                    <option value="annual">Annual</option>
-                  </select>
-                </div>
-
-                {/* Start Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="validity.startDate"
-                    value={formData.validity.startDate}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['validity.startDate'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['validity.startDate'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['validity.startDate']}</p>
-                  )}
-                </div>
-
-                {/* End Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="validity.endDate"
-                    value={formData.validity.endDate}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['validity.endDate'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['validity.endDate'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['validity.endDate']}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Coverage Types - Dynamic based on policy type */}
-              {formData.policyType && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-4">
-                    Coverage Types *
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 mb-6">
-                    {formData.policyType === 'life' && (
-                      <>
-                        {['life_cover', 'hospitalization', 'surgical_benefits', 'outpatient', 'prescription_drugs'].map(type => (
-                          <label key={type} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.coverage.typeLife.includes(type)}
-                              onChange={(e) => handleCoverageTypeChange('life', type)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </label>
-                        ))}
-                      </>
-                    )}
-                    {formData.policyType === 'vehicle' && (
-                      <>
-                        {['collision', 'liability', 'comprehensive', 'personal_accident'].map(type => (
-                          <label key={type} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.coverage.typeVehicle.includes(type)}
-                              onChange={(e) => handleCoverageTypeChange('vehicle', type)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </label>
-                        ))}
-                      </>
-                    )}
+                {/* Validity Period */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.validity.startDate}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        validity: { ...prev.validity, startDate: e.target.value }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
                   </div>
-                  {errors.coverageType && (
-                    <p className="text-red-500 text-xs mt-1">{errors.coverageType}</p>
-                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      End Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.validity.endDate}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        validity: { ...prev.validity, endDate: e.target.value }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
                 </div>
-              )}
 
-              {/* Coverage Details - Dynamic Array Management */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Coverage Details
+                {/* Premium Information */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Premium Amount *
+                    </label>
+                    <input
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      min="0"
+                      
+                      value={formData.premium.amount || ""}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        premium: { ...prev.premium, amount: safeIntegerConversion(e.target.value) }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Premium Frequency *
+                    </label>
+                    <select
+                      value={formData.premium.frequency}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        premium: { ...prev.premium, frequency: e.target.value }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="semi-annual">Semi-Annual</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Deductible
+                    </label>
+                    <input
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      min="0"
+                      
+                      value={formData.coverage.deductible || ""}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        coverage: { ...prev.coverage, deductible: safeIntegerConversion(e.target.value) }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Coverage Details */}
+                {formData.policyType && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                      Coverage Details
+                    </h3>
+                    <div className="space-y-4">
+                      {formData.coverage.coverageDetails.map((detail, index) => (
+                        <div key={detail.type} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Coverage Type
+                              </label>
+                              <input
+                                type="text"
+                                value={detail.type.replace('_', ' ').toUpperCase()}
+                                disabled
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Coverage Limit *
+                              </label>
+                              <input
+                                type="text" inputMode="numeric" pattern="[0-9]*"
+                                min="0"
+                                
+                                value={detail.limit || ""}
+                                onChange={(e) => {
+                                  const newCoverageDetails = [...formData.coverage.coverageDetails];
+                                  newCoverageDetails[index].limit = safeIntegerConversion(e.target.value);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    coverage: {
+                                      ...prev.coverage,
+                                      coverageDetails: newCoverageDetails,
+                                      coverageAmount: calculateTotalCoverage(newCoverageDetails)
+                                    }
+                                  }));
+                                }}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Description
+                            </label>
+                            <input
+                              type="text"
+                              value={detail.description}
+                              onChange={(e) => {
+                                const newCoverageDetails = [...formData.coverage.coverageDetails];
+                                newCoverageDetails[index].description = e.target.value;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  coverage: { ...prev.coverage, coverageDetails: newCoverageDetails }
+                                }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                      <div className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Total Coverage Amount: ${formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notes
                   </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Additional notes or comments about this policy..."
+                  />
+                </div>
+
+                {/* Form Actions */}
+                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="button"
-                    onClick={addCoverageDetail}
-                    className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
-                    Add Detail
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Create Policy
                   </button>
                 </div>
-                {formData.coverage.coverageDetails.map((detail, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="text-sm font-medium text-gray-700">Detail {index + 1}</h4>
-                      {formData.coverage.coverageDetails.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeCoverageDetail(index)}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Type *
-                        </label>
-                        <input
-                          type="text"
-                          value={detail.type}
-                          onChange={(e) => handleCoverageDetailChange(index, 'type', e.target.value)}
-                          placeholder="Coverage type"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`coverageDetail_${index}_type`] ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[`coverageDetail_${index}_type`] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[`coverageDetail_${index}_type`]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Limit *
-                        </label>
-                        <input
-                          type="number"
-                          value={detail.limit}
-                          onChange={(e) => handleCoverageDetailChange(index, 'limit', e.target.value)}
-                          placeholder="10000"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`coverageDetail_${index}_limit`] ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[`coverageDetail_${index}_limit`] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[`coverageDetail_${index}_limit`]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description *
-                        </label>
-                        <textarea
-                          value={detail.description}
-                          onChange={(e) => handleCoverageDetailChange(index, 'description', e.target.value)}
-                          placeholder="Description"
-                          rows="2"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`coverageDetail_${index}_description`] ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[`coverageDetail_${index}_description`] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[`coverageDetail_${index}_description`]}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Terms */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Terms and Conditions
-                </label>
-                <textarea
-                  name="terms"
-                  value={formData.terms}
-                  onChange={handleInputChange}
-                  rows="3"
-                  placeholder="Policy terms and conditions..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows="2"
-                  placeholder="Additional notes..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Create Policy
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* Edit Policy Modal */}
       {showEditModal && selectedPolicy && (
-        <div
-          className="fixed inset-0 flex items-center justify-center p-4 z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Policy</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Policy ID: {selectedPolicy.policyId}</p>
-              </div>
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Edit Policy: {selectedPolicy.policyId}
+              </h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
-            <form onSubmit={handleUpdate} className="p-6 space-y-6">
-              {errors.general && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <p className="text-red-600 text-sm">{errors.general}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Policy Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Policy Type *
-                  </label>
-                  <select
-                    name="policyType"
-                    value={formData.policyType}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.policyType ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select Policy Type</option>
-                    <option value="life">Life Insurance</option>
-                    <option value="vehicle">Vehicle Insurance</option>
-                  </select>
-                  {errors.policyType && (
-                    <p className="text-red-500 text-xs mt-1">{errors.policyType}</p>
-                  )}
-                </div>
-
-                {/* Policy Category */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Policy Category *
-                  </label>
-                  <select
-                    name="policyCategory"
-                    value={formData.policyCategory}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.policyCategory ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  >
-                    <option value="">Select Policy Category</option>
-                    <option value="individual">Individual</option>
-                    <option value="group">Group</option>
-                  </select>
-                  {errors.policyCategory && (
-                    <p className="text-red-500 text-xs mt-1">{errors.policyCategory}</p>
-                  )}
+            <div className="p-6">
+              <form onSubmit={handleUpdatePolicy} className="space-y-6">
+                {/* Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Policy Type
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.policyType === 'life' ? 'Life Insurance' : 'Vehicle Insurance'}
+                      disabled
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Policy Category *
+                    </label>
+                    <select
+                      value={formData.policyCategory}
+                      onChange={(e) => setFormData(prev => ({ ...prev, policyCategory: e.target.value }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="individual">Individual</option>
+                      <option value="group">Group</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Insurance Agent */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Insurance Agent *
                   </label>
                   <select
-                    name="insuranceAgent"
                     value={formData.insuranceAgent}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.insuranceAgent ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                    onChange={(e) => setFormData(prev => ({ ...prev, insuranceAgent: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="">Select Insurance Agent</option>
                     {insuranceAgents.map(agent => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.profile?.firstName} {agent.profile?.lastName}
+                        {agent.profile?.firstName} {agent.profile?.lastName} - {agent.email}
                       </option>
                     ))}
                   </select>
-                  {errors.insuranceAgent && (
-                    <p className="text-red-500 text-xs mt-1">{errors.insuranceAgent}</p>
-                  )}
                 </div>
 
-                {/* Coverage Amount */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Coverage Amount *
-                  </label>
-                  <input
-                    type="number"
-                    name="coverage.coverageAmount"
-                    value={formData.coverage.coverageAmount}
-                    onChange={handleInputChange}
-                    placeholder="100000"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['coverage.coverageAmount'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['coverage.coverageAmount'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['coverage.coverageAmount']}</p>
-                  )}
+                {/* Validity Period */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Start Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.validity.startDate ? formData.validity.startDate.split('T')[0] : ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        validity: { ...prev.validity, startDate: e.target.value }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      End Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.validity.endDate ? formData.validity.endDate.split('T')[0] : ''}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        validity: { ...prev.validity, endDate: e.target.value }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
                 </div>
 
-                {/* Deductible */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Deductible
-                  </label>
-                  <input
-                    type="number"
-                    name="coverage.deductible"
-                    value={formData.coverage.deductible}
-                    onChange={handleInputChange}
-                    placeholder="1000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                {/* Premium Information */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Premium Amount *
+                    </label>
+                    <input
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      min="0"
+                      
+                      value={formData.premium.amount || ""}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        premium: { ...prev.premium, amount: safeIntegerConversion(e.target.value) }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Premium Frequency *
+                    </label>
+                    <select
+                      value={formData.premium.frequency}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        premium: { ...prev.premium, frequency: e.target.value }
+                      }))}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="semi-annual">Semi-Annual</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Deductible
+                    </label>
+                    <input
+                      type="text" inputMode="numeric" pattern="[0-9]*"
+                      min="0"
+                      
+                      value={formData.coverage.deductible || ""}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        coverage: { ...prev.coverage, deductible: safeIntegerConversion(e.target.value) }
+                      }))}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
                 </div>
 
-                {/* Premium Amount */}
+                {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Premium Amount *
-                  </label>
-                  <input
-                    type="number"
-                    name="premium.amount"
-                    value={formData.premium.amount}
-                    onChange={handleInputChange}
-                    placeholder="200"
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['premium.amount'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['premium.amount'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['premium.amount']}</p>
-                  )}
-                </div>
-
-                {/* Premium Frequency */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Premium Frequency
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Policy Status *
                   </label>
                   <select
-                    name="premium.frequency"
-                    value={formData.premium.frequency}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.status}
+                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   >
-                    <option value="monthly">Monthly</option>
-                    <option value="quarterly">Quarterly</option>
-                    <option value="semi-annual">Semi-Annual</option>
-                    <option value="annual">Annual</option>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="expired">Expired</option>
+                    <option value="pending">Pending</option>
                   </select>
                 </div>
 
-                {/* Start Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="validity.startDate"
-                    value={formData.validity.startDate}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['validity.startDate'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['validity.startDate'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['validity.startDate']}</p>
-                  )}
-                </div>
-
-                {/* End Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date *
-                  </label>
-                  <input
-                    type="date"
-                    name="validity.endDate"
-                    value={formData.validity.endDate}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors['validity.endDate'] ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                  />
-                  {errors['validity.endDate'] && (
-                    <p className="text-red-500 text-xs mt-1">{errors['validity.endDate']}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Coverage Types - Dynamic based on policy type */}
-              {formData.policyType && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-4">
-                    Coverage Types *
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 mb-6">
-                    {formData.policyType === 'life' && (
-                      <>
-                        {['life_cover', 'hospitalization', 'surgical_benefits', 'outpatient', 'prescription_drugs'].map(type => (
-                          <label key={type} className="flex items-center space-x-2">
+                {/* Coverage Details */}
+                {formData.coverage.coverageDetails && formData.coverage.coverageDetails.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                      Coverage Details
+                    </h3>
+                    <div className="space-y-4">
+                      {formData.coverage.coverageDetails.map((detail, index) => (
+                        <div key={detail.type} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Coverage Type
+                              </label>
+                              <input
+                                type="text"
+                                value={detail.type.replace('_', ' ').toUpperCase()}
+                                disabled
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Coverage Limit *
+                              </label>
+                              <input
+                                type="text" inputMode="numeric" pattern="[0-9]*"
+                                min="0"
+                                
+                                value={detail.limit || ""}
+                                onChange={(e) => {
+                                  const newCoverageDetails = [...formData.coverage.coverageDetails];
+                                  newCoverageDetails[index].limit = safeIntegerConversion(e.target.value);
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    coverage: {
+                                      ...prev.coverage,
+                                      coverageDetails: newCoverageDetails,
+                                      coverageAmount: calculateTotalCoverage(newCoverageDetails)
+                                    }
+                                  }));
+                                }}
+                                required
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Description
+                            </label>
                             <input
-                              type="checkbox"
-                              checked={formData.coverage.typeLife.includes(type)}
-                              onChange={(e) => handleCoverageTypeChange('life', type)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              type="text"
+                              value={detail.description}
+                              onChange={(e) => {
+                                const newCoverageDetails = [...formData.coverage.coverageDetails];
+                                newCoverageDetails[index].description = e.target.value;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  coverage: { ...prev.coverage, coverageDetails: newCoverageDetails }
+                                }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                             />
-                            <span className="text-sm text-gray-700">
-                              {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </label>
-                        ))}
-                      </>
-                    )}
-                    {formData.policyType === 'vehicle' && (
-                      <>
-                        {['collision', 'liability', 'comprehensive', 'personal_accident'].map(type => (
-                          <label key={type} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={formData.coverage.typeVehicle.includes(type)}
-                              onChange={(e) => handleCoverageTypeChange('vehicle', type)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">
-                              {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </label>
-                        ))}
-                      </>
-                    )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                      <div className="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>Total Coverage Amount: ${formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
+                      </div>
+                    </div>
                   </div>
-                  {errors.coverageType && (
-                    <p className="text-red-500 text-xs mt-1">{errors.coverageType}</p>
-                  )}
-                </div>
-              )}
+                )}
 
-              {/* Coverage Details - Dynamic Array Management */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Coverage Details
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Notes
                   </label>
+                  <textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Additional notes or comments about this policy..."
+                  />
+                </div>
+
+                {/* Form Actions */}
+                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                   <button
                     type="button"
-                    onClick={addCoverageDetail}
-                    className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
-                    Add Detail
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Update Policy
                   </button>
                 </div>
-                {formData.coverage.coverageDetails.map((detail, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 mb-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <h4 className="text-sm font-medium text-gray-700">Detail {index + 1}</h4>
-                      {formData.coverage.coverageDetails.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeCoverageDetail(index)}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Type *
-                        </label>
-                        <input
-                          type="text"
-                          value={detail.type}
-                          onChange={(e) => handleCoverageDetailChange(index, 'type', e.target.value)}
-                          placeholder="Coverage type"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`coverageDetail_${index}_type`] ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[`coverageDetail_${index}_type`] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[`coverageDetail_${index}_type`]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Limit *
-                        </label>
-                        <input
-                          type="number"
-                          value={detail.limit}
-                          onChange={(e) => handleCoverageDetailChange(index, 'limit', e.target.value)}
-                          placeholder="10000"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`coverageDetail_${index}_limit`] ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[`coverageDetail_${index}_limit`] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[`coverageDetail_${index}_limit`]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description *
-                        </label>
-                        <textarea
-                          value={detail.description}
-                          onChange={(e) => handleCoverageDetailChange(index, 'description', e.target.value)}
-                          placeholder="Description"
-                          rows="2"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors[`coverageDetail_${index}_description`] ? 'border-red-300' : 'border-gray-300'
-                          }`}
-                        />
-                        {errors[`coverageDetail_${index}_description`] && (
-                          <p className="text-red-500 text-xs mt-1">{errors[`coverageDetail_${index}_description`]}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Terms */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Terms and Conditions
-                </label>
-                <textarea
-                  name="terms"
-                  value={formData.terms}
-                  onChange={handleInputChange}
-                  rows="3"
-                  placeholder="Policy terms and conditions..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  rows="2"
-                  placeholder="Additional notes..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEditModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {actionLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Update Policy
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
-      {/* View Policy Modal */}
-      {showViewModal && selectedPolicy && (
-        <div
-          className="fixed inset-0 flex items-center justify-center p-4 z-50"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Policy Details</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Policy ID: {selectedPolicy.policyId}</p>
-              </div>
+      {/* Policy Details Modal */}
+      {showDetailsModal && selectedPolicy && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Policy Details: {selectedPolicy.policyId}
+              </h2>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
             <div className="p-6 space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Policy Type</label>
-                    <p className="text-gray-900 capitalize">{selectedPolicy.policyType}</p>
+              {/* Policy Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Basic Information</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Policy ID:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{selectedPolicy.policyId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Type:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedPolicy.policyType === 'life' ? 'Life Insurance' : 'Vehicle Insurance'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Category:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">{selectedPolicy.policyCategory}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        selectedPolicy.status === 'active' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          : selectedPolicy.status === 'expired'
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      }`}>
+                        {selectedPolicy.status}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <p className="text-gray-900">{selectedPolicy.policyCategory}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedPolicy.status)}`}>
-                      {selectedPolicy.status?.charAt(0).toUpperCase() + selectedPolicy.status?.slice(1)}
-                    </span>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Created</label>
-                    <p className="text-gray-900">{formatDate(selectedPolicy.createdAt)}</p>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Coverage & Premium</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Total Coverage:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        ${selectedPolicy.coverage.coverageAmount?.toLocaleString() || '0'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Deductible:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        ${selectedPolicy.coverage.deductible?.toLocaleString() || '0'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Premium:</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        ${selectedPolicy.premium.amount?.toLocaleString() || '0'} ({selectedPolicy.premium.frequency})
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Coverage Details */}
+              {selectedPolicy.coverage.coverageDetails && selectedPolicy.coverage.coverageDetails.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Coverage Breakdown</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {selectedPolicy.coverage.coverageDetails.map((detail, index) => (
+                      <div key={index} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                        <h4 className="font-medium text-gray-900 dark:text-white">
+                          {detail.type.replace('_', ' ').toUpperCase()}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {detail.description}
+                        </p>
+                        <p className="text-lg font-semibold text-blue-600 dark:text-blue-400 mt-2">
+                          ${detail.limit?.toLocaleString() || '0'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Insurance Agent */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Insurance Agent</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900">
-                        {selectedPolicy.insuranceAgent?.firstName} {selectedPolicy.insuranceAgent?.lastName}
-                      </p>
-                      <p className="text-gray-600">{selectedPolicy.insuranceAgent?.email}</p>
-                      {selectedPolicy.insuranceAgent?.phone && (
-                        <p className="text-gray-600">{selectedPolicy.insuranceAgent.phone}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Coverage Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Coverage Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Coverage Amount</label>
-                    <p className="text-xl font-bold text-green-600">{formatCurrency(selectedPolicy.coverage?.coverageAmount)}</p>
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Insurance Agent</h3>
+                <div className="flex items-center">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Deductible</label>
-                    <p className="text-gray-900">{formatCurrency(selectedPolicy.coverage?.deductible)}</p>
-                  </div>
-                </div>
-                {selectedPolicy.coverage?.coverageDetails && (
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Coverage Details</label>
-                    <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedPolicy.coverage.coverageDetails}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Premium Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Premium Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Premium Amount</label>
-                    <p className="text-xl font-bold text-blue-600">{formatCurrency(selectedPolicy.premium?.amount)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
-                    <p className="text-gray-900 capitalize">{selectedPolicy.premium?.frequency}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Validity Period */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Validity Period</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                    <p className="text-gray-900">{formatDate(selectedPolicy.validity?.startDate)}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                    <p className="text-gray-900">{formatDate(selectedPolicy.validity?.endDate)}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {selectedPolicy.insuranceAgent?.profile?.firstName} {selectedPolicy.insuranceAgent?.profile?.lastName}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {selectedPolicy.insuranceAgent?.email}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Beneficiaries */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Beneficiaries ({selectedPolicy.beneficiaries?.length || 0})
-                </h3>
-                {selectedPolicy.beneficiaries && selectedPolicy.beneficiaries.length > 0 ? (
-                  <div className="space-y-3">
+              {selectedPolicy.beneficiaries && selectedPolicy.beneficiaries.length > 0 && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">
+                    Beneficiaries ({selectedPolicy.beneficiaries.length})
+                  </h3>
+                  <div className="space-y-2">
                     {selectedPolicy.beneficiaries.map((beneficiary, index) => (
-                      <div key={beneficiary._id || index} className="bg-gray-50 p-4 rounded-lg flex items-center gap-4">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                          <Users className="h-5 w-5 text-green-600" />
+                      <div key={index} className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center mr-3">
+                          <Users className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">
-                            {beneficiary.firstName} {beneficiary.lastName}
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {beneficiary.firstName || beneficiary.profile?.firstName} {beneficiary.lastName || beneficiary.profile?.lastName}
                           </p>
-                          <p className="text-sm text-gray-600">{beneficiary.email}</p>
-                          <p className="text-sm text-gray-600">Employee ID: {beneficiary.employeeId}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {beneficiary.email} {beneficiary.employeeId && `(${beneficiary.employeeId})`}
+                          </p>
                         </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-gray-500 italic">No beneficiaries assigned to this policy</p>
-                )}
+                </div>
+              )}
+
+              {/* Validity Period */}
+              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Validity Period</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">Start Date:</span>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {new Date(selectedPolicy.validity.startDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-600 dark:text-gray-400">End Date:</span>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {new Date(selectedPolicy.validity.endDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              {/* Terms and Notes */}
-              {(selectedPolicy.terms || selectedPolicy.notes) && (
+              {/* Notes */}
+              {selectedPolicy.notes && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Information</h3>
-                  {selectedPolicy.terms && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Terms and Conditions</label>
-                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedPolicy.terms}</p>
-                    </div>
-                  )}
-                  {selectedPolicy.notes && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                      <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedPolicy.notes}</p>
-                    </div>
-                  )}
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-3">Notes</h3>
+                  <p className="text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    {selectedPolicy.notes}
+                  </p>
                 </div>
               )}
             </div>
-
-            <div className="p-6 border-t border-gray-200">
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Close
-                </button>
-              </div>
+            
+            <div className="flex items-center justify-end p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -1641,3 +1623,5 @@ export const AdminPolicies = () => {
     </div>
   );
 };
+
+export default AdminPolicies;

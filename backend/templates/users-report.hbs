@@ -1,4 +1,4 @@
-<div class="table-section cols-8">
+<div class="table-section large-table cols-8">
     <h2 class="table-title">Employee Information</h2>
     <table class="data-table">
         <thead>
@@ -16,9 +16,9 @@
     <tbody>
         {{#each users}}
         <tr>
-            <td>{{employeeId}}</td>
-            <td>{{fullName}}</td>
-            <td>{{email}}</td>
+            <td class="id-col">{{employeeId}}</td>
+            <td class="name-col">{{fullName}}</td>
+            <td class="email-col">{{email}}</td>
             <td>{{role}}</td>
             <td>{{department}}</td>
             <td>{{formatDate hireDate}}</td>

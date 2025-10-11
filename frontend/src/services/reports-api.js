@@ -102,6 +102,19 @@ class ReportsApiService {
   }
 
   /**
+   * Generate policy users report
+   * @param {string} policyId - Policy ID
+   * @param {Object} filters - Report filters
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generatePolicyUsersReport(policyId, filters = {}) {
+    const queryParams = new URLSearchParams(filters).toString();
+    const endpoint = `/reports/policy-users/${policyId}${queryParams ? `?${queryParams}` : ''}`;
+    
+    return this.downloadReport(endpoint);
+  }
+
+  /**
    * Download report as PDF blob
    * @param {string} endpoint - API endpoint
    * @returns {Promise<Blob>} PDF blob
@@ -138,6 +151,37 @@ class ReportsApiService {
       method: 'POST',
       body: JSON.stringify(scheduleData),
     });
+  }
+
+  /**
+   * Generate individual claim report for employee
+   * @param {string} claimId - Claim ID
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generateEmployeeClaimReport(claimId) {
+    const endpoint = `/reports/employee/claim/${claimId}`;
+    return this.downloadReport(endpoint);
+  }
+
+  /**
+   * Generate claims summary report for employee
+   * @param {Object} filters - Report filters
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generateEmployeeClaimsSummaryReport(filters = {}) {
+    const queryParams = new URLSearchParams(filters).toString();
+    const endpoint = `/reports/employee/claims-summary${queryParams ? `?${queryParams}` : ''}`;
+    return this.downloadReport(endpoint);
+  }
+
+  /**
+   * Generate individual policy report for employee
+   * @param {string} policyId - Policy ID
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generateEmployeePolicyReport(policyId) {
+    const endpoint = `/reports/employee/policy/${policyId}`;
+    return this.downloadReport(endpoint);
   }
 }
 

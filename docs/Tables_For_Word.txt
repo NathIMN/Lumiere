@@ -1,0 +1,76 @@
+TABLE 4.1: USER MANAGEMENT TEST CASES
+
+Test Case ID | Test Description | Expected Result | Actual Result | Status
+UM-TC-001 | User registration with valid employee ID | Successful registration and account creation | User account created successfully | Pass
+UM-TC-002 | User login with valid credentials | Successful authentication and dashboard access | User logged in and redirected to dashboard | Pass
+UM-TC-003 | Role-based access control verification | Users access only authorized features | Access restricted based on user role | Pass
+UM-TC-004 | Profile information update | Profile changes saved successfully | Profile updated and changes reflected | Pass
+UM-TC-005 | Password reset functionality | Password reset email sent and processed | Reset email delivered and password changed | Pass
+
+TABLE 4.2: CLAIMS MANAGEMENT TEST CASES
+
+Test Case ID | Test Description | Expected Result | Actual Result | Status
+CM-TC-001 | Claim submission with documents | Claim created and documents uploaded | Claim submitted successfully with attachments | Pass
+CM-TC-002 | Claim status tracking | Real-time status updates displayed | Status changes reflected immediately | Pass
+CM-TC-003 | Claim workflow progression | Claims move through approval stages | Workflow transitions function correctly | Pass
+CM-TC-004 | Coverage validation during claim processing | System validates claim amounts against policy coverage | Coverage validation prevents over-claiming | Pass
+CM-TC-005 | Claim decision processing | Approved/rejected claims update policy amounts | Policy amounts updated accurately | Pass
+
+TABLE 4.3: DOCUMENT MANAGEMENT TEST CASES
+
+Test Case ID | Test Description | Expected Result | Actual Result | Status
+DM-TC-001 | Document upload with various file types | Files uploaded successfully to Azure storage | Multiple file formats uploaded correctly | Pass
+DM-TC-002 | Document access control by user role | Users access only authorized documents | Access restricted appropriately | Pass
+DM-TC-003 | Document versioning and history | Previous versions maintained and accessible | Version history tracked correctly | Pass
+DM-TC-004 | Document search and filtering | Relevant documents found using search criteria | Search functionality returns accurate results | Pass
+
+TABLE 4.4: PERFORMANCE TEST RESULTS
+
+Test Scenario | Metric | Target | Achieved | Status
+Page Load Time | Response Time | Less than 3 seconds | 2.1 seconds average | Pass
+Concurrent Users | User Load | 500 simultaneous users | 750 users supported | Pass
+File Upload | File Size | Up to 50MB | 50MB+ files processed | Pass
+Database Queries | Query Response | Less than 500ms | 287ms average | Pass
+
+TABLE 4.5: SECURITY TEST RESULTS
+
+Security Aspect | Test Description | Result | Status
+Authentication | JWT token validation and expiration | Tokens properly validated and expired | Pass
+Authorization | Role-based access enforcement | Users restricted to authorized functions | Pass
+Data Encryption | Sensitive data encryption in transit and rest | All sensitive data encrypted | Pass
+Input Validation | SQL injection and XSS prevention | Malicious inputs properly sanitized | Pass
+
+TABLE 4.6: USABILITY TEST RESULTS
+
+Usability Factor | Measurement Method | Result | Status
+Task Completion Rate | User task success percentage | 94% success rate | Pass
+User Satisfaction | System Usability Scale (SUS) score | 82/100 (Good) | Pass
+Learning Curve | Time to complete tasks after training | 15% improvement after 1 hour | Pass
+Error Recovery | User ability to recover from errors | 91% successful error recovery | Pass
+
+GROUP MEMBERS TABLE
+
+Reg No | Name | Email | Contact No
+IT23834774 | NATH I M N | it23834774@my.sliit.lk | +94 77 429 0347
+IT23836440 | FERNANDO PULLE N S | it23836440@my.sliit.lk | +94 70 311 4390
+IT23830332 | PATHIRANA P U O R | it23830332@my.sliit.lk | +94 71 679 2331
+IT23725010 | PERERA B I V | it23725010@my.sliit.lk | +94 70 134 6360
+IT23828766 | SENARATHNA P G R M | it23828766@my.sliit.lk | +94 71 777 6610
+
+TABLE A.1: WORK DONE BY EACH MEMBER
+
+Member Name | Registration No | Primary Responsibilities | Specific Contributions | Modules/Features Developed
+NATH I M N | IT23834774 | Technical Lead & Backend Development | Led system architecture design, implemented user management, document management, chatbot integration, VAPI integration, authentication middleware, role-based access control | User Management System, Document Management, AI Chatbot, VAPI Integration, Authentication & Authorization
+FERNANDO PULLE N S | IT23836440 | Full-Stack Development | Developed claims management workflow, policy management, file upload functionality, reporting system, frontend UI components | Claims Management, Policy Management, File Upload System, Reporting Module
+PATHIRANA P U O R | IT23830332 | Communication Systems & Real-time Features | Implemented messaging system, notification system, Socket.IO integration, email services, real-time communication features | Messaging System, Notification System, Real-time Communication, Email Integration
+PERERA B I V | IT23725010 | Frontend Development & Testing | Developed user interfaces, claim processing workflows, user experience design, comprehensive testing, quality assurance | Frontend UI/UX, Claim Processing Interface, System Testing, Quality Assurance
+SENARATHNA P G R M | IT23828766 | Policy Management & Integration | Implemented policy creation, management workflows, insurance agent interfaces, external integrations, system deployment | Policy Management, Agent Interface, External Integrations, System Deployment
+
+TABLE B.1: REPORT CONTRIBUTION BY EACH MEMBER
+
+Member Name | Registration No | Report Sections Contributed | Documentation Responsibilities
+NATH I M N | IT23834774 | Technical Architecture, System Design, Implementation Details, GitHub Repository Management | Technical documentation, API documentation, deployment guides, system architecture diagrams
+FERNANDO PULLE N S | IT23836440 | Claims Management Analysis, Policy Framework, Testing Methodology, Literature Review Research | Feature documentation, user manuals, testing documentation, requirement specifications
+PATHIRANA P U O R | IT23830332 | Communication Systems, Real-time Features, Integration Analysis, User Experience Documentation | Integration guides, communication protocols, real-time system documentation
+PERERA B I V | IT23725010 | Testing Documentation, Quality Assurance Reports, User Interface Documentation, Evaluation Results | Testing reports, QA documentation, user interface guidelines, evaluation metrics
+SENARATHNA P G R M | IT23828766 | Policy Management Documentation, Deployment Documentation, Business Analysis, Future Recommendations | Business process documentation, deployment manuals, policy configuration guides

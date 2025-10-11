@@ -20,8 +20,10 @@ import {
   Building,
   Shield,
   CreditCard,
+  FileText,
 } from "lucide-react";
 import userApiService from "../../services/user-api";
+import reportsApiService from "../../services/reports-api";
 
 export const AdminInsuranceAgents = () => {
   const [insuranceAgents, setInsuranceAgents] = useState([]);
@@ -53,6 +55,8 @@ export const AdminInsuranceAgents = () => {
   });
   const [errors, setErrors] = useState({});
   const [actionLoading, setActionLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   // Fetch insurance agents on component mount
   useEffect(() => {
@@ -187,6 +191,21 @@ export const AdminInsuranceAgents = () => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Show message helper function
+  const showMessage = (message, type = "success") => {
+    if (type === "success") {
+      setSuccess(message);
+      setError("");
+    } else {
+      setError(message);
+      setSuccess("");
+    }
+    setTimeout(() => {
+      setSuccess("");
+      setError("");
+    }, 5000);
   };
 
   // Handle create insurance agent
@@ -350,22 +369,49 @@ export const AdminInsuranceAgents = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Handle generate insurance agents report
+  const handleGenerateInsuranceAgentsReport = async () => {
+    try {
+      const blob = await reportsApiService.generateUsersReport({
+        role: 'insurance_agent'
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `insurance-agents-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      showMessage("Insurance agents report generated and downloaded successfully!");
+    } catch (error) {
+      console.error("Error generating insurance agents report:", error);
+      showMessage("Failed to generate insurance agents report. Please try again.", "error");
+    }
+  };
+
   return (
-    <div className="p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
+    <div className="p-6 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 rounded-xl shadow-xl border-2 border-red-900/10">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 bg-white dark:bg-gray-800 rounded-xl p-6 border-2 border-red-900/10">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Shield className="w-7 h-7" />
-            Insurance Agents Management
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 bg-gradient-to-br from-red-900 to-[#151E3D] rounded-full flex items-center justify-center">
+              <Shield className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#151E3D] dark:text-white">
+              Insurance Agents Management
+            </h1>
+          </div>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage insurance agent accounts and provider information
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-gradient-to-r from-red-900 to-[#151E3D] hover:from-red-800 hover:to-[#1a2332] text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 shadow-lg transform hover:scale-105"
         >
           <Plus className="w-4 h-4" />
           Add Insurance Agent
@@ -373,7 +419,7 @@ export const AdminInsuranceAgents = () => {
       </div>
 
       {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-red-900/10">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
@@ -381,7 +427,7 @@ export const AdminInsuranceAgents = () => {
             placeholder="Search by name, email, user ID, company, or agent ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+            className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-900 focus:border-red-900 dark:bg-gray-700 dark:text-white transition-all duration-200"
           />
         </div>
         <div className="relative">
@@ -389,7 +435,7 @@ export const AdminInsuranceAgents = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+            className="pl-10 pr-8 py-2 border-2 border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-900 focus:border-red-900 dark:bg-gray-700 dark:text-white transition-all duration-200"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -398,7 +444,43 @@ export const AdminInsuranceAgents = () => {
             <option value="terminated">Terminated</option>
           </select>
         </div>
+        <button
+          onClick={handleGenerateInsuranceAgentsReport}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200"
+        >
+          <FileText className="w-4 h-4" />
+          Generate Insurance Agents Report
+        </button>
       </div>
+
+      {/* Success/Error Messages */}
+      {(success || error) && (
+        <div className="mb-6">
+          {success && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              <span>{success}</span>
+            </div>
+          )}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg flex items-center gap-2">
+              <XCircle className="w-5 h-5" />
+              <span>{error}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Report Generation */}
+      {/* <div className="mb-6 bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-red-900/10">
+        <button
+          onClick={handleGenerateInsuranceAgentsReport}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200"
+        >
+          <FileText className="w-4 h-4" />
+          Generate Insurance Agents Report
+        </button>
+      </div> */}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

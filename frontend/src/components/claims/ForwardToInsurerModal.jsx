@@ -21,18 +21,18 @@ export const ForwardToInsurerModal = ({ claim, onClose, onSuccess }) => {
   const getCoverageTypes = () => {
     if (claim.claimType === "life") {
       return {
-        "Life Cover": "Life Cover",
-        Hospitalization: "Hospitalization",
-        "Surgical Benefits": "Surgical Benefits",
-        Outpatient: "Outpatient",
-        "Prescription Drugs": "Prescription Drugs",
+        'life_cover': 'Life Cover',
+        'hospitalization': 'Hospitalization',
+        'surgical_benefits': 'Surgical Benefits',
+        'outpatient': 'Outpatient',
+        'prescription_drugs': 'Prescription Drugs',
       };
     } else {
       return {
-        Collision: "Collision",
-        Liability: "Liability",
-        Comprehensive: "Comprehensive",
-        "Personal Accident": "Personal Accident",
+        'collision': 'Collision',
+        'liability': 'Liability',
+        'comprehensive': 'Comprehensive',
+        'personal_accident': 'Personal Accident',
       };
     }
   };

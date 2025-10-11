@@ -170,6 +170,67 @@ export const policyService = {
       method: 'PATCH',
       body: JSON.stringify({ policyIds, status }),
     });
+  },
+
+  // ==================== CLAIMED AMOUNTS TRACKING ====================
+
+  // Get claimed amounts for a specific beneficiary
+  // Employees can check their own, admin/hr/agent can check any
+  getBeneficiaryClaimedAmounts: async (policyId, beneficiaryId = null) => {
+    const queryParams = beneficiaryId ? `?beneficiaryId=${beneficiaryId}` : '';
+    
+    try {
+      // First try using custom policy ID endpoint (for policyId like "LG0001")
+      return await apiRequest(`/policy-id/${policyId}/claimed-amounts${queryParams}`);
+    } catch (error) {
+      // If that fails, try the MongoDB ObjectId endpoint as fallback
+      console.log('Trying fallback endpoint with MongoDB ObjectId:', error.message);
+      return await apiRequest(`/${policyId}/claimed-amounts${queryParams}`);
+    }
+  },
+
+  // Get claimed amounts summary for all beneficiaries (admin/hr/agent only)
+  getPolicyClaimedAmountsSummary: async (policyId) => {
+    return await apiRequest(`/${policyId}/claimed-amounts/summary`);
+  },
+
+  // Utility method to check remaining coverage for a beneficiary
+  checkRemainingCoverage: async (policyId, beneficiaryId, coverageType = null) => {
+    const result = await policyService.getBeneficiaryClaimedAmounts(policyId, beneficiaryId);
+    
+    if (!coverageType) {
+      return result; // Return all coverage types
+    }
+    
+    // Return specific coverage type
+    const coverage = result.claimedAmounts?.find(c => c.coverageType === coverageType);
+    return coverage ? {
+      ...result,
+      claimedAmounts: [coverage]
+    } : null;
+  },
+
+  // Utility method to check if a claim amount is within limits
+  validateClaimAmount: async (policyId, beneficiaryId, coverageType, requestedAmount) => {
+    try {
+      const coverage = await policyService.checkRemainingCoverage(policyId, beneficiaryId, coverageType);
+      if (!coverage || !coverage.claimedAmounts.length) {
+        return { valid: false, reason: 'Coverage type not found' };
+      }
+      
+      const { remainingAmount } = coverage.claimedAmounts[0];
+      const valid = requestedAmount <= remainingAmount;
+      
+      return {
+        valid,
+        remainingAmount,
+        requestedAmount,
+        coverageType,
+        reason: valid ? null : `Requested amount (${requestedAmount}) exceeds remaining coverage (${remainingAmount})`
+      };
+    } catch (error) {
+      return { valid: false, reason: error.message };
+    }
   }
 };
 
@@ -191,7 +252,11 @@ export const {
   searchPolicies,
   getUserPolicies,
   checkPolicyEligibility,
-  bulkUpdateStatus
+  bulkUpdateStatus,
+  getBeneficiaryClaimedAmounts,
+  getPolicyClaimedAmountsSummary,
+  checkRemainingCoverage,
+  validateClaimAmount
 } = policyService;
 
 export default policyService;

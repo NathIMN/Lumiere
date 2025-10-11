@@ -356,6 +356,29 @@ class VapiProxyService {
     try {
       const message = userMessage.toLowerCase();
       
+      // Text formalization requests
+      if (message.includes('please rewrite') || message.includes('formalize') || message.includes('professional business language')) {
+        // Extract the text to be formalized - it should be in quotes
+        const textMatch = userMessage.match(/[""]([^"""]+)[""]/) || userMessage.match(/"([^"]+)"/);
+        
+        if (textMatch) {
+          const textToFormalize = textMatch[1];
+          const formalizedText = await this.formalizeTextWithAI(textToFormalize);
+          
+          return {
+            success: true,
+            result: formalizedText,
+            response: formalizedText,
+            content: formalizedText
+          };
+        } else {
+          return {
+            success: false,
+            message: "I couldn't find the text to formalize. Please put the text in quotes."
+          };
+        }
+      }
+      
       // Count queries
       if (message.includes('how many') || message.includes('count')) {
         if (message.includes('hr officer') || message.includes('hr officers')) {
@@ -508,6 +531,71 @@ class VapiProxyService {
         message: `I'm sorry, I encountered an error processing your request: ${error.message}`
       };
     }
+  }
+
+  /**
+   * Formalize casual text into professional business language
+   * @param {string} casualText - The casual text to formalize
+   * @returns {Promise<string>} Formalized text
+   */
+  async formalizeTextWithAI(casualText) {
+    // Simple rule-based text formalization
+    // This is a backup when AI services aren't available
+    const formalizationRules = {
+      // Common casual to formal mappings
+      'hey': 'Hello',
+      'hi': 'Hello',
+      'whats up': 'How are you doing',
+      'what\'s up': 'How are you doing',
+      'ur': 'your',
+      'u': 'you',
+      'gonna': 'going to',
+      'wanna': 'want to',
+      'lemme': 'let me',
+      'gimme': 'give me',
+      'dunno': 'do not know',
+      'yeah': 'yes',
+      'nope': 'no',
+      'btw': 'by the way',
+      'fyi': 'for your information',
+      'asap': 'as soon as possible',
+      'thx': 'thank you',
+      'thanks': 'thank you',
+      'pls': 'please',
+      'plz': 'please',
+      'ok': 'okay',
+      'omg': 'oh my',
+      'lol': '',
+      'haha': '',
+      'lmao': '',
+      'wtf': 'what',
+      'damn': '',
+      'shit': '',
+      'crap': 'issue'
+    };
+
+    let formalizedText = casualText;
+
+    // Apply basic formalization rules
+    Object.entries(formalizationRules).forEach(([casual, formal]) => {
+      const regex = new RegExp(`\\b${casual}\\b`, 'gi');
+      formalizedText = formalizedText.replace(regex, formal);
+    });
+
+    // Clean up extra spaces
+    formalizedText = formalizedText.replace(/\s+/g, ' ').trim();
+
+    // Capitalize first letter if not already
+    if (formalizedText.length > 0) {
+      formalizedText = formalizedText.charAt(0).toUpperCase() + formalizedText.slice(1);
+    }
+
+    // Ensure proper punctuation
+    if (formalizedText && !formalizedText.match(/[.!?]$/)) {
+      formalizedText += '.';
+    }
+
+    return formalizedText || casualText;
   }
 }
 

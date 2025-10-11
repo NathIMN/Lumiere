@@ -316,6 +316,26 @@ class MessagingApiService {
   }
 
   /**
+   * Edit message
+   * @param {string} messageId - Message ID
+   * @param {string} content - New message content
+   * @returns {Promise<Object>} Updated message
+   */
+  async editMessage(messageId, content) {
+    if (!messageId) {
+      throw new Error('Message ID is required');
+    }
+    if (!content || content.trim() === '') {
+      throw new Error('Message content is required');
+    }
+    
+    return this.request(`/messages/${messageId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content: content.trim() }),
+    });
+  }
+
+  /**
    * Delete message
    * @param {string} messageId - Message ID
    * @returns {Promise<Object>} Deletion confirmation
@@ -325,7 +345,7 @@ class MessagingApiService {
       throw new Error('Message ID is required');
     }
     
-    return this.request(`/messages/message/${messageId}`, {
+    return this.request(`/messages/${messageId}`, {
       method: 'DELETE',
     });
   }

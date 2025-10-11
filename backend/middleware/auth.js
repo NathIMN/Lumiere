@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Claim from "../models/Claim.js";
 import { createCustomError } from "../errors/custom-error.js";
 import asyncWrapper from "./async.js";
 
@@ -31,6 +32,7 @@ export const authenticate = asyncWrapper(async (req, res, next) => {
       email: user.email,
       role: user.role,
       status: user.status,
+      profile: user.profile, // Include profile data for report generation
     };
 
     next();

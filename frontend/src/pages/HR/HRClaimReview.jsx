@@ -140,9 +140,9 @@ const ReportsDropdown = ({ filters, onGenerateReport }) => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-10">
-          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
+        <div className="absolute right-0 mt-2 w-72 lg:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-10 max-w-[calc(100vw-2rem)]">
+          <div className="p-3 lg:p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">Export data with current filters applied</p>
           </div>
           
@@ -167,7 +167,7 @@ const ReportsDropdown = ({ filters, onGenerateReport }) => {
             })}
           </div>
 
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
+          <div className="p-3 lg:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Reports will be downloaded as PDF files with current filter settings applied.
             </p>
@@ -489,6 +489,11 @@ export const HRClaimReview = () => {
         ...(filters.endDate && { endDate: filters.endDate }),
       };
 
+      // For claims report from HR page, only include HR status claims
+      if (reportType === 'claims') {
+        reportFilters.hrOnly = true;
+      }
+
       Object.keys(reportFilters).forEach(key => {
         if (!reportFilters[key]) {
           delete reportFilters[key];
@@ -534,7 +539,7 @@ export const HRClaimReview = () => {
   }
 
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 min-h-screen">
+    <div className="p-4 lg:p-6 space-y-6 lg:space-y-8 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 min-h-screen max-w-full overflow-x-hidden">
       {/* Notification */}
       {notification && (
         <Notification
@@ -545,12 +550,12 @@ export const HRClaimReview = () => {
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 max-w-full">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl lg:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
             HR Claim Management
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2 text-lg">
+          <p className="text-gray-600 dark:text-gray-300 mt-2 text-base lg:text-lg">
             Review and process employee insurance claims
           </p>
           <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
@@ -558,17 +563,17 @@ export const HRClaimReview = () => {
           </div>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:space-x-4 flex-shrink-0">
           <ReportsDropdown 
             filters={filters}
             onGenerateReport={handleGenerateReport}
           />
           
           {claimsRequiringAction.length > 0 && (
-            <div className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 px-6 py-3 rounded-xl border border-amber-200 dark:border-amber-700 shadow-sm">
+            <div className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 px-4 py-2 lg:px-6 lg:py-3 rounded-xl border border-amber-200 dark:border-amber-700 shadow-sm max-w-full">
               <div className="flex items-center space-x-2">
-                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 animate-pulse" />
-                <span className="text-amber-800 dark:text-amber-200 font-semibold">
+                <AlertCircle className="h-4 w-4 lg:h-5 lg:w-5 text-amber-600 dark:text-amber-400 animate-pulse flex-shrink-0" />
+                <span className="text-amber-800 dark:text-amber-200 font-semibold text-sm lg:text-base truncate">
                   {claimsRequiringAction.length} Claims Need Attention
                 </span>
               </div>
@@ -582,13 +587,13 @@ export const HRClaimReview = () => {
 
       {/* Claims Requiring Immediate Action */}
       {claimsRequiringAction.length > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-2xl p-6 shadow-lg">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl">
-              <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-2 border-amber-200 dark:border-amber-800 rounded-2xl p-4 lg:p-6 shadow-lg max-w-full overflow-hidden">
+          <div className="flex items-center space-x-3 mb-4 lg:mb-6">
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex-shrink-0">
+              <AlertCircle className="h-5 w-5 lg:h-6 lg:w-6 text-amber-600 dark:text-amber-400" />
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-amber-800 dark:text-amber-200">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-lg lg:text-xl font-bold text-amber-800 dark:text-amber-200">
                 Claims Requiring Immediate Action
               </h3>
               <p className="text-amber-600 dark:text-amber-400 text-sm">
@@ -597,19 +602,19 @@ export const HRClaimReview = () => {
             </div>
           </div>
           
-          <div className="grid gap-4">
+          <div className="grid gap-3 lg:gap-4">
             {claimsRequiringAction.slice(0, 5).map((claim) => (
               <div 
                 key={claim._id} 
-                className="flex items-center justify-between bg-white/70 dark:bg-gray-800/70 p-4 rounded-xl border border-amber-200 dark:border-amber-700 hover:bg-white dark:hover:bg-gray-800 transition-colors backdrop-blur-sm"
+                className="flex flex-col lg:flex-row lg:items-center lg:justify-between bg-white/70 dark:bg-gray-800/70 p-3 lg:p-4 rounded-xl border border-amber-200 dark:border-amber-700 hover:bg-white dark:hover:bg-gray-800 transition-colors backdrop-blur-sm gap-3 lg:gap-4 max-w-full"
               >
-                <div className="flex items-center space-x-4">
-                  <div className="w-3 h-3 bg-amber-400 rounded-full animate-pulse"></div>
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">
+                <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
+                  <div className="w-3 h-3 bg-amber-400 rounded-full animate-pulse flex-shrink-0"></div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white truncate">
                       {claim.claimId}
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                       {claim.employeeId?.firstName} {claim.employeeId?.lastName} • 
                       Rs. {claim.claimAmount?.requested?.toLocaleString() || 0} • 
                       {Math.ceil((new Date() - new Date(claim.submittedAt)) / (1000 * 60 * 60 * 24))} days old
@@ -617,19 +622,26 @@ export const HRClaimReview = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-2 lg:gap-3 flex-shrink-0">
                   <button
                     onClick={() => handleViewHistory(claim)}
-                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm flex items-center space-x-1 px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-sm flex items-center space-x-1 px-2 lg:px-3 py-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                   >
                     <History className="h-4 w-4" />
                     <span>History</span>
                   </button>
                   <button
-                    onClick={() => handleViewClaim(claim)}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium text-sm flex items-center space-x-1 px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                    onClick={() => handleReturnClaim(claim)}
+                    className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 text-white font-medium text-sm flex items-center space-x-1 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <span>Review</span>
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Return</span>
+                  </button>
+                  <button
+                    onClick={() => handleForwardClaim(claim)}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-medium text-sm flex items-center space-x-1 px-3 lg:px-4 py-2 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    <span>Forward</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -655,7 +667,7 @@ export const HRClaimReview = () => {
       />
 
       {/* Claims Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-w-full">
         <ClaimTable
           claims={claims}
           loading={loading}
@@ -674,21 +686,21 @@ export const HRClaimReview = () => {
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-2xl p-6 text-center">
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-2xl p-4 lg:p-6 text-center max-w-full">
           <div className="flex flex-col items-center space-y-3">
-            <AlertCircle className="h-12 w-12 text-red-500" />
+            <AlertCircle className="h-10 w-10 lg:h-12 lg:w-12 text-red-500" />
             <div>
               <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
                 Something went wrong
               </h3>
-              <p className="text-red-600 dark:text-red-400 mt-1">{error}</p>
+              <p className="text-red-600 dark:text-red-400 mt-1 text-sm lg:text-base">{error}</p>
             </div>
             <button
               onClick={() => {
                 setError(null);
                 fetchClaims();
               }}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 lg:px-6 py-2 rounded-lg transition-colors text-sm lg:text-base"
             >
               Try Again
             </button>
@@ -698,16 +710,16 @@ export const HRClaimReview = () => {
 
       {/* Empty State */}
       {!loading && claims.length === 0 && !error && (
-        <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center">
+        <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl p-8 lg:p-12 text-center max-w-full">
           <div className="flex flex-col items-center space-y-4">
-            <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-full">
-              <FileText className="h-12 w-12 text-gray-400" />
+            <div className="p-3 lg:p-4 bg-gray-100 dark:bg-gray-700 rounded-full">
+              <FileText className="h-10 w-10 lg:h-12 lg:w-12 text-gray-400" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 No Claims Found
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 max-w-md">
+              <p className="text-gray-600 dark:text-gray-400 max-w-md text-sm lg:text-base">
                 {Object.values(filters).some(value => value) 
                   ? "No claims match your current filters. Try adjusting your search criteria."
                   : "No claims have been submitted yet. Claims will appear here once employees submit them."
@@ -731,7 +743,7 @@ export const HRClaimReview = () => {
                     daysOld: ''
                   });
                 }}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 lg:px-6 py-2 rounded-lg transition-colors text-sm lg:text-base"
               >
                 Clear All Filters
               </button>

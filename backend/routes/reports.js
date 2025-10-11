@@ -4,9 +4,13 @@ import {
   generatePoliciesReport,
   generateClaimsReport,
   generateFinancialReport,
+  generatePolicyUsersReport,
   generateCustomReport,
   getReportTemplates,
-  scheduleReport
+  scheduleReport,
+  generateEmployeeClaimReport,
+  generateEmployeeClaimsSummaryReport,
+  generateEmployeePolicyReport
 } from '../controllers/reports.js';
 
 import { authenticate, authorize } from '../middleware/auth.js';
@@ -50,7 +54,15 @@ router.get('/claims', authenticate, authorize('admin', 'hr_officer', 'insurance_
  * @access  Admin
  * @params  ?dateFrom=2024-01-01&dateTo=2024-12-31&period=monthly&format=pdf
  */
-router.get('/financial', authenticate, authorize('admin'), generateFinancialReport);
+router.get('/financial', authenticate, authorize('admin', 'hr_officer', 'insurance_agent'), generateFinancialReport);
+
+/**
+ * @route   GET /api/reports/policy-users/:policyId
+ * @desc    Generate policy users report
+ * @access  Admin, HR, Insurance Agent
+ * @params  ?format=pdf
+ */
+router.get('/policy-users/:policyId', authenticate, authorize('admin', 'hr_officer', 'insurance_agent'), generatePolicyUsersReport);
 
 /**
  * @route   POST /api/reports/custom
@@ -67,5 +79,29 @@ router.post('/custom', authenticate, authorize('admin'), generateCustomReport);
  * @body    { reportType, filters, schedule, recipients, format }
  */
 router.post('/schedule', authenticate, authorize('admin'), scheduleReport);
+
+/**
+ * @route   GET /api/reports/employee/claim/:claimId
+ * @desc    Generate individual claim report for employee
+ * @access  Employee (own claims only)
+ * @params  ?format=pdf
+ */
+router.get('/employee/claim/:claimId', authenticate, authorize('employee'), generateEmployeeClaimReport);
+
+/**
+ * @route   GET /api/reports/employee/claims-summary
+ * @desc    Generate claims summary report for employee
+ * @access  Employee (own claims only)
+ * @params  ?dateFrom=2024-01-01&dateTo=2024-12-31&status=approved&claimType=vehicle&format=pdf
+ */
+router.get('/employee/claims-summary', authenticate, authorize('employee'), generateEmployeeClaimsSummaryReport);
+
+/**
+ * @route   GET /api/reports/employee/policy/:policyId
+ * @desc    Generate individual policy report for employee
+ * @access  Employee (own policies only)
+ * @params  ?format=pdf
+ */
+router.get('/employee/policy/:policyId', authenticate, authorize('employee'), generateEmployeePolicyReport);
 
 export default router;

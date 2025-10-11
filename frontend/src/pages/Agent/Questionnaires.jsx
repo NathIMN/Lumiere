@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CreateTemplateModal } from './CreateTemplate';
 import {
   Plus,
   Search,
@@ -25,8 +26,10 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import InsuranceApiService from '../../services/insurance-api';
 
 const Questionnaires = () => {
+     const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('templates');
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +41,14 @@ const Questionnaires = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
+
+    const handleSuccess = (response) => {
+    console.log('Template created:', response);
+    alert('Template created successfully!');
+  };
 
   // Valid combinations from your model
   const VALID_COMBINATIONS = {
@@ -45,115 +56,59 @@ const Questionnaires = () => {
     vehicle: ["accident", "theft", "fire", "naturalDisaster"]
   };
 
-  // Mock data that matches your API structure
-  const [mockData] = useState({
-    templates: [
-      {
-        _id: "66f1234567890abcdef12345",
-        templateId: "LIFE_HOSP",
-        claimType: "life",
-        claimOption: "hospitalization",
-        title: "Life Insurance - Hospitalization Claims",
-        description: "Questionnaire for hospitalization-related life insurance claims",
-        questions: [
-          {
-            questionId: "hosp_001",
-            questionText: "What is the admission date?",
-            questionType: "date",
-            isRequired: true,
-            order: 1,
-            helpText: "Please provide the exact date of hospital admission"
-          },
-          {
-            questionId: "hosp_002",
-            questionText: "Type of treatment received",
-            questionType: "select",
-            options: ["Surgery", "Medication", "Therapy", "Emergency Care"],
-            isRequired: true,
-            order: 2
-          },
-          {
-            questionId: "hosp_003",
-            questionText: "Upload medical reports",
-            questionType: "file",
-            isRequired: true,
-            order: 3,
-            helpText: "Upload all relevant medical documents and reports"
-          }
-        ],
-        isActive: true,
-        version: 1,
-        lastModified: "2025-01-15T10:30:00Z",
-        modifiedBy: {
-          firstName: "John",
-          lastName: "Smith",
-          email: "john.smith@company.com"
+  // Generate template ID matching backend logic
+  const getTemplateId = (claimType, claimOption) => {
+    const prefix = claimType.toUpperCase();
+    const suffixMap = {
+      hospitalization: 'HOSP',
+      channelling: 'CHANNEL', 
+      medication: 'MEDIC',
+      death: 'DEATH',
+      accident: 'ACC',
+      theft: 'THEFT',
+      fire: 'FIRE',
+      naturalDisaster: 'NATURAL'
+    };
+    return `${prefix}_${suffixMap[claimOption]}`;
+  };
+
+  // Generate default template structure
+  const generateDefaultTemplate = (claimType, claimOption) => {
+    const templateId = getTemplateId(claimType, claimOption);
+    return {
+      templateId,
+      claimType,
+      claimOption,
+      title: `${claimType.charAt(0).toUpperCase() + claimType.slice(1)} Insurance - ${claimOption.charAt(0).toUpperCase() + claimOption.slice(1)} Claims`,
+      description: `Questionnaire for ${claimOption}-related ${claimType} insurance claims`,
+      sections: [
+        {
+          sectionId: `${claimOption}_basic`,
+          title: 'Basic Information',
+          order: 1,
+          questions: [
+            {
+              questionId: `${claimOption}_001`,
+              questionText: 'Please describe the incident in detail',
+              questionType: 'textarea',
+              isRequired: true,
+              order: 1,
+              helpText: 'Provide a comprehensive description of what happened'
+            },
+            {
+              questionId: `${claimOption}_002`, 
+              questionText: 'Date of incident',
+              questionType: 'date',
+              isRequired: true,
+              order: 2
+            }
+          ]
         }
-      },
-      {
-        _id: "66f1234567890abcdef12346",
-        templateId: "VEHICLE_ACC",
-        claimType: "vehicle",
-        claimOption: "accident",
-        title: "Vehicle Insurance - Accident Claims",
-        description: "Questionnaire for vehicle accident insurance claims",
-        questions: [
-          {
-            questionId: "acc_001",
-            questionText: "Date and time of accident",
-            questionType: "date",
-            isRequired: true,
-            order: 1
-          },
-          {
-            questionId: "acc_002",
-            questionText: "Was police report filed?",
-            questionType: "boolean",
-            isRequired: true,
-            order: 2
-          }
-        ],
-        isActive: true,
-        version: 2,
-        lastModified: "2025-01-14T15:45:00Z",
-        modifiedBy: {
-          firstName: "Sarah",
-          lastName: "Wilson",
-          email: "sarah.wilson@company.com"
-        }
-      },
-      {
-        _id: "66f1234567890abcdef12347",
-        templateId: "LIFE_DEATH",
-        claimType: "life",
-        claimOption: "death",
-        title: "Life Insurance - Death Claims",
-        description: "Questionnaire for death benefit claims",
-        questions: [
-          {
-            questionId: "death_001",
-            questionText: "Date of death",
-            questionType: "date",
-            isRequired: true,
-            order: 1
-          }
-        ],
-        isActive: false,
-        version: 1,
-        lastModified: "2025-01-12T09:20:00Z",
-        modifiedBy: {
-          firstName: "Mike",
-          lastName: "Johnson",
-          email: "mike.johnson@company.com"
-        }
-      }
-    ],
-    coverageStats: {
-      total: 8,
-      covered: 3,
-      missing: 5
-    }
-  });
+      ],
+      isActive: true,
+      version: 1
+    };
+  };
 
   // Initialize data
   useEffect(() => {
@@ -163,25 +118,91 @@ const Questionnaires = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      // In real app, fetch from API
-      // const response = await fetch('/api/questionnaire-templates');
-      // const data = await response.json();
-      
-      setTemplates(mockData.templates);
-      setCoverageStats(mockData.coverageStats);
-      generateCoverageData();
+      // Try to load templates from API
+      const response = await InsuranceApiService.getQuestionnaireTemplates();
+      if (response.success) {
+        setTemplates(response.templates || []);
+        
+        // Generate coverage stats
+        const stats = calculateCoverageStats(response.templates || []);
+        setCoverageStats(stats);
+        generateCoverageData(response.templates || []);
+
+        // Check for missing templates and auto-create them (if user has permissions)
+        // TODO: Enable auto-creation when proper user role permissions are configured
+        // const missingTemplates = findMissingTemplates(response.templates || []);
+        // if (missingTemplates.length > 0) {
+        //   await createMissingTemplates(missingTemplates);
+        //   // Reload after creating missing templates
+        //   const updatedResponse = await InsuranceApiService.getQuestionnaireTemplates();
+        //   if (updatedResponse.success) {
+        //     setTemplates(updatedResponse.templates || []);
+        //     const updatedStats = calculateCoverageStats(updatedResponse.templates || []);
+        //     setCoverageStats(updatedStats);
+        //     generateCoverageData(updatedResponse.templates || []);
+        //   }
+        // }
+      } else {
+        console.error('Failed to load templates:', response.message);
+        // Fall back to empty state
+        setTemplates([]);
+        setCoverageStats({ total: 8, covered: 0, missing: 8 });
+        generateCoverageData([]);
+      }
     } catch (error) {
-      console.error('Failed to load templates:', error);
+      console.error('Error loading templates:', error);
+      // Fall back to empty state on error
+      setTemplates([]);
+      setCoverageStats({ total: 8, covered: 0, missing: 8 });
+      generateCoverageData([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateCoverageData = () => {
+  const calculateCoverageStats = (templates) => {
+    const total = Object.keys(VALID_COMBINATIONS).reduce((sum, type) => 
+      sum + VALID_COMBINATIONS[type].length, 0);
+    const covered = templates.length;
+    return {
+      total,
+      covered,
+      missing: total - covered
+    };
+  };
+
+  const findMissingTemplates = (existingTemplates) => {
+    const missing = [];
+    Object.keys(VALID_COMBINATIONS).forEach(type => {
+      VALID_COMBINATIONS[type].forEach(option => {
+        const exists = existingTemplates.some(t => 
+          t.claimType === type && t.claimOption === option
+        );
+        if (!exists) {
+          missing.push({ claimType: type, claimOption: option });
+        }
+      });
+    });
+    return missing;
+  };
+
+  const createMissingTemplates = async (missingTemplates) => {
+    for (const { claimType, claimOption } of missingTemplates) {
+      try {
+        const template = generateDefaultTemplate(claimType, claimOption);
+        await InsuranceApiService.createQuestionnaireTemplate(template);
+        console.log(`Created template: ${template.templateId}`);
+      } catch (error) {
+        console.error(`Failed to create template for ${claimType}-${claimOption}:`, error);
+      }
+    }
+  };
+
+  const generateCoverageData = (templates = []) => {
     const coverageData = [];
     Object.keys(VALID_COMBINATIONS).forEach(type => {
       VALID_COMBINATIONS[type].forEach(option => {
-        const existing = mockData.templates.find(t => 
+        const existing = templates.find(t => 
           t.claimType === type && t.claimOption === option
         );
         coverageData.push({
@@ -193,6 +214,127 @@ const Questionnaires = () => {
       });
     });
     setCoverage(coverageData);
+  };
+
+  // CRUD handlers
+  const handleEditTemplate = async (templateId) => {
+    try {
+      const template = templates.find(t => t._id === templateId);
+      if (template) {
+        setEditingTemplate({ ...template });
+        setShowEditModal(true);
+      }
+    } catch (error) {
+      console.error('Error opening edit template:', error);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!window.confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      const response = await InsuranceApiService.deleteQuestionnaireTemplate(templateId);
+      if (response.success) {
+        // Reload data after successful deletion
+        await loadData();
+      } else {
+        console.error('Failed to delete template:', response.message);
+        alert('Failed to delete template: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      alert('Error deleting template. Please try again.');
+    }
+  };
+
+  const handleDuplicateTemplate = async (templateId) => {
+    try {
+      const original = templates.find(t => t._id === templateId);
+      if (!original) return;
+
+      const duplicate = {
+        ...original,
+        templateId: `${original.templateId}_COPY`,
+        title: `${original.title} (Copy)`,
+        version: 1
+      };
+      delete duplicate._id;
+      delete duplicate.lastModified;
+      delete duplicate.modifiedBy;
+
+      const response = await InsuranceApiService.createQuestionnaireTemplate(duplicate);
+      if (response.success) {
+        await loadData(); // Reload data
+      } else {
+        console.error('Failed to duplicate template:', response.message);
+        alert('Failed to duplicate template: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+      alert('Error duplicating template. Please try again.');
+    }
+  };
+
+  const handleToggleStatus = async (templateId) => {
+    try {
+      const template = templates.find(t => t._id === templateId);
+      if (!template) return;
+
+      const updatedTemplate = {
+        ...template,
+        isActive: !template.isActive
+      };
+
+      const response = await InsuranceApiService.updateQuestionnaireTemplate(templateId, updatedTemplate);
+      if (response.success) {
+        await loadData(); // Reload data
+      } else {
+        console.error('Failed to update template status:', response.message);
+        alert('Failed to update template status: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error updating template status:', error);
+      alert('Error updating template status. Please try again.');
+    }
+  };
+
+  const handleCreateNewTemplate = () => {
+    setShowCreateModal(true);
+  };
+
+  const handleSaveEditedTemplate = async () => {
+    try {
+      const response = await InsuranceApiService.updateQuestionnaireTemplate(editingTemplate._id, editingTemplate);
+      if (response.success) {
+        await loadData(); // Reload data
+        setShowEditModal(false);
+        setEditingTemplate(null);
+      } else {
+        console.error('Failed to update template:', response.message);
+        alert('Failed to update template: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error updating template:', error);
+      alert('Error updating template. Please try again.');
+    }
+  };
+
+  const handleSaveNewTemplate = async (newTemplate) => {
+    try {
+      const response = await InsuranceApiService.createQuestionnaireTemplate(newTemplate);
+      if (response.success) {
+        await loadData(); // Reload data
+        setShowCreateModal(false);
+      } else {
+        console.error('Failed to create template:', response.message);
+        alert('Failed to create template: ' + response.message);
+      }
+    } catch (error) {
+      console.error('Error creating template:', error);
+      alert('Error creating template. Please try again.');
+    }
   };
 
   // Filter templates
@@ -208,11 +350,7 @@ const Questionnaires = () => {
   });
 
   const handleCreateTemplate = () => {
-    navigate('/agent/questionnaires/create');
-  };
-
-  const handleEditTemplate = (templateId) => {
-    navigate(`/agent/questionnaires/edit/${templateId}`);
+    setShowCreateModal(true);
   };
 
   const handlePreviewTemplate = (template) => {
@@ -220,41 +358,9 @@ const Questionnaires = () => {
     setShowPreviewModal(true);
   };
 
-  const handleToggleStatus = async (templateId) => {
-    try {
-      // In real app: await toggleTemplateStatus(templateId)
-      setTemplates(prev => prev.map(t => 
-        t._id === templateId ? { ...t, isActive: !t.isActive } : t
-      ));
-    } catch (error) {
-      console.error('Failed to toggle status:', error);
-    }
-  };
-
-  const handleDeleteTemplate = async (templateId) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
-    
-    try {
-      // In real app: await deleteTemplate(templateId)
-      setTemplates(prev => prev.filter(t => t._id !== templateId));
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-    }
-  };
-
   const handleCloneTemplate = async (templateId) => {
     try {
-      // In real app: await cloneTemplate(templateId)
-      const original = templates.find(t => t._id === templateId);
-      const cloned = {
-        ...original,
-        _id: Date.now().toString(),
-        templateId: `${original.templateId}_V${original.version + 1}`,
-        version: original.version + 1,
-        isActive: false,
-        title: `${original.title} (Copy)`
-      };
-      setTemplates(prev => [...prev, cloned]);
+      await handleDuplicateTemplate(templateId);
     } catch (error) {
       console.error('Failed to clone template:', error);
     }
@@ -473,7 +579,10 @@ const Questionnaires = () => {
                             </div>
                             <div>
                               <span className="text-gray-500 dark:text-gray-400">Questions:</span>
-                              <p className="font-medium text-gray-900 dark:text-white">{template.questions.length}</p>
+                              <p className="font-medium text-gray-900 dark:text-white">
+                                {template.questions?.length || 
+                                 template.sections?.reduce((total, section) => total + (section.questions?.length || 0), 0) || 0}
+                              </p>
                             </div>
                             <div>
                               <span className="text-gray-500 dark:text-gray-400">Version:</span>
@@ -742,57 +851,272 @@ const Questionnaires = () => {
               </div>
 
               <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Questions ({selectedTemplate.questions.length})</h4>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+                  Questions ({selectedTemplate.questions?.length || 
+                    (selectedTemplate.sections?.reduce((total, section) => total + (section.questions?.length || 0), 0)) || 0})
+                </h4>
                 <div className="space-y-4">
-                  {selectedTemplate.questions.map((question, index) => (
-                    <div key={question.questionId} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <h5 className="font-medium text-gray-900 dark:text-white">
-                          {index + 1}. {question.questionText}
-                        </h5>
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            question.isRequired 
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
-                          }`}>
-                            {question.isRequired ? 'Required' : 'Optional'}
-                          </span>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-xs font-medium">
-                            {question.questionType}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {question.helpText && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          {question.helpText}
-                        </p>
-                      )}
-                      
-                      {question.options && (
-                        <div className="mt-2">
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Options:</p>
-                          <div className="flex flex-wrap gap-2">
-                            {question.options.map((option, optionIndex) => (
-                              <span
-                                key={optionIndex}
-                                className="px-2 py-1 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded text-sm"
-                              >
-                                {option}
-                              </span>
-                            ))}
+                  {selectedTemplate.questions ? (
+                    selectedTemplate.questions.map((question, index) => (
+                      <div key={question.questionId} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <h5 className="font-medium text-gray-900 dark:text-white">
+                            {index + 1}. {question.questionText}
+                          </h5>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              question.isRequired 
+                                ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                            }`}>
+                              {question.isRequired ? 'Required' : 'Optional'}
+                            </span>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-xs font-medium">
+                              {question.questionType}
+                            </span>
                           </div>
                         </div>
-                      )}
+                        
+                        {question.helpText && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            {question.helpText}
+                          </p>
+                        )}
+                        
+                        {question.options && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Options:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {question.options.map((option, optionIndex) => (
+                                <span
+                                  key={optionIndex}
+                                  className="px-2 py-1 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded text-sm"
+                                >
+                                  {option}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : selectedTemplate.sections ? (
+                    selectedTemplate.sections.map((section, sectionIndex) => (
+                      <div key={section.sectionId || sectionIndex} className="mb-6">
+                        <h5 className="font-medium text-gray-900 dark:text-white mb-3 border-b pb-2">
+                          {section.title}
+                        </h5>
+                        <div className="space-y-3">
+                          {section.questions?.map((question, questionIndex) => (
+                            <div key={question.questionId} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <h6 className="font-medium text-gray-900 dark:text-white">
+                                  {questionIndex + 1}. {question.questionText}
+                                </h6>
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    question.isRequired 
+                                      ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                      : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'
+                                  }`}>
+                                    {question.isRequired ? 'Required' : 'Optional'}
+                                  </span>
+                                  <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-xs font-medium">
+                                    {question.questionType}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {question.helpText && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                  {question.helpText}
+                                </p>
+                              )}
+                              
+                              {question.options && (
+                                <div className="mt-2">
+                                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Options:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {question.options.map((option, optionIndex) => (
+                                      <span
+                                        key={optionIndex}
+                                        className="px-2 py-1 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded text-sm"
+                                      >
+                                        {option}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      No questions available for this template
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Create Template Modal */}
+      {showCreateModal && (
+        <CreateTemplateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleSuccess}
+      />
+      )}
+
+      {/* Edit Template Modal */}
+      {showEditModal && editingTemplate && (
+        <EditTemplateModal 
+          template={editingTemplate}
+          setTemplate={setEditingTemplate}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingTemplate(null);
+          }}
+          onSave={handleSaveEditedTemplate}
+        />
+      )}
+    </div>
+  );
+};
+
+// Create Template Modal Component
+
+
+// Edit Template Modal Component
+const EditTemplateModal = ({ template, setTemplate, onClose, onSave }) => {
+  const getAllQuestions = () => {
+    if (template.sections?.length > 0) {
+      return template.sections.flatMap(section => section.questions || []);
+    }
+    return template.questions || [];
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Edit Template</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-6">
+          {/* Basic Information */}
+          <div>
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">Basic Information</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Template ID
+                </label>
+                <input
+                  type="text"
+                  value={template.templateId}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={template.title}
+                  onChange={(e) => setTemplate({ ...template, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={template.description}
+                  onChange={(e) => setTemplate({ ...template, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div>
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">Status</h4>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="editIsActive"
+                checked={template.isActive}
+                onChange={(e) => setTemplate({ ...template, isActive: e.target.checked })}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="editIsActive" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                Template is active
+              </label>
+            </div>
+          </div>
+
+          {/* Questions Summary */}
+          <div>
+            <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">Questions Summary</h4>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Questions</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {getAllQuestions().length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Sections</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {template.sections?.length || (template.questions?.length > 0 ? 1 : 0)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Version</p>
+                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                    v{template.version || 1}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
