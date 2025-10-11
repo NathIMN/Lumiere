@@ -87,8 +87,18 @@ const generatePoliciesReport = asyncHandler(async (req, res) => {
 
   const reportData = await reportsService.generatePoliciesReport(filters);
   
+  // Get user's full name for report attribution
+  const generatedBy = req.user ? 
+    (() => {
+      const firstName = req.user.profile?.firstName || '';
+      const lastName = req.user.profile?.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return fullName || req.user.email || 'System User';
+    })() :
+    'System Administrator';
+  
   if (format === 'pdf') {
-    const pdfBuffer = await reportsService.generatePoliciesPDF(reportData, filters);
+    const pdfBuffer = await reportsService.generatePoliciesPDF(reportData, filters, generatedBy);
     
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="policies-report-${new Date().toISOString().split('T')[0]}.pdf"`);
@@ -136,13 +146,24 @@ const generateClaimsReport = asyncHandler(async (req, res) => {
     dateTo: dateTo ? new Date(dateTo) : null,
     agent,
     amount_min: amount_min ? parseFloat(amount_min) : null,
-    amount_max: amount_max ? parseFloat(amount_max) : null
+    amount_max: amount_max ? parseFloat(amount_max) : null,
+    hrOnly: req.query.hrOnly // Add hrOnly filter for HR-specific claims
   };
 
   const reportData = await reportsService.generateClaimsReport(filters);
   
+  // Get user's full name for report attribution
+  const generatedBy = req.user ? 
+    (() => {
+      const firstName = req.user.profile?.firstName || '';
+      const lastName = req.user.profile?.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return fullName || req.user.email || 'System User';
+    })() :
+    'System Administrator';
+  
   if (format === 'pdf') {
-    const pdfBuffer = await reportsService.generateClaimsPDF(reportData, filters);
+    const pdfBuffer = await reportsService.generateClaimsPDF(reportData, filters, generatedBy);
     
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="claims-report-${new Date().toISOString().split('T')[0]}.pdf"`);
@@ -187,11 +208,66 @@ const generateFinancialReport = asyncHandler(async (req, res) => {
 
   const reportData = await reportsService.generateFinancialReport(filters);
   
+  // Get user's full name for report attribution
+  const generatedBy = req.user ? 
+    (() => {
+      const firstName = req.user.profile?.firstName || '';
+      const lastName = req.user.profile?.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return fullName || req.user.email || 'System User';
+    })() :
+    'System Administrator';
+  
   if (format === 'pdf') {
-    const pdfBuffer = await reportsService.generateFinancialPDF(reportData, filters);
+    const pdfBuffer = await reportsService.generateFinancialPDF(reportData, filters, generatedBy);
     
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="financial-report-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      filters: filters,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @desc    Generate Policy Users Report
+ * @route   GET /api/reports/policy-users/:policyId
+ * @access  Admin, HR, Insurance Agent
+ */
+const generatePolicyUsersReport = asyncHandler(async (req, res) => {
+  const { policyId } = req.params;
+  const { format = 'pdf' } = req.query;
+
+  if (!policyId) {
+    throw new createCustomError('Policy ID is required', StatusCodes.BAD_REQUEST);
+  }
+
+  const filters = {
+    policyId
+  };
+
+  const reportData = await reportsService.generatePolicyUsersReport(filters);
+  
+  // Get user's full name for report attribution
+  const generatedBy = req.user ? 
+    (() => {
+      const firstName = req.user.profile?.firstName || '';
+      const lastName = req.user.profile?.lastName || '';
+      const fullName = `${firstName} ${lastName}`.trim();
+      return fullName || req.user.email || 'System User';
+    })() :
+    'System Administrator';
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generatePolicyUsersPDF(reportData, filters, generatedBy);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="policy-users-report-${policyId}-${new Date().toISOString().split('T')[0]}.pdf"`);
     res.send(pdfBuffer);
   } else {
     res.status(StatusCodes.OK).json({
@@ -300,12 +376,127 @@ const scheduleReport = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Generate Individual Claim Report
+ * @route   GET /api/reports/employee/claim/:claimId
+ * @access  Employee (own claims only)
+ */
+const generateEmployeeClaimReport = asyncHandler(async (req, res) => {
+  const { claimId } = req.params;
+  const { format = 'pdf' } = req.query;
+  const employeeId = req.user.userId || req.user.id;
+
+  console.log('generateEmployeeClaimReport called:');
+  console.log('claimId:', claimId);
+  console.log('employeeId:', employeeId);
+  console.log('user object:', req.user);
+
+  // Validate that the claim belongs to the requesting employee
+  const reportData = await reportsService.generateEmployeeClaimReport(claimId, employeeId);
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateEmployeeClaimPDF(reportData);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="claim-report-${claimId}-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @desc    Generate Employee Claims Summary Report
+ * @route   GET /api/reports/employee/claims-summary
+ * @access  Employee (own claims only)
+ */
+const generateEmployeeClaimsSummaryReport = asyncHandler(async (req, res) => {
+  const { 
+    dateFrom, 
+    dateTo, 
+    status,
+    claimType,
+    format = 'pdf' 
+  } = req.query;
+  const employeeId = req.user.userId || req.user.id;
+
+  console.log('generateEmployeeClaimsSummaryReport called:');
+  console.log('employeeId:', employeeId);
+  console.log('filters:', { dateFrom, dateTo, status, claimType });
+
+  // Validate query parameters
+  if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+    throw new CustomError('Invalid date range: dateFrom cannot be after dateTo', StatusCodes.BAD_REQUEST);
+  }
+
+  const filters = {
+    employeeId,
+    dateFrom: dateFrom ? new Date(dateFrom) : null,
+    dateTo: dateTo ? new Date(dateTo) : null,
+    status,
+    claimType
+  };
+
+  const reportData = await reportsService.generateEmployeeClaimsSummaryReport(filters);
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateEmployeeClaimsSummaryPDF(reportData, filters);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="my-claims-summary-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      filters: filters,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @desc    Generate Individual Policy Report
+ * @route   GET /api/reports/employee/policy/:policyId
+ * @access  Employee (own policies only)
+ */
+const generateEmployeePolicyReport = asyncHandler(async (req, res) => {
+  const { policyId } = req.params;
+  const { format = 'pdf' } = req.query;
+  const employeeId = req.user.userId || req.user.id;
+
+  // Validate that the policy includes the requesting employee
+  const reportData = await reportsService.generateEmployeePolicyReport(policyId, employeeId);
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateEmployeePolicyPDF(reportData);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="policy-report-${policyId}-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
 export {
   generateUsersReport,
   generatePoliciesReport,
   generateClaimsReport,
   generateFinancialReport,
+  generatePolicyUsersReport,
   generateCustomReport,
   getReportTemplates,
-  scheduleReport
+  scheduleReport,
+  generateEmployeeClaimReport,
+  generateEmployeeClaimsSummaryReport,
+  generateEmployeePolicyReport
 };

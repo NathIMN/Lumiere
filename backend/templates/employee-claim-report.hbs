@@ -1,0 +1,134 @@
+<div class="table-section cols-6">
+    <h2 class="table-title">Claim Details</h2>
+    <table class="data-table">
+        <tbody>
+            <tr>
+                <td><strong>Claim ID</strong></td>
+                <td>{{claim.claimId}}</td>
+            </tr>
+            <tr>
+                <td><strong>Policy ID</strong></td>
+                <td>{{claim.policyId}}</td>
+            </tr>
+            <tr>
+                <td><strong>Claim Type</strong></td>
+                <td>{{claim.claimType}}</td>
+            </tr>
+            <tr>
+                <td><strong>Claim Option</strong></td>
+                <td>{{claim.claimOption}}</td>
+            </tr>
+            <tr>
+                <td><strong>Incident Date</strong></td>
+                <td>{{formatDate claim.incidentDate}}</td>
+            </tr>
+            <tr>
+                <td><strong>Submission Date</strong></td>
+                <td>{{formatDate claim.submissionDate}}</td>
+            </tr>
+            <tr>
+                <td><strong>Status</strong></td>
+                <td><span class="status {{claim.status}}">{{claim.status}}</span></td>
+            </tr>
+            <tr>
+                <td><strong>Requested Amount</strong></td>
+                <td>${{formatCurrency claim.requestedAmount}}</td>
+            </tr>
+            {{#if claim.approvedAmount}}
+            <tr>
+                <td><strong>Approved Amount</strong></td>
+                <td>${{formatCurrency claim.approvedAmount}}</td>
+            </tr>
+            {{/if}}
+        </tbody>
+    </table>
+</div>
+
+{{#if claim.description}}
+<div class="table-section">
+    <h2 class="table-title">Incident Description</h2>
+    <div style="padding: 15px; background: #f8fafc; border-radius: 6px; border: 1px solid #e5e7eb;">
+        <p style="margin: 0; line-height: 1.6;">{{claim.description}}</p>
+    </div>
+</div>
+{{/if}}
+
+{{#if claim.timeline}}
+<div class="table-section">
+    <h2 class="table-title">Claim Timeline</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Action Taken</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each claim.timeline}}
+            <tr>
+                <td>{{formatDate date}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td>{{action}}</td>
+                <td>{{notes}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if claim.documents}}
+<div class="table-section">
+    <h2 class="table-title">Supporting Documents</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Document Type</th>
+                <th>File Name</th>
+                <th>Upload Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each claim.documents}}
+            <tr>
+                <td>{{documentType}}</td>
+                <td>{{fileName}}</td>
+                <td>{{formatDate uploadDate}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{#if claim.decision}}
+<div class="table-section">
+    <h2 class="table-title">Decision Details</h2>
+    <table class="data-table">
+        <tbody>
+            <tr>
+                <td><strong>Decision</strong></td>
+                <td><span class="status {{claim.decision.status}}">{{claim.decision.status}}</span></td>
+            </tr>
+            <tr>
+                <td><strong>Decision Date</strong></td>
+                <td>{{formatDate claim.decision.date}}</td>
+            </tr>
+            <tr>
+                <td><strong>Decided By</strong></td>
+                <td>{{claim.decision.decidedBy}}</td>
+            </tr>
+            {{#if claim.decision.reason}}
+            <tr>
+                <td><strong>Reason</strong></td>
+                <td>{{claim.decision.reason}}</td>
+            </tr>
+            {{/if}}
+        </tbody>
+    </table>
+</div>
+{{/if}}

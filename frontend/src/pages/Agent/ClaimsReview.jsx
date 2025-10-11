@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import insuranceApiService from '../../services/insurance-api';
+import reportsApiService from '../../services/reports-api';
 import { policyService } from '../../services/policyService';
 import {
   Search, Filter, Eye, Clock, AlertTriangle, CheckCircle, XCircle, FileText, User, Building2,
@@ -11,6 +12,102 @@ import {
   Layout, Globe, Sliders, ToggleLeft, ToggleRight, Palette, Moon, Sun, ChevronLeft, ChevronsLeft, 
   ChevronsRight, Mail, Shield, Percent, TrendingDown, Calculator
 } from 'lucide-react';
+
+// Reports Dropdown Component
+const ReportsDropdown = ({ filters, onGenerateReport }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const reportTypes = [
+    { 
+      id: 'claims', 
+      label: 'Claims Report', 
+      description: 'Generate detailed claims report with current filters',
+      icon: FileText 
+    },
+    { 
+      id: 'financial', 
+      label: 'Financial Report', 
+      description: 'Generate financial summary report',
+      icon: 'DollarSign' 
+    },
+  ];
+
+  const handleGenerateReport = async (reportType) => {
+    setIsGenerating(true);
+    setIsOpen(false);
+    
+    try {
+      await onGenerateReport(reportType);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={isGenerating}
+        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:from-blue-700 dark:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isGenerating ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <span>Generating...</span>
+          </>
+        ) : (
+          <>
+            <BarChart3 className="h-4 w-4" />
+            <span>Reports</span>
+          </>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-72 lg:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-10 max-w-[calc(100vw-2rem)]">
+          <div className="p-3 lg:p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Export data with current filters applied</p>
+          </div>
+          
+          <div className="p-2">
+            {reportTypes.map((report) => {
+              return (
+                <button
+                  key={report.id}
+                  onClick={() => handleGenerateReport(report.id)}
+                  className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <div className="flex items-start space-x-3">
+                    <FileText className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{report.label}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{report.description}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-3 lg:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Reports will be downloaded as PDF files with current filter settings applied.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-5" 
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
+    </div>
+  );
+};
 
 const ClaimsReview = () => {
   // ==================== STATE MANAGEMENT ====================
@@ -326,6 +423,56 @@ const ClaimsReview = () => {
         document.body.removeChild(toast);
       }
     }, 4000);
+  };
+
+  // ==================== REPORT GENERATION HANDLER ====================
+  const handleGenerateReport = async (reportType) => {
+    try {
+      let blob;
+      const reportFilters = {
+        claimStatus: 'insurer', // For agent page, only include insurer status claims
+      };
+
+      // Add any current filters if they exist
+      if (searchTerm) reportFilters.searchTerm = searchTerm;
+      if (priorityFilter && priorityFilter !== 'all') reportFilters.priority = priorityFilter;
+      if (dateRange.from) reportFilters.startDate = dateRange.from;
+      if (dateRange.to) reportFilters.endDate = dateRange.to;
+      if (amountRange.min) reportFilters.minAmount = amountRange.min;
+      if (amountRange.max) reportFilters.maxAmount = amountRange.max;
+
+      // Clean filters - remove empty values
+      Object.keys(reportFilters).forEach(key => {
+        if (!reportFilters[key]) {
+          delete reportFilters[key];
+        }
+      });
+
+      switch (reportType) {
+        case 'claims':
+          blob = await reportsApiService.generateClaimsReport(reportFilters);
+          break;
+        case 'financial':
+          blob = await reportsApiService.generateFinancialReport(reportFilters);
+          break;
+        default:
+          throw new Error('Invalid report type');
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `agent_${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showToast(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generated successfully`, 'success');
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      showToast(`Failed to generate ${reportType} report: ${error.message}`, 'error');
+    }
   };
 
   // ==================== ACTION HANDLERS ====================
@@ -1631,6 +1778,16 @@ const paginatedClaims = useMemo(() => {
             </div>
 
             <div className="flex items-center gap-4">
+              <ReportsDropdown 
+                filters={{ 
+                  searchTerm, 
+                  priorityFilter, 
+                  dateRange, 
+                  amountRange 
+                }}
+                onGenerateReport={handleGenerateReport}
+              />
+              
               <button
                 onClick={() => loadAllClaims()}
                 disabled={loading}
