@@ -9,7 +9,7 @@ import {
   Eye,
   Users,
   Calendar,
-  DollarSign,
+  Coins,
   AlertTriangle,
   X,
   Save,
@@ -156,6 +156,7 @@ export const AdminPolicies = () => {
       status: 'active',
       notes: ''
     });
+    setErrors({}); // Clear all validation errors
   };
 
   // Initialize coverage details based on policy type
@@ -184,7 +185,7 @@ export const AdminPolicies = () => {
   // Calculate total coverage amount
   const calculateTotalCoverage = (coverageDetails) => {
     return coverageDetails.reduce((total, detail) => {
-      const limit = detail.limit === '' || detail.limit === null || detail.limit === undefined ? 0 : parseInt(detail.limit, 10);
+      const limit = detail.limit === '' || detail.limit === null || detail.limit === undefined ? 0 : parseFloat(detail.limit);
       return total + (isNaN(limit) ? 0 : limit);
     }, 0);
   };
@@ -213,19 +214,19 @@ export const AdminPolicies = () => {
       console.log(`  ${i}: ${detail.type} = "${detail.limit}" (type: ${typeof detail.limit})`);
     });
     
-    // Convert premium amount to integer
+    // Convert premium amount to number (allow decimals)
     prepared.premium = {
       ...prepared.premium,
-      amount: prepared.premium.amount === '' ? 0 : parseInt(prepared.premium.amount, 10)
+      amount: prepared.premium.amount === '' ? 0 : parseFloat(prepared.premium.amount)
     };
     
-    // Convert coverage amounts to integers
+    // Convert coverage amounts to numbers (allow decimals)
     prepared.coverage = {
       ...prepared.coverage,
-      deductible: prepared.coverage.deductible === '' ? 0 : parseInt(prepared.coverage.deductible, 10),
+      deductible: prepared.coverage.deductible === '' ? 0 : parseFloat(prepared.coverage.deductible),
       coverageDetails: prepared.coverage.coverageDetails.map(detail => ({
         ...detail,
-        limit: detail.limit === '' ? 0 : parseInt(detail.limit, 10)
+        limit: detail.limit === '' ? 0 : parseFloat(detail.limit)
       }))
     };
     
@@ -243,6 +244,356 @@ export const AdminPolicies = () => {
     console.log('prepareFormDataForAPI - validity before return:', prepared.validity);
     
     return prepared;
+  };
+
+  // Real-time validation functions
+  const handleNumericChange = (e, fieldPath) => {
+    let value = e.target.value;
+    
+    // Remove any non-numeric characters except decimal point
+    value = value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const decimalCount = (value.match(/\./g) || []).length;
+    if (decimalCount > 1) {
+      const firstDecimalIndex = value.indexOf('.');
+      value = value.substring(0, firstDecimalIndex + 1) + value.substring(firstDecimalIndex + 1).replace(/\./g, '');
+    }
+    
+    // Limit to reasonable number of decimal places (2)
+    if (value.includes('.')) {
+      const [integer, decimal] = value.split('.');
+      value = integer + '.' + decimal.substring(0, 2);
+    }
+    
+    // Create synthetic event
+    const syntheticEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        value: value
+      }
+    };
+    
+    handleInputChange(syntheticEvent, fieldPath);
+  };
+
+  const handleKeyPress = (e, type) => {
+    const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
+    
+    // Always allow control keys
+    if (isControlKey) {
+      return;
+    }
+
+    if (type === 'numeric') {
+      // Allow numbers and decimal point only
+      if (!/[0-9.]/.test(e.key)) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  // Calculate date restrictions
+  const getDateRestrictions = () => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    
+    return {
+      min: todayString, // Start date must be today or later
+      startDateMin: todayString
+    };
+  };
+
+  const dateRestrictions = getDateRestrictions();
+
+  // Get minimum end date based on start date
+  const getEndDateMin = (startDate) => {
+    if (!startDate) return null;
+    const start = new Date(startDate);
+    start.setDate(start.getDate() + 1); // End date must be at least one day after start date
+    return start.toISOString().split('T')[0];
+  };
+
+  // Real-time validation functions
+  const validateField = (fieldPath, value, currentFormData) => {
+    const errors = {};
+    
+    switch (fieldPath) {
+      case 'validity.startDate':
+        if (!value) {
+          errors['validity.startDate'] = 'Start date is required';
+        } else {
+          const startDate = new Date(value);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          startDate.setHours(0, 0, 0, 0);
+          
+          if (startDate < today) {
+            errors['validity.startDate'] = 'Start date must be today or in the future';
+          }
+        }
+        break;
+        
+      case 'validity.endDate':
+        if (!value) {
+          errors['validity.endDate'] = 'End date is required';
+        } else if (!currentFormData.validity.startDate) {
+          errors['validity.endDate'] = 'Please select start date first';
+        } else {
+          const endDate = new Date(value);
+          const startDate = new Date(currentFormData.validity.startDate);
+          
+          if (endDate <= startDate) {
+            errors['validity.endDate'] = 'End date must be after start date';
+          }
+        }
+        break;
+        
+      case 'premium.amount':
+        if (!value) {
+          errors['premium.amount'] = 'Premium amount is required';
+        } else {
+          const amount = parseFloat(value);
+          if (isNaN(amount) || amount <= 0) {
+            errors['premium.amount'] = 'Premium amount must be a positive number';
+          } else if (amount > 10000000) {
+            errors['premium.amount'] = 'Premium amount cannot exceed LKR 10,000,000';
+          }
+        }
+        break;
+        
+      case 'coverage.deductible':
+        if (value && value !== '') {
+          const deductible = parseFloat(value);
+          if (isNaN(deductible) || deductible < 0) {
+            errors['coverage.deductible'] = 'Deductible must be a positive number or zero';
+          } else if (deductible > 1000000) {
+            errors['coverage.deductible'] = 'Deductible cannot exceed LKR 1,000,000';
+          }
+        }
+        break;
+        
+      case 'policyType':
+        if (!value) {
+          errors.policyType = 'Policy type is required';
+        }
+        break;
+        
+      case 'policyCategory':
+        if (!value) {
+          errors.policyCategory = 'Policy category is required';
+        }
+        break;
+        
+      case 'insuranceAgent':
+        if (!value) {
+          errors.insuranceAgent = 'Insurance agent is required';
+        }
+        break;
+    }
+    
+    return errors;
+  };
+
+  // Get real-time validation feedback for a field
+  const getFieldFeedback = (fieldPath, value, currentFormData) => {
+    if (!value && fieldPath !== 'coverage.deductible') return null;
+    
+    switch (fieldPath) {
+      case 'validity.startDate':
+        const startDate = new Date(value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        startDate.setHours(0, 0, 0, 0);
+        
+        if (startDate >= today) {
+          return { type: 'success', message: '✓ Valid start date' };
+        } else {
+          return { type: 'error', message: 'Start date must be today or later' };
+        }
+        
+      case 'validity.endDate':
+        if (!currentFormData.validity.startDate) {
+          return { type: 'warning', message: 'Please select start date first' };
+        }
+        
+        const endDate = new Date(value);
+        const startDateForEnd = new Date(currentFormData.validity.startDate);
+        
+        if (endDate > startDateForEnd) {
+          const diffTime = Math.abs(endDate - startDateForEnd);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return { type: 'success', message: `✓ Valid period (${diffDays} days coverage)` };
+        } else {
+          return { type: 'error', message: 'End date must be after start date' };
+        }
+        
+      case 'premium.amount':
+        const premiumAmount = parseFloat(value);
+        if (!isNaN(premiumAmount) && premiumAmount > 0) {
+          if (premiumAmount <= 10000000) {
+            return { type: 'success', message: `✓ Valid premium amount: LKR ${premiumAmount.toLocaleString()}` };
+          } else {
+            return { type: 'error', message: 'Amount too high (max: LKR 10,000,000)' };
+          }
+        } else {
+          return { type: 'error', message: 'Enter a valid positive amount' };
+        }
+        
+      case 'coverage.deductible':
+        if (!value || value === '') {
+          return { type: 'info', message: 'Optional: Leave empty for no deductible' };
+        }
+        
+        const deductible = parseFloat(value);
+        if (!isNaN(deductible) && deductible >= 0) {
+          if (deductible <= 1000000) {
+            return { type: 'success', message: `✓ Valid deductible: LKR ${deductible.toLocaleString()}` };
+          } else {
+            return { type: 'error', message: 'Deductible too high (max: LKR 1,000,000)' };
+          }
+        } else {
+          return { type: 'error', message: 'Enter a valid positive amount or leave empty' };
+        }
+    }
+    
+    return null;
+  };
+
+  // Enhanced form input change handler with validation
+  const handleInputChange = (e, fieldPath = null) => {
+    const { name, value } = e.target;
+    const actualFieldPath = fieldPath || name;
+    
+    // Update form data
+    if (actualFieldPath.includes('.')) {
+      const [parent, child] = actualFieldPath.split('.');
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [parent]: {
+            ...prev[parent],
+            [child]: value
+          }
+        };
+        
+        // Perform real-time validation with updated data
+        const fieldErrors = validateField(actualFieldPath, value, newData);
+        
+        // Update errors state
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          ...fieldErrors,
+          // Clear error if field is now valid
+          ...(Object.keys(fieldErrors).length === 0 && prevErrors[actualFieldPath] ? { [actualFieldPath]: '' } : {})
+        }));
+        
+        return newData;
+      });
+    } else {
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [actualFieldPath]: value
+        };
+        
+        // Perform real-time validation with updated data
+        const fieldErrors = validateField(actualFieldPath, value, newData);
+        
+        // Update errors state
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          ...fieldErrors,
+          // Clear error if field is now valid
+          ...(Object.keys(fieldErrors).length === 0 && prevErrors[actualFieldPath] ? { [actualFieldPath]: '' } : {})
+        }));
+        
+        return newData;
+      });
+    }
+  };
+
+  // Add errors state
+  const [errors, setErrors] = useState({});
+
+  // Comprehensive form validation
+  const validateForm = (isEdit = false) => {
+    const newErrors = {};
+
+    // Policy type validation
+    if (!formData.policyType) {
+      newErrors.policyType = 'Policy type is required';
+    }
+
+    // Policy category validation
+    if (!formData.policyCategory) {
+      newErrors.policyCategory = 'Policy category is required';
+    }
+
+    // Insurance agent validation
+    if (!formData.insuranceAgent) {
+      newErrors.insuranceAgent = 'Insurance agent is required';
+    }
+
+    // Start date validation
+    if (!formData.validity.startDate) {
+      newErrors['validity.startDate'] = 'Start date is required';
+    } else {
+      const startDate = new Date(formData.validity.startDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      
+      if (startDate < today) {
+        newErrors['validity.startDate'] = 'Start date must be today or in the future';
+      }
+    }
+
+    // End date validation
+    if (!formData.validity.endDate) {
+      newErrors['validity.endDate'] = 'End date is required';
+    } else if (formData.validity.startDate) {
+      const endDate = new Date(formData.validity.endDate);
+      const startDate = new Date(formData.validity.startDate);
+      
+      if (endDate <= startDate) {
+        newErrors['validity.endDate'] = 'End date must be after start date';
+      }
+    }
+
+    // Premium amount validation
+    if (!formData.premium.amount) {
+      newErrors['premium.amount'] = 'Premium amount is required';
+    } else {
+      const amount = parseFloat(formData.premium.amount);
+      if (isNaN(amount) || amount <= 0) {
+        newErrors['premium.amount'] = 'Premium amount must be a positive number';
+      } else if (amount > 10000000) {
+        newErrors['premium.amount'] = 'Premium amount cannot exceed LKR 10,000,000';
+      }
+    }
+
+    // Deductible validation (optional field)
+    if (formData.coverage.deductible && formData.coverage.deductible !== '') {
+      const deductible = parseFloat(formData.coverage.deductible);
+      if (isNaN(deductible) || deductible < 0) {
+        newErrors['coverage.deductible'] = 'Deductible must be a positive number or zero';
+      } else if (deductible > 1000000) {
+        newErrors['coverage.deductible'] = 'Deductible cannot exceed LKR 1,000,000';
+      }
+    }
+
+    // Coverage details validation
+    const invalidLimits = formData.coverage.coverageDetails.filter(detail => 
+      detail.limit !== '' && detail.limit !== 0 && parseFloat(detail.limit) <= 0
+    );
+    if (invalidLimits.length > 0) {
+      newErrors['coverage.coverageDetails'] = 'All non-empty coverage limits must be greater than 0';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const showMessage = (message, isError = false) => {
@@ -329,9 +680,9 @@ export const AdminPolicies = () => {
     try {
       setLoading(true);
       
-      // Validate required fields
-      if (!formData.policyType || !formData.policyCategory || !formData.insuranceAgent) {
-        showMessage('Please fill in all required fields.', true);
+      // Validate form with comprehensive validation
+      if (!validateForm()) {
+        showMessage('Please fix the validation errors before submitting.', true);
         return;
       }
       
@@ -354,7 +705,7 @@ export const AdminPolicies = () => {
       if (apiData.policyType === 'life') {
         response = await insuranceApiService.createLifePolicyWithAllCoverageTypes(apiData, apiData.coverage.coverageDetails);
       } else {
-        response = await insuranceApiService.createVehiclePolicyWithAllCoverageTypes(apiData);
+        response = await insuranceApiService.createVehiclePolicyWithAllCoverageTypes(apiData, apiData.coverage.coverageDetails);
       }
       
       showMessage('Policy created successfully');
@@ -377,9 +728,9 @@ export const AdminPolicies = () => {
     try {
       setLoading(true);
       
-      // Validate required fields
-      if (!formData.policyCategory || !formData.insuranceAgent) {
-        showMessage('Please fill in all required fields.', true);
+      // Validate form with comprehensive validation
+      if (!validateForm(true)) {
+        showMessage('Please fix the validation errors before submitting.', true);
         return;
       }
       
@@ -514,12 +865,12 @@ export const AdminPolicies = () => {
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
                 <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mr-4">
-                  <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <Coins className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total Coverage</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ${stats.typeStats?.reduce((total, stat) => total + (stat.totalCoverage || 0), 0)?.toLocaleString() || '0'}
+                    LKR {stats.typeStats?.reduce((total, stat) => total + (stat.totalCoverage || 0), 0)?.toLocaleString() || '0'}
                   </p>
                 </div>
               </div>
@@ -671,10 +1022,10 @@ export const AdminPolicies = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div>
                             <div className="text-sm font-medium text-gray-900 dark:text-white">
-                              ${policy.coverage.coverageAmount?.toLocaleString() || '0'}
+                              LKR {policy.coverage.coverageAmount?.toLocaleString() || '0'}
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
-                              Premium: ${policy.premium.amount?.toLocaleString() || '0'} 
+                              Premium: LKR {policy.premium.amount?.toLocaleString() || '0'} 
                               {policy.premium.frequency && ` (${policy.premium.frequency})`}
                             </div>
                           </div>
@@ -939,14 +1290,31 @@ export const AdminPolicies = () => {
                     </label>
                     <input
                       type="date"
+                      name="validity.startDate"
                       value={formData.validity.startDate}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        validity: { ...prev.validity, startDate: e.target.value }
-                      }))}
+                      min={dateRestrictions.min}
+                      onChange={(e) => handleInputChange(e, 'validity.startDate')}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        errors['validity.startDate'] 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['validity.startDate'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['validity.startDate']}</p>
+                    )}
+                    {getFieldFeedback('validity.startDate', formData.validity.startDate, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('validity.startDate', formData.validity.startDate, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('validity.startDate', formData.validity.startDate, formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-yellow-600'
+                      }`}>
+                        {getFieldFeedback('validity.startDate', formData.validity.startDate, formData).message}
+                      </p>
+                    )}
                   </div>
                   
                   <div>
@@ -955,14 +1323,34 @@ export const AdminPolicies = () => {
                     </label>
                     <input
                       type="date"
+                      name="validity.endDate"
                       value={formData.validity.endDate}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        validity: { ...prev.validity, endDate: e.target.value }
-                      }))}
+                      min={getEndDateMin(formData.validity.startDate)}
+                      disabled={!formData.validity.startDate}
+                      onChange={(e) => handleInputChange(e, 'validity.endDate')}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        !formData.validity.startDate 
+                          ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
+                          : errors['validity.endDate'] 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['validity.endDate'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['validity.endDate']}</p>
+                    )}
+                    {getFieldFeedback('validity.endDate', formData.validity.endDate, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('validity.endDate', formData.validity.endDate, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('validity.endDate', formData.validity.endDate, formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-yellow-600'
+                      }`}>
+                        {getFieldFeedback('validity.endDate', formData.validity.endDate, formData).message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1011,16 +1399,33 @@ export const AdminPolicies = () => {
                       Deductible
                     </label>
                     <input
-                      type="text" inputMode="numeric" pattern="[0-9]*"
-                      min="0"
-                      
+                      type="text" 
+                      inputMode="numeric" 
+                      name="coverage.deductible"
                       value={formData.coverage.deductible || ""}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        coverage: { ...prev.coverage, deductible: safeIntegerConversion(e.target.value) }
-                      }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      onChange={(e) => handleNumericChange(e, 'coverage.deductible')}
+                      onKeyPress={(e) => handleKeyPress(e, 'numeric')}
+                      placeholder="Enter deductible amount (optional)"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        errors['coverage.deductible'] 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['coverage.deductible'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['coverage.deductible']}</p>
+                    )}
+                    {getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-blue-600'
+                      }`}>
+                        {getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData).message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1051,13 +1456,30 @@ export const AdminPolicies = () => {
                                 Coverage Limit *
                               </label>
                               <input
-                                type="text" inputMode="numeric" pattern="[0-9]*"
-                                min="0"
-                                
+                                type="text" 
+                                inputMode="numeric" 
                                 value={detail.limit || ""}
                                 onChange={(e) => {
+                                  let value = e.target.value;
+                                  
+                                  // Remove any non-numeric characters except decimal point
+                                  value = value.replace(/[^0-9.]/g, '');
+                                  
+                                  // Ensure only one decimal point
+                                  const decimalCount = (value.match(/\./g) || []).length;
+                                  if (decimalCount > 1) {
+                                    const firstDecimalIndex = value.indexOf('.');
+                                    value = value.substring(0, firstDecimalIndex + 1) + value.substring(firstDecimalIndex + 1).replace(/\./g, '');
+                                  }
+                                  
+                                  // Limit to reasonable number of decimal places (2)
+                                  if (value.includes('.')) {
+                                    const [integer, decimal] = value.split('.');
+                                    value = integer + '.' + decimal.substring(0, 2);
+                                  }
+                                  
                                   const newCoverageDetails = [...formData.coverage.coverageDetails];
-                                  newCoverageDetails[index].limit = safeIntegerConversion(e.target.value);
+                                  newCoverageDetails[index].limit = value;
                                   setFormData(prev => ({
                                     ...prev,
                                     coverage: {
@@ -1067,6 +1489,8 @@ export const AdminPolicies = () => {
                                     }
                                   }));
                                 }}
+                                onKeyPress={(e) => handleKeyPress(e, 'numeric')}
+                                placeholder="Enter coverage limit"
                                 required
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                               />
@@ -1097,7 +1521,7 @@ export const AdminPolicies = () => {
                     
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                       <div className="text-sm text-blue-800 dark:text-blue-200">
-                        <strong>Total Coverage Amount: ${formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
+                        <strong>Total Coverage Amount: LKR {formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
                       </div>
                     </div>
                   </div>
@@ -1216,14 +1640,31 @@ export const AdminPolicies = () => {
                     </label>
                     <input
                       type="date"
+                      name="validity.startDate"
                       value={formData.validity.startDate ? formData.validity.startDate.split('T')[0] : ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        validity: { ...prev.validity, startDate: e.target.value }
-                      }))}
+                      min={dateRestrictions.min}
+                      onChange={(e) => handleInputChange(e, 'validity.startDate')}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        errors['validity.startDate'] 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['validity.startDate'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['validity.startDate']}</p>
+                    )}
+                    {getFieldFeedback('validity.startDate', formData.validity.startDate ? formData.validity.startDate.split('T')[0] : '', formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('validity.startDate', formData.validity.startDate ? formData.validity.startDate.split('T')[0] : '', formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('validity.startDate', formData.validity.startDate ? formData.validity.startDate.split('T')[0] : '', formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-yellow-600'
+                      }`}>
+                        {getFieldFeedback('validity.startDate', formData.validity.startDate ? formData.validity.startDate.split('T')[0] : '', formData).message}
+                      </p>
+                    )}
                   </div>
                   
                   <div>
@@ -1232,14 +1673,34 @@ export const AdminPolicies = () => {
                     </label>
                     <input
                       type="date"
+                      name="validity.endDate"
                       value={formData.validity.endDate ? formData.validity.endDate.split('T')[0] : ''}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        validity: { ...prev.validity, endDate: e.target.value }
-                      }))}
+                      min={getEndDateMin(formData.validity.startDate ? formData.validity.startDate.split('T')[0] : '')}
+                      disabled={!formData.validity.startDate}
+                      onChange={(e) => handleInputChange(e, 'validity.endDate')}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        !formData.validity.startDate 
+                          ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed'
+                          : errors['validity.endDate'] 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['validity.endDate'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['validity.endDate']}</p>
+                    )}
+                    {getFieldFeedback('validity.endDate', formData.validity.endDate ? formData.validity.endDate.split('T')[0] : '', formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('validity.endDate', formData.validity.endDate ? formData.validity.endDate.split('T')[0] : '', formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('validity.endDate', formData.validity.endDate ? formData.validity.endDate.split('T')[0] : '', formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-yellow-600'
+                      }`}>
+                        {getFieldFeedback('validity.endDate', formData.validity.endDate ? formData.validity.endDate.split('T')[0] : '', formData).message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1250,17 +1711,32 @@ export const AdminPolicies = () => {
                       Premium Amount *
                     </label>
                     <input
-                      type="text" inputMode="numeric" pattern="[0-9]*"
-                      min="0"
-                      
+                      type="text" 
+                      inputMode="numeric" 
+                      name="premium.amount"
                       value={formData.premium.amount || ""}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        premium: { ...prev.premium, amount: safeIntegerConversion(e.target.value) }
-                      }))}
+                      onChange={(e) => handleNumericChange(e, 'premium.amount')}
+                      onKeyPress={(e) => handleKeyPress(e, 'numeric')}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      placeholder="Enter premium amount"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        errors['premium.amount'] 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['premium.amount'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['premium.amount']}</p>
+                    )}
+                    {getFieldFeedback('premium.amount', formData.premium.amount, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('premium.amount', formData.premium.amount, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('premium.amount', formData.premium.amount, formData).message}
+                      </p>
+                    )}
                   </div>
                   
                   <div>
@@ -1288,16 +1764,33 @@ export const AdminPolicies = () => {
                       Deductible
                     </label>
                     <input
-                      type="text" inputMode="numeric" pattern="[0-9]*"
-                      min="0"
-                      
+                      type="text" 
+                      inputMode="numeric" 
+                      name="coverage.deductible"
                       value={formData.coverage.deductible || ""}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        coverage: { ...prev.coverage, deductible: safeIntegerConversion(e.target.value) }
-                      }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                      onChange={(e) => handleNumericChange(e, 'coverage.deductible')}
+                      onKeyPress={(e) => handleKeyPress(e, 'numeric')}
+                      placeholder="Enter deductible amount (optional)"
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                        errors['coverage.deductible'] 
+                          ? 'border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                      }`}
                     />
+                    {errors['coverage.deductible'] && (
+                      <p className="text-red-500 text-xs mt-1">{errors['coverage.deductible']}</p>
+                    )}
+                    {getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-blue-600'
+                      }`}>
+                        {getFieldFeedback('coverage.deductible', formData.coverage.deductible, formData).message}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1347,13 +1840,30 @@ export const AdminPolicies = () => {
                                 Coverage Limit *
                               </label>
                               <input
-                                type="text" inputMode="numeric" pattern="[0-9]*"
-                                min="0"
-                                
+                                type="text" 
+                                inputMode="numeric" 
                                 value={detail.limit || ""}
                                 onChange={(e) => {
+                                  let value = e.target.value;
+                                  
+                                  // Remove any non-numeric characters except decimal point
+                                  value = value.replace(/[^0-9.]/g, '');
+                                  
+                                  // Ensure only one decimal point
+                                  const decimalCount = (value.match(/\./g) || []).length;
+                                  if (decimalCount > 1) {
+                                    const firstDecimalIndex = value.indexOf('.');
+                                    value = value.substring(0, firstDecimalIndex + 1) + value.substring(firstDecimalIndex + 1).replace(/\./g, '');
+                                  }
+                                  
+                                  // Limit to reasonable number of decimal places (2)
+                                  if (value.includes('.')) {
+                                    const [integer, decimal] = value.split('.');
+                                    value = integer + '.' + decimal.substring(0, 2);
+                                  }
+                                  
                                   const newCoverageDetails = [...formData.coverage.coverageDetails];
-                                  newCoverageDetails[index].limit = safeIntegerConversion(e.target.value);
+                                  newCoverageDetails[index].limit = value;
                                   setFormData(prev => ({
                                     ...prev,
                                     coverage: {
@@ -1363,6 +1873,8 @@ export const AdminPolicies = () => {
                                     }
                                   }));
                                 }}
+                                onKeyPress={(e) => handleKeyPress(e, 'numeric')}
+                                placeholder="Enter coverage limit"
                                 required
                                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                               />
@@ -1393,7 +1905,7 @@ export const AdminPolicies = () => {
                     
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
                       <div className="text-sm text-blue-800 dark:text-blue-200">
-                        <strong>Total Coverage Amount: ${formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
+                        <strong>Total Coverage Amount: LKR {formData.coverage.coverageAmount?.toLocaleString() || '0'}</strong>
                       </div>
                     </div>
                   </div>
@@ -1494,19 +2006,19 @@ export const AdminPolicies = () => {
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Total Coverage:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${selectedPolicy.coverage.coverageAmount?.toLocaleString() || '0'}
+                        LKR {selectedPolicy.coverage.coverageAmount?.toLocaleString() || '0'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Deductible:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${selectedPolicy.coverage.deductible?.toLocaleString() || '0'}
+                        LKR {selectedPolicy.coverage.deductible?.toLocaleString() || '0'}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Premium:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        ${selectedPolicy.premium.amount?.toLocaleString() || '0'} ({selectedPolicy.premium.frequency})
+                        LKR {selectedPolicy.premium.amount?.toLocaleString() || '0'} ({selectedPolicy.premium.frequency})
                       </span>
                     </div>
                   </div>
@@ -1527,7 +2039,7 @@ export const AdminPolicies = () => {
                           {detail.description}
                         </p>
                         <p className="text-lg font-semibold text-blue-600 dark:text-blue-400 mt-2">
-                          ${detail.limit?.toLocaleString() || '0'}
+                          LKR {detail.limit?.toLocaleString() || '0'}
                         </p>
                       </div>
                     ))}

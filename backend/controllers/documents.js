@@ -3,7 +3,7 @@ import asyncWrapper from "../middleware/async.js";
 import { createCustomError } from "../errors/custom-error.js";
 
 const getAllDocuments = asyncWrapper(async (req, res) => {
-  const { type, docType, userId, refId, status = "active" } = req.query;
+  const { type, docType, userId, refId, status = "active", isVerified, uploadedByRole } = req.query;
 
   // Build filter object based on query parameters
   const filter = { status };
@@ -11,6 +11,10 @@ const getAllDocuments = asyncWrapper(async (req, res) => {
   if (docType) filter.docType = docType;
   if (userId) filter.userId = userId;
   if (refId) filter.refId = refId;
+  if (isVerified !== undefined) {
+    filter.isVerified = isVerified === 'true';
+  }
+  if (uploadedByRole) filter.uploadedByRole = uploadedByRole;
 
   const documents = await Document.find(filter).sort({ createdAt: -1 });
   res.status(200).json({
