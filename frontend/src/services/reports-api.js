@@ -115,6 +115,62 @@ class ReportsApiService {
   }
 
   /**
+   * Generate documents report
+   * @param {Object} reportConfig - Report configuration with documents data
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generateDocumentsReport(reportConfig) {
+    const url = `${this.baseURL}/reports/documents`;
+    const config = {
+      headers: this.getAuthHeaders(),
+      method: 'POST',
+      body: JSON.stringify(reportConfig),
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Documents report generation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate custom report
+   * @param {Object} reportConfig - Custom report configuration
+   * @returns {Promise<Blob>} PDF blob
+   */
+  async generateCustomReport(reportConfig) {
+    const url = `${this.baseURL}/reports/custom`;
+    const config = {
+      headers: this.getAuthHeaders(),
+      method: 'POST',
+      body: JSON.stringify(reportConfig),
+    };
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.blob();
+    } catch (error) {
+      console.error('Custom report generation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Download report as PDF blob
    * @param {string} endpoint - API endpoint
    * @returns {Promise<Blob>} PDF blob

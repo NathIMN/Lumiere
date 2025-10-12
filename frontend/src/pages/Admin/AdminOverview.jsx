@@ -270,7 +270,7 @@ export const AdminOverview = () => {
           icon={Coins}
           change={{ type: 'increase', value: 15 }}
         />
-      </div>
+      </div><br />
 
       {/* Detailed Breakdowns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

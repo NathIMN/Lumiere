@@ -1,0 +1,132 @@
+<div class="table-section">
+    <div class="table-title">Storage Overview</div>
+    
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h4>Total Storage Used</h4>
+            <div class="value">{{summary.totalSizeFormatted}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Average File Size</h4>
+            <div class="value">{{summary.averageFileSizeFormatted}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Largest Category</h4>
+            <div class="value">{{summary.largestCategory}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Storage Efficiency</h4>
+            <div class="value">{{summary.storageEfficiency}}%</div>
+        </div>
+    </div>
+</div>
+
+<div class="table-section">
+    <div class="table-title">Storage Usage by Category</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Document Count</th>
+                <th>Total Size</th>
+                <th>Average Size</th>
+                <th>Storage %</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each summary.categorySizeBreakdown}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>{{#lookup ../summary.categoryBreakdown @key}}{{this}}{{/lookup}}</td>
+                <td>{{formatFileSize this}}</td>
+                <td>{{formatFileSize (calculateAvgSize this (lookup ../summary.categoryBreakdown @key))}}</td>
+                <td>{{calculatePercentage this ../summary.totalSize}}%</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+<div class="table-section">
+    <div class="table-title">File Type Distribution</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>File Type</th>
+                <th>Count</th>
+                <th>Total Size</th>
+                <th>Average Size</th>
+                <th>Compression Ratio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each summary.typeBreakdown}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>{{this}}</td>
+                <td>{{#lookup ../summary.typeSizeBreakdown @key}}{{formatFileSize this}}{{/lookup}}</td>
+                <td>{{formatFileSize (calculateAvgSize (lookup ../summary.typeSizeBreakdown @key) this)}}</td>
+                <td>N/A</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+<div class="table-section">
+    <div class="table-title">Storage Growth Trend</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Documents Added</th>
+                <th>Storage Added</th>
+                <th>Cumulative Storage</th>
+                <th>Growth Rate</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each summary.monthlyGrowth}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>{{this.count}}</td>
+                <td>{{formatFileSize this.size}}</td>
+                <td>{{formatFileSize this.cumulative}}</td>
+                <td>{{this.growthRate}}%</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+{{#if (gt largeFiles.length 0)}}
+<div class="table-section large-table">
+    <div class="table-title">Largest Files (Storage Optimization Candidates)</div>
+    <table class="data-table cols-7">
+        <thead>
+            <tr>
+                <th>Document Name</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>% of Total Storage</th>
+                <th>Upload Date</th>
+                <th>Optimization Potential</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each largeFiles}}
+            <tr>
+                <td class="name-col">{{name}}</td>
+                <td>{{category}}</td>
+                <td>{{type}}</td>
+                <td>{{sizeFormatted}}</td>
+                <td>{{calculatePercentage size ../summary.totalSize}}%</td>
+                <td>{{formatDate createdAt}}</td>
+                <td>{{getOptimizationSuggestion size}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}

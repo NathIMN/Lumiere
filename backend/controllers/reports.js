@@ -487,12 +487,134 @@ const generateEmployeePolicyReport = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @desc    Generate Documents Report
+ * @route   POST /api/reports/documents
+ * @access  Admin, HR
+ */
+const generateDocumentsReport = asyncHandler(async (req, res) => {
+  const { 
+    reportType = 'document-analytics',
+    filters = {},
+    documents = [],
+    format = 'pdf' 
+  } = req.body;
+
+  // Validate required fields
+  if (!documents || documents.length === 0) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      message: 'Documents array is required and cannot be empty'
+    });
+  }
+
+  // Process the documents data
+  const processedDocuments = documents.map(doc => ({
+    name: doc.name || doc.originalName || 'Unknown',
+    type: doc.type || 'Unknown',
+    category: doc.category || doc.docType || 'Uncategorized',
+    size: doc.size || 0,
+    sizeFormatted: formatFileSize(doc.size || 0),
+    status: doc.status || 'Unknown',
+    isVerified: doc.isVerified || false,
+    uploadedBy: doc.uploadedBy || 'Unknown',
+    uploadedByRole: doc.uploadedByRole || 'Unknown',
+    createdAt: doc.createdAt || new Date(),
+    updatedAt: doc.updatedAt || new Date(),
+    mimeType: doc.mimeType || 'application/octet-stream'
+  }));
+
+  // Calculate summary statistics
+  const summary = {
+    totalDocuments: processedDocuments.length,
+    totalSize: processedDocuments.reduce((sum, doc) => sum + (doc.size || 0), 0),
+    verifiedCount: processedDocuments.filter(doc => doc.isVerified).length,
+    unverifiedCount: processedDocuments.filter(doc => !doc.isVerified).length,
+    categoryBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.category] = (acc[doc.category] || 0) + 1;
+      return acc;
+    }, {}),
+    typeBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.type] = (acc[doc.type] || 0) + 1;
+      return acc;
+    }, {}),
+    statusBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.status] = (acc[doc.status] || 0) + 1;
+      return acc;
+    }, {}),
+    roleBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.uploadedByRole] = (acc[doc.uploadedByRole] || 0) + 1;
+      return acc;
+    }, {})
+  };
+
+  summary.verificationRate = summary.totalDocuments > 0 ? 
+    ((summary.verifiedCount / summary.totalDocuments) * 100).toFixed(1) : 0;
+  summary.totalSizeFormatted = formatFileSize(summary.totalSize);
+
+  const reportData = {
+    reportTitle: getDocumentReportTitle(reportType),
+    reportType,
+    summary,
+    documents: processedDocuments,
+    filters,
+    generatedBy: req.user ? 
+      (() => {
+        const firstName = req.user.firstName || '';
+        const lastName = req.user.lastName || '';
+        return `${firstName} ${lastName}`.trim() || req.user.email || 'Unknown User';
+      })() :
+      'System Administrator',
+    generatedAt: new Date().toISOString(),
+    appliedFilters: Object.entries(filters).filter(([k,v]) => v && v !== '').map(([k,v]) => `${k}=${v}`).join(', ') || 'None'
+  };
+  
+  if (format === 'pdf') {
+    const pdfBuffer = await reportsService.generateDocumentsPDF(reportData);
+    
+    // Set response headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="document-${reportType}-${new Date().toISOString().split('T')[0]}.pdf"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    res.send(pdfBuffer);
+  } else {
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: reportData,
+      generatedAt: new Date().toISOString()
+    });
+  }
+});
+
+// Helper function for file size formatting
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// Helper function for document report titles
+const getDocumentReportTitle = (reportType) => {
+  const titles = {
+    'document-analytics': 'Document Analytics Report',
+    'document-audit': 'Document Audit Trail Report',
+    'compliance-report': 'Document Compliance Report',
+    'storage-analysis': 'Storage & Category Analysis Report',
+    'verification-summary': 'Document Verification Summary Report'
+  };
+  return titles[reportType] || 'Document Management Report';
+};
+
 export {
   generateUsersReport,
   generatePoliciesReport,
   generateClaimsReport,
   generateFinancialReport,
   generatePolicyUsersReport,
+  generateDocumentsReport,
   generateCustomReport,
   getReportTemplates,
   scheduleReport,

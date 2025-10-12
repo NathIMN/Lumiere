@@ -5,6 +5,7 @@ import {
   generateClaimsReport,
   generateFinancialReport,
   generatePolicyUsersReport,
+  generateDocumentsReport,
   generateCustomReport,
   getReportTemplates,
   scheduleReport,
@@ -63,6 +64,14 @@ router.get('/financial', authenticate, authorize('admin', 'hr_officer', 'insuran
  * @params  ?format=pdf
  */
 router.get('/policy-users/:policyId', authenticate, authorize('admin', 'hr_officer', 'insurance_agent'), generatePolicyUsersReport);
+
+/**
+ * @route   POST /api/reports/documents
+ * @desc    Generate documents report for HR
+ * @access  HR, Admin
+ * @body    { reportType, filters, documents, format }
+ */
+router.post('/documents', authenticate, authorize('admin', 'hr_officer'), generateDocumentsReport);
 
 /**
  * @route   POST /api/reports/custom

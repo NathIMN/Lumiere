@@ -15,9 +15,13 @@ import {
   Tag,
   Archive,
   RefreshCw,
-  MoreVertical
+  MoreVertical,
+  BarChart3,
+  Shield,
+  PieChart
 } from 'lucide-react';
 import documentApiService from '../../services/document-api';
+import reportsApiService from '../../services/reports-api';
 
 // Helper functions
 const formatFileSize = (bytes) => {
@@ -44,6 +48,127 @@ const getFileIcon = (mimeType) => {
   if (mimeType.includes('excel') || mimeType.includes('sheet')) return '📊';
   if (mimeType.startsWith('text/')) return '📄';
   return '📎';
+};
+
+// Document Reports Dropdown Component
+const DocumentReportsDropdown = ({ documents, filters, onGenerateReport }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const reportTypes = [
+    {
+      id: 'document-analytics',
+      title: 'Document Analytics Report',
+      description: 'Comprehensive analytics including usage, verification status, and metrics',
+      icon: BarChart3,
+      color: 'blue'
+    },
+    {
+      id: 'storage-analysis',
+      title: 'Storage & Category Analysis',
+      description: 'Breakdown by types, sizes, categories, and storage usage',
+      icon: Archive,
+      color: 'orange'
+    }
+  ];
+
+  const handleReportSelect = async (reportType) => {
+    try {
+      setLoading(true);
+      setIsOpen(false);
+      
+      // Prepare filter data for the report
+      const reportFilters = {
+        ...filters,
+        totalDocuments: documents.length,
+        verifiedCount: documents.filter(doc => doc.isVerified).length,
+        unverifiedCount: documents.filter(doc => !doc.isVerified).length,
+        categories: documents.reduce((acc, doc) => {
+          acc[doc.docType] = (acc[doc.docType] || 0) + 1;
+          return acc;
+        }, {}),
+        totalSize: documents.reduce((sum, doc) => sum + doc.size, 0)
+      };
+
+      await onGenerateReport(reportType.id, reportFilters);
+    } catch (error) {
+      console.error('Error generating document report:', error);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={loading}
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg transform hover:scale-105 disabled:opacity-50"
+      >
+        <BarChart3 className="h-4 w-4" />
+        <span>{loading ? 'Generating...' : 'Document Reports'}</span>
+        {!loading && (
+          <svg className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Document Reports</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Generate comprehensive reports for {documents.length} documents
+            </p>
+          </div>
+          
+          <div className="p-4 space-y-3">
+            {reportTypes.map((report) => {
+              const Icon = report.icon;
+              return (
+                <button
+                  key={report.id}
+                  onClick={() => handleReportSelect(report)}
+                  disabled={loading}
+                  className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2.5 rounded-lg ${report.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 
+                                                      report.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                                                      report.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                                                      report.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{report.title}</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{report.description}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>Active filters: {Object.values(filters).filter(v => v && v !== '').length}</span>
+              <span>PDF format • Current view scope</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop to close dropdown */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
+    </div>
+  );
 };
 
 // Document Card Component for Grid Layout
@@ -353,6 +478,86 @@ const DocumentPool = () => {
     }
   };
 
+  const handleGenerateDocumentReport = async (reportType, reportData) => {
+    try {
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      // Map report types to more descriptive names for filename
+      const reportTypeNames = {
+        'document-analytics': 'document-analytics',
+        'document-audit': 'document-audit',
+        'compliance-report': 'document-compliance',
+        'storage-analysis': 'storage-analysis',
+        'verification-summary': 'verification-summary'
+      };
+      
+      const filename = `${reportTypeNames[reportType] || reportType}-report-${currentDate}.pdf`;
+      
+      // Prepare document data for backend
+      const documentsData = documents.map(doc => ({
+        name: doc.originalName,
+        type: doc.type,
+        category: doc.docType,
+        size: doc.size,
+        status: doc.status,
+        isVerified: doc.isVerified,
+        uploadedBy: doc.uploadedBy,
+        uploadedByRole: doc.uploadedByRole,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        mimeType: doc.mimeType
+      }));
+
+      // Create report configuration for backend
+      const reportConfig = {
+        reportType,
+        filters: {
+          ...filters,
+          appliedFilters: filters,
+          dateGenerated: new Date().toISOString(),
+          scope: `${documents.length} documents from Document Pool`
+        },
+        documents: documentsData,
+        format: 'pdf'
+      };
+
+      console.log('Generating PDF document report:', reportType);
+      
+      // Use the new documents report endpoint
+      const blob = await reportsApiService.generateDocumentsReport(reportConfig);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message
+      const reportTitle = reportType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      alert(`${reportTitle} PDF report generated successfully!\n\nReport details:\n• ${documents.length} documents included\n• Professional PDF format\n• Comprehensive analytics\n• Category breakdowns\n• Verification status\n\nThe PDF report has been downloaded.`);
+      
+    } catch (error) {
+      console.error('Error generating document report:', error);
+      alert('Failed to generate PDF document report. Please try again.\n\nError: ' + error.message);
+    }
+  };
+
+  // Helper function to get report description
+  const getReportDescription = (reportType) => {
+    const descriptions = {
+      'document-analytics': 'Comprehensive analysis of document types, sizes, categories, and verification status',
+      'document-audit': 'Detailed log of document uploads, modifications, and user interactions',
+      'compliance-report': 'Status report on document verification and compliance requirements',
+      'storage-analysis': 'Breakdown by types, sizes, categories, and storage usage',
+      'verification-summary': 'Summary of verified vs unverified documents by category'
+    };
+    return descriptions[reportType] || 'Document management report';
+  };
+
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
@@ -456,6 +661,11 @@ const DocumentPool = () => {
             Document Pool
           </h1>
           <div className="flex gap-2">
+            <DocumentReportsDropdown 
+              documents={documents}
+              filters={filters}
+              onGenerateReport={handleGenerateDocumentReport}
+            />
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -478,7 +688,7 @@ const DocumentPool = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="text-blue-600 dark:text-blue-400 text-sm font-medium">Total Documents</div>
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{documents.length}</div>
@@ -499,6 +709,12 @@ const DocumentPool = () => {
             <div className="text-purple-600 dark:text-purple-400 text-sm font-medium">Total Size</div>
             <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
               {formatFileSize(documents.reduce((sum, doc) => sum + doc.size, 0))}
+            </div>
+          </div>
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+            <div className="text-indigo-600 dark:text-indigo-400 text-sm font-medium">Categories</div>
+            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+              {new Set(documents.map(doc => doc.docType)).size}
             </div>
           </div>
         </div>
