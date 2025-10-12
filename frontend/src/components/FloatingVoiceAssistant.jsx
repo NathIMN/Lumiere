@@ -21,12 +21,10 @@ const FloatingVoiceAssistant = () => {
   const vapiInitialized = useRef(false);
   const contextService = useRef(new EmployeeContextService());
 
-  // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Fetch employee context on component mount
   useEffect(() => {
     const fetchEmployeeContext = async () => {
       try {
@@ -45,7 +43,6 @@ const FloatingVoiceAssistant = () => {
     fetchEmployeeContext();
   }, []);
 
-  // Check microphone support
   useEffect(() => {
     const checkMicSupport = async () => {
       try {
@@ -65,9 +62,7 @@ const FloatingVoiceAssistant = () => {
     checkMicSupport();
   }, []);
 
-  // Initialize VAPI event listeners
   useEffect(() => {
-    // Prevent double initialization in React StrictMode
     if (vapiInitialized.current) {
       console.log('Lumi VAPI already initialized, skipping...');
       return;
@@ -76,7 +71,6 @@ const FloatingVoiceAssistant = () => {
     console.log('Initializing Lumi VAPI event listeners...');
     vapiInitialized.current = true;
     
-    // Set up VAPI event listeners
     vapi.on("call-start", () => {
       console.log("Lumi voice assistant connected");
       setIsConnected(true);
@@ -106,7 +100,6 @@ const FloatingVoiceAssistant = () => {
     vapi.on("message", (message) => {
       console.log("VAPI Lumi Message:", message);
       
-      // Handle status updates
       if (message.type === "status-update") {
         if (message.status === "ended") {
           setIsConnected(false);
@@ -117,7 +110,6 @@ const FloatingVoiceAssistant = () => {
         return;
       }
       
-      // Handle speech updates
       if (message.type === "speech-update") {
         if (message.role === "assistant") {
           setIsAssistantSpeaking(message.status === "started");
@@ -125,7 +117,6 @@ const FloatingVoiceAssistant = () => {
         return;
       }
       
-      // Handle transcripts
       if (message.type === "transcript") {
         if (message.transcriptType === "final" && message.transcript) {
           if (message.role === "user") {
@@ -174,11 +165,10 @@ const FloatingVoiceAssistant = () => {
       timestamp: new Date()
     };
     setMessages(prev => {
-      // Check if this exact message already exists to prevent duplicates
       const isDuplicate = prev.some(existingMsg => 
         existingMsg.text === text && 
         existingMsg.type === type && 
-        Math.abs(existingMsg.timestamp - message.timestamp) < 1000 // Within 1 second
+        Math.abs(existingMsg.timestamp - message.timestamp) < 1000
       );
       
       if (isDuplicate) {
@@ -199,7 +189,6 @@ const FloatingVoiceAssistant = () => {
       console.log("Starting VAPI call...");
       setIsLoading(true);
       
-      // Generate enhanced system context with employee data
       let systemContext = 'You are Lumi, the Lumiere Insurance voice assistant. Lumiere is a digital-first insurance company with A+ rating, offering life and auto coverage. You assist with claims (submit, track, process), policies (view, manage, renew), account settings (password, profile, 2FA), dashboard navigation, and support contact. Provide helpful, specific information about Lumiere\'s systems, features, and procedures. Keep responses concise but informative and friendly.\n\nIMPORTANT: Never pronounce technical IDs like "VC000005" or "LG0001". Instead, speak naturally: "your auto insurance claim number 5" or "your group life insurance policy". Use friendly language and be conversational.';
       
       if (employeeContext) {
@@ -236,7 +225,6 @@ const FloatingVoiceAssistant = () => {
       await vapi.start(config);
       console.log("VAPI call started successfully");
       
-      // Fallback timeout
       setTimeout(() => {
         if (isLoading && !isConnected) {
           console.log("Call-start timeout, assuming active");
@@ -261,7 +249,6 @@ const FloatingVoiceAssistant = () => {
       console.error("Error stopping call:", err);
     }
     
-    // Force state reset after a short delay to ensure cleanup
     setTimeout(() => {
       setIsConnected(false);
       setIsLoading(false);
@@ -275,7 +262,6 @@ const FloatingVoiceAssistant = () => {
     
     addMessage('user', messageText);
     
-    // For text mode, we'll generate enhanced responses using employee context
     setTimeout(() => {
       const response = generateLumiereResponse(messageText, employeeContext);
       addMessage('assistant', response);
@@ -285,11 +271,9 @@ const FloatingVoiceAssistant = () => {
   const generateLumiereResponse = (query, context) => {
     const lowerQuery = query.toLowerCase();
     
-    // Enhanced responses with context awareness
     if (context && context.employee) {
       const { profile, claims, policies, notifications } = context.employee;
       
-      // Context-aware responses for claims
       if (lowerQuery.includes('my claim') || (lowerQuery.includes('claim') && lowerQuery.includes('status'))) {
         if (claims.summary.total > 0) {
           const recentClaim = claims.summary.recent[0];
@@ -336,7 +320,6 @@ const FloatingVoiceAssistant = () => {
       }
     }
     
-    // Fallback to standard responses for non-context queries
     if (lowerQuery.includes('claim') && (lowerQuery.includes('submit') || lowerQuery.includes('file') || lowerQuery.includes('new'))) {
       return "To submit a new claim: 1) Go to the 'Claims' section in your dashboard, 2) Click 'Submit New Claim', 3) Select claim type (Auto/Life), 4) Fill in incident details and date, 5) Upload supporting documents, 6) Review and submit. You'll receive a claim number for tracking.";
     }
@@ -385,7 +368,6 @@ const FloatingVoiceAssistant = () => {
       return "For emergencies: 1) Ensure everyone's safety first, 2) Call emergency services if needed, 3) For auto accidents, call our 24/7 claims hotline at 1-800-LUMIERE, 4) Take photos and gather information, 5) Don't admit fault. Our emergency team will guide you through next steps.";
     }
     
-    // Default helpful response
     return "I'm Lumi, your Lumiere Insurance assistant! I can help you with claims (submit, track), policies (view, renew), payments, document uploads, account settings, and general navigation. What specific assistance do you need today?";
   };
 
@@ -397,48 +379,13 @@ const FloatingVoiceAssistant = () => {
     }
   };
 
-  const refreshContext = async () => {
-    try {
-      setContextLoading(true);
-      console.log('Manually refreshing employee context...');
-      
-      // Refresh the token in case it was updated
-      contextService.current.refreshToken();
-      
-      const context = await contextService.current.getComprehensiveEmployeeContext();
-      setEmployeeContext(context);
-      console.log('Employee context refreshed:', context);
-      
-      if (context && context.employee) {
-        addMessage('system', `Context refreshed! Found ${context.employee.claims.summary.total} claims and ${context.employee.policies.summary.total} policies.`);
-      } else {
-        addMessage('system', 'Context refresh completed, but no data was found.');
-      }
-    } catch (error) {
-      console.error('Failed to refresh context:', error);
-      addMessage('error', `Failed to refresh context: ${error.message}`);
-    } finally {
-      setContextLoading(false);
-    }
-  };
-
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
   };
 
-  // Don't render if microphone not supported
   if (!microphoneSupported) {
     return null;
   }
-
-  // Determine widget appearance based on state
-  const getStatusIcon = () => {
-    if (isLoading) return "🔄";
-    if (isConnected && isListening) return "🎙️";
-    if (isConnected && isAssistantSpeaking) return "🔊";
-    if (isConnected) return "✅";
-    return "💬";
-  };
 
   const getStatusText = () => {
     if (isLoading && !isConnected) return "Connecting...";
@@ -446,15 +393,63 @@ const FloatingVoiceAssistant = () => {
     if (isConnected && isListening) return "Listening...";
     if (isConnected && isAssistantSpeaking) return "Speaking...";
     if (isConnected) return "Connected";
-    return "Lumi Assistant";
+    return "Ask me anything";
   };
+
+  const MicIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" x2="12" y1="19" y2="22"/>
+    </svg>
+  );
+
+  const StopIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="6" y="6" width="12" height="12" rx="2"/>
+    </svg>
+  );
+
+  const SendIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="22" x2="11" y1="2" y2="13"/>
+      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+    </svg>
+  );
+
+  const ChevronIcon = ({ isExpanded }) => (
+    <svg 
+      width="20" 
+      height="20" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2.5" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+      style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }}
+    >
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  );
 
   return (
     <div className={`lumi-assistant ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      {/* Header / Toggle Button */}
-      <div className="assistant-header" onClick={toggleExpand}>
+      <div 
+        className={`assistant-header ${isListening ? 'listening' : ''} ${isAssistantSpeaking ? 'speaking' : ''}`} 
+        onClick={toggleExpand}
+      >
         <div className="lumi-avatar">
-          <div className="avatar-placeholder">
+          <img 
+            src="/chatbot.png" 
+            alt="Lumi Assistant" 
+            className="avatar-image"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+          <div className="avatar-placeholder" style={{ display: 'none' }}>
             <span className="avatar-initial">L</span>
           </div>
         </div>
@@ -463,14 +458,12 @@ const FloatingVoiceAssistant = () => {
           <span className="lumi-status">{getStatusText()}</span>
         </div>
         <div className="expand-toggle">
-          {isExpanded ? '🔽' : '🔼'}
+          <ChevronIcon isExpanded={isExpanded} />
         </div>
       </div>
 
-      {/* Expanded Content */}
       {isExpanded && (
         <div className="assistant-content">
-          {/* Voice Controls */}
           <div className="voice-controls">
             <div className="control-buttons">
               {!isConnected ? (
@@ -479,7 +472,8 @@ const FloatingVoiceAssistant = () => {
                   disabled={isLoading}
                   className="voice-button start"
                 >
-                  {isLoading ? "Connecting..." : "🎤 Start Voice Mode"}
+                  <span className="icon"><MicIcon /></span>
+                  <span style={{ marginLeft: '6px' }}>{isLoading ? "Connecting..." : "Start Voice"}</span>
                 </button>
               ) : (
                 <button 
@@ -487,46 +481,31 @@ const FloatingVoiceAssistant = () => {
                   disabled={isLoading}
                   className="voice-button stop"
                 >
-                  {isLoading ? "Disconnecting..." : "🛑 Stop Voice Mode"}
+                  <span className="icon"><StopIcon /></span>
+                  <span style={{ marginLeft: '6px' }}>{isLoading ? "Disconnecting..." : "Stop Voice"}</span>
                 </button>
               )}
-              
-              {/* <button 
-                onClick={refreshContext} 
-                disabled={contextLoading}
-                className="voice-button refresh"
-                title="Refresh employee context"
-              >
-                {contextLoading ? "🔄 Refreshing..." : "🔄 Refresh Context"}
-              </button> */}
             </div>
             
             {contextLoading && (
               <div className="context-status">
-                <span>Loading your account information...</span>
+                Loading your account information...
               </div>
             )}
-            
-            {/* {employeeContext && (
-              <div className="context-status success">
-                <span>✅ Account context loaded ({employeeContext.employee.claims.summary.total} claims, {employeeContext.employee.policies.summary.total} policies)</span>
-              </div>
-            )} */}
           </div>
 
-          {/* Messages */}
           <div className="messages-container">
             {messages.length === 0 && (
               <div className="welcome-message">
-                <p>👋 Hi! I'm Lumi, your Lumiere Insurance assistant.</p>
+                <p><strong>Welcome to Lumi!</strong></p>
                 {contextLoading ? (
-                  <p>🔄 Loading your account information to provide personalized assistance...</p>
+                  <p>Loading your account information to provide personalized assistance...</p>
                 ) : employeeContext ? (
-                  <p>✅ I have access to your current account details and can help with your specific claims, policies, notifications, and more!</p>
+                  <p>I have access to your current account details and can help with your specific claims, policies, notifications, and more!</p>
                 ) : (
-                  <p>⚠️ I'm running in basic mode. Click "Refresh Context" above to load your account information for personalized assistance.</p>
+                  <p>I'm here to assist you with all your Lumiere Insurance needs.</p>
                 )}
-                <p>You can use voice mode or type questions below.</p>
+                <p>You can use voice mode or type your questions below.</p>
               </div>
             )}
             {messages.map((message) => (
@@ -542,7 +521,6 @@ const FloatingVoiceAssistant = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Text Input */}
           <form onSubmit={handleSendMessage} className="message-input-form">
             <div className="input-container">
               <input
@@ -558,7 +536,7 @@ const FloatingVoiceAssistant = () => {
                 className="send-button"
                 title="Send message"
               >
-                📤
+                <SendIcon />
               </button>
             </div>
           </form>
