@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Vapi from "@vapi-ai/web";
+import EmployeeContextService from '../utils/employeeContextService';
 import './FloatingVoiceAssistant.css';
 
 const vapi = new Vapi(import.meta.env.VITE_VAPI_PUBLIC_API_KEY || "YOUR_PUBLIC_API_KEY");
@@ -13,14 +14,36 @@ const FloatingVoiceAssistant = () => {
   const [isListening, setIsListening] = useState(false);
   const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
   const [microphoneSupported, setMicrophoneSupported] = useState(true);
+  const [employeeContext, setEmployeeContext] = useState(null);
+  const [contextLoading, setContextLoading] = useState(false);
   
   const messagesEndRef = useRef(null);
   const vapiInitialized = useRef(false);
+  const contextService = useRef(new EmployeeContextService());
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Fetch employee context on component mount
+  useEffect(() => {
+    const fetchEmployeeContext = async () => {
+      try {
+        setContextLoading(true);
+        console.log('Fetching employee context for Lumi...');
+        const context = await contextService.current.getComprehensiveEmployeeContext();
+        setEmployeeContext(context);
+        console.log('Employee context loaded:', context);
+      } catch (error) {
+        console.error('Failed to load employee context:', error);
+      } finally {
+        setContextLoading(false);
+      }
+    };
+
+    fetchEmployeeContext();
+  }, []);
 
   // Check microphone support
   useEffect(() => {
@@ -176,13 +199,25 @@ const FloatingVoiceAssistant = () => {
       console.log("Starting VAPI call...");
       setIsLoading(true);
       
+      // Generate enhanced system context with employee data
+      let systemContext = 'You are Lumi, the Lumiere Insurance voice assistant. Lumiere is a digital-first insurance company with A+ rating, offering life and auto coverage. You assist with claims (submit, track, process), policies (view, manage, renew), account settings (password, profile, 2FA), dashboard navigation, and support contact. Provide helpful, specific information about Lumiere\'s systems, features, and procedures. Keep responses concise but informative and friendly.\n\nIMPORTANT: Never pronounce technical IDs like "VC000005" or "LG0001". Instead, speak naturally: "your auto insurance claim number 5" or "your group life insurance policy". Use friendly language and be conversational.';
+      
+      if (employeeContext) {
+        const contextString = contextService.current.generateContextString(employeeContext);
+        systemContext += `\n\n${contextString}`;
+        console.log(systemContext);
+        console.log('Enhanced system context with employee data');
+      } else {
+        console.log('No employee context available, using basic system prompt');
+      }
+      
       const config = {
         model: {
           provider: 'openai',
           model: 'gpt-3.5-turbo',
           messages: [{
             role: 'system',
-            content: 'You are Lumi, the Lumiere Insurance voice assistant. Lumiere is a digital-first insurance company with A+ rating, offering life and auto coverage. You assist with claims (submit, track, process), policies (view, manage, renew), account settings (password, profile, 2FA), dashboard navigation, and support contact. Provide helpful, specific information about Lumiere\'s systems, features, and procedures. Keep responses concise but informative and friendly.'
+            content: systemContext
           }],
           temperature: 0.7,
           maxTokens: 200
@@ -191,7 +226,9 @@ const FloatingVoiceAssistant = () => {
           provider: 'playht',
           voiceId: 'jennifer'
         },
-        firstMessage: "Hello! I'm Lumi, your Lumiere Insurance assistant. How can I help you today?",
+        firstMessage: employeeContext && employeeContext.employee ? 
+          `Hello ${employeeContext.employee.profile?.profile?.firstName || ''}! I'm Lumi, your Lumiere Insurance assistant. I can see you have ${employeeContext.employee.claims?.summary?.total || 0} claims and ${employeeContext.employee.policies?.summary?.total || 0} policies. How can I help you today?` :
+          "Hello! I'm Lumi, your Lumiere Insurance assistant. I have access to your current account information and can help you with your specific claims, policies, and more. How can I help you today?",
         maxDurationSeconds: 600,
         backgroundSound: 'off'
       };
@@ -238,16 +275,68 @@ const FloatingVoiceAssistant = () => {
     
     addMessage('user', messageText);
     
-    // For text mode, we'll simulate a response based on common insurance queries
+    // For text mode, we'll generate enhanced responses using employee context
     setTimeout(() => {
-      const response = generateLumiereResponse(messageText);
+      const response = generateLumiereResponse(messageText, employeeContext);
       addMessage('assistant', response);
     }, 1000);
   };
 
-  const generateLumiereResponse = (query) => {
+  const generateLumiereResponse = (query, context) => {
     const lowerQuery = query.toLowerCase();
     
+    // Enhanced responses with context awareness
+    if (context && context.employee) {
+      const { profile, claims, policies, notifications } = context.employee;
+      
+      // Context-aware responses for claims
+      if (lowerQuery.includes('my claim') || (lowerQuery.includes('claim') && lowerQuery.includes('status'))) {
+        if (claims.summary.total > 0) {
+          const recentClaim = claims.summary.recent[0];
+          if (recentClaim) {
+            return `Your most recent claim (${recentClaim.claimId}) is a ${recentClaim.type} claim with status: ${recentClaim.status}. You have ${claims.summary.total} total claims. Would you like me to provide more details about any specific claim?`;
+          }
+        }
+        return "I don't see any claims in your account yet. Would you like help submitting a new claim?";
+      }
+      
+      if (lowerQuery.includes('my polic') || (lowerQuery.includes('policy') && (lowerQuery.includes('details') || lowerQuery.includes('information')))) {
+        if (policies.summary.total > 0) {
+          const activePolicies = policies.summary.active;
+          if (activePolicies.length > 0) {
+            const policyList = activePolicies.map(p => `${p.policyId} (${p.type})`).join(', ');
+            return `You have ${policies.summary.total} policies, with ${activePolicies.length} currently active: ${policyList}. Would you like details about any specific policy?`;
+          }
+        }
+        return "I don't see any active policies in your account. Please contact your insurance agent for policy setup.";
+      }
+      
+      if (lowerQuery.includes('notification') || lowerQuery.includes('alert')) {
+        if (notifications.summary.unread > 0) {
+          return `You have ${notifications.summary.unread} unread notifications. Recent ones include: ${notifications.summary.recent.map(n => n.title).join(', ')}. Would you like me to help you review them?`;
+        }
+        return "You're all caught up! No unread notifications at the moment.";
+      }
+      
+      if (lowerQuery.includes('hello') || lowerQuery.includes('hi') || lowerQuery.includes('help')) {
+        const firstName = profile?.profile?.firstName || 'there';
+        let greeting = `Hi ${firstName}! I'm Lumi, and I have access to your account information. `;
+        
+        const highlights = [];
+        if (claims.summary.total > 0) highlights.push(`${claims.summary.total} claims`);
+        if (policies.summary.total > 0) highlights.push(`${policies.summary.total} policies`);
+        if (notifications.summary.unread > 0) highlights.push(`${notifications.summary.unread} unread notifications`);
+        
+        if (highlights.length > 0) {
+          greeting += `I can see you have ${highlights.join(', ')}. `;
+        }
+        
+        greeting += `How can I help you today?`;
+        return greeting;
+      }
+    }
+    
+    // Fallback to standard responses for non-context queries
     if (lowerQuery.includes('claim') && (lowerQuery.includes('submit') || lowerQuery.includes('file') || lowerQuery.includes('new'))) {
       return "To submit a new claim: 1) Go to the 'Claims' section in your dashboard, 2) Click 'Submit New Claim', 3) Select claim type (Auto/Life), 4) Fill in incident details and date, 5) Upload supporting documents, 6) Review and submit. You'll receive a claim number for tracking.";
     }
@@ -308,6 +397,31 @@ const FloatingVoiceAssistant = () => {
     }
   };
 
+  const refreshContext = async () => {
+    try {
+      setContextLoading(true);
+      console.log('Manually refreshing employee context...');
+      
+      // Refresh the token in case it was updated
+      contextService.current.refreshToken();
+      
+      const context = await contextService.current.getComprehensiveEmployeeContext();
+      setEmployeeContext(context);
+      console.log('Employee context refreshed:', context);
+      
+      if (context && context.employee) {
+        addMessage('system', `Context refreshed! Found ${context.employee.claims.summary.total} claims and ${context.employee.policies.summary.total} policies.`);
+      } else {
+        addMessage('system', 'Context refresh completed, but no data was found.');
+      }
+    } catch (error) {
+      console.error('Failed to refresh context:', error);
+      addMessage('error', `Failed to refresh context: ${error.message}`);
+    } finally {
+      setContextLoading(false);
+    }
+  };
+
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
   };
@@ -358,23 +472,46 @@ const FloatingVoiceAssistant = () => {
         <div className="assistant-content">
           {/* Voice Controls */}
           <div className="voice-controls">
-            {!isConnected ? (
-              <button 
-                onClick={startVoiceCall} 
-                disabled={isLoading}
-                className="voice-button start"
+            <div className="control-buttons">
+              {!isConnected ? (
+                <button 
+                  onClick={startVoiceCall} 
+                  disabled={isLoading}
+                  className="voice-button start"
+                >
+                  {isLoading ? "Connecting..." : "🎤 Start Voice Mode"}
+                </button>
+              ) : (
+                <button 
+                  onClick={stopVoiceCall} 
+                  disabled={isLoading}
+                  className="voice-button stop"
+                >
+                  {isLoading ? "Disconnecting..." : "🛑 Stop Voice Mode"}
+                </button>
+              )}
+              
+              {/* <button 
+                onClick={refreshContext} 
+                disabled={contextLoading}
+                className="voice-button refresh"
+                title="Refresh employee context"
               >
-                {isLoading ? "Connecting..." : "🎤 Start Voice Mode"}
-              </button>
-            ) : (
-              <button 
-                onClick={stopVoiceCall} 
-                disabled={isLoading}
-                className="voice-button stop"
-              >
-                {isLoading ? "Disconnecting..." : "🛑 Stop Voice Mode"}
-              </button>
+                {contextLoading ? "🔄 Refreshing..." : "🔄 Refresh Context"}
+              </button> */}
+            </div>
+            
+            {contextLoading && (
+              <div className="context-status">
+                <span>Loading your account information...</span>
+              </div>
             )}
+            
+            {/* {employeeContext && (
+              <div className="context-status success">
+                <span>✅ Account context loaded ({employeeContext.employee.claims.summary.total} claims, {employeeContext.employee.policies.summary.total} policies)</span>
+              </div>
+            )} */}
           </div>
 
           {/* Messages */}
@@ -382,7 +519,14 @@ const FloatingVoiceAssistant = () => {
             {messages.length === 0 && (
               <div className="welcome-message">
                 <p>👋 Hi! I'm Lumi, your Lumiere Insurance assistant.</p>
-                <p>I can help you with claims, policies, payments, and more. You can use voice mode or type questions below.</p>
+                {contextLoading ? (
+                  <p>🔄 Loading your account information to provide personalized assistance...</p>
+                ) : employeeContext ? (
+                  <p>✅ I have access to your current account details and can help with your specific claims, policies, notifications, and more!</p>
+                ) : (
+                  <p>⚠️ I'm running in basic mode. Click "Refresh Context" above to load your account information for personalized assistance.</p>
+                )}
+                <p>You can use voice mode or type questions below.</p>
               </div>
             )}
             {messages.map((message) => (
