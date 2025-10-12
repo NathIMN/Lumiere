@@ -5,14 +5,12 @@ import {
   ArrowLeft, 
   ChevronUp, 
   ChevronDown,
-  Calendar,
   DollarSign,
   User,
   FileText,
   Clock,
   CheckCircle,
   XCircle,
-  History,
   Send,
   AlertTriangle,
   MessageSquare
@@ -82,24 +80,21 @@ export const ClaimTable = ({
     return `Rs. ${amount.toLocaleString('en-LK')}`;
   };
 
-  // Fixed function to calculate days ago correctly
   const getDaysAgo = (dateString) => {
     if (!dateString) return 0;
     
     const today = new Date();
     const submittedDate = new Date(dateString);
     
-    // Set both dates to midnight for accurate day comparison
     today.setHours(0, 0, 0, 0);
     submittedDate.setHours(0, 0, 0, 0);
     
     const diffTime = today - submittedDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
-    return Math.max(0, diffDays); // Ensure we don't get negative days
+    return Math.max(0, diffDays);
   };
 
-  // Helper function to format "days ago" text
   const formatDaysAgo = (dateString) => {
     const days = getDaysAgo(dateString);
     
@@ -195,7 +190,7 @@ export const ClaimTable = ({
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
-                <span>Claim ID</span>
+                <span>Claim ID & Employee</span>
                 {getSortIcon('claimId')}
               </div>
             </th>
@@ -269,12 +264,15 @@ export const ClaimTable = ({
                   <div className="flex items-center space-x-2">
                     <div>
                       <div className="flex items-center space-x-2">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {claim.claimId}
                         </div>
                         {hasActivity && (
                           <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" title="Recent activity"></div>
                         )}
+                      </div>
+                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {claim.employeeId?.fullName || `${claim.employeeId?.firstName || ''} ${claim.employeeId?.lastName || ''}`.trim() || 'N/A'}
                       </div>
                       {urgencyIndicator && (
                         <div className="flex items-center space-x-1 mt-1">

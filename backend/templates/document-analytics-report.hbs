@@ -1,0 +1,128 @@
+<div class="table-section">
+    <div class="table-title">Document Management Summary</div>
+    
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h4>Total Documents</h4>
+            <div class="value">{{summary.totalDocuments}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Total Storage</h4>
+            <div class="value">{{summary.totalSizeFormatted}}</div>
+        </div>
+        <div class="summary-card">
+            <h4>Verified Documents</h4>
+            <div class="value">{{summary.verifiedCount}} ({{summary.verificationRate}}%)</div>
+        </div>
+        <div class="summary-card">
+            <h4>Unverified Documents</h4>
+            <div class="value">{{summary.unverifiedCount}}</div>
+        </div>
+    </div>
+</div>
+
+<div class="table-section">
+    <div class="table-title">Category Breakdown</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Document Count</th>
+                <th>Percentage</th>
+                <th>Total Size</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each summary.categoryBreakdown}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>{{this}}</td>
+                <td>{{#calculatePercentage this ../summary.totalDocuments}}{{/calculatePercentage}}%</td>
+                <td>{{#lookup ../summary.categorySizeBreakdown @key}}{{formatFileSize this}}{{/lookup}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+<div class="table-section">
+    <div class="table-title">Document Type Analysis</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Document Type</th>
+                <th>Count</th>
+                <th>Percentage</th>
+                <th>Average Size</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each summary.typeBreakdown}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>{{this}}</td>
+                <td>{{#calculatePercentage this ../summary.totalDocuments}}{{/calculatePercentage}}%</td>
+                <td>{{#lookup ../summary.typeAvgSizeBreakdown @key}}{{formatFileSize this}}{{/lookup}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+<div class="table-section">
+    <div class="table-title">Upload Activity by Role</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>User Role</th>
+                <th>Documents Uploaded</th>
+                <th>Percentage</th>
+                <th>Total Size Contributed</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each summary.roleBreakdown}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>{{this}}</td>
+                <td>{{#calculatePercentage this ../summary.totalDocuments}}{{/calculatePercentage}}%</td>
+                <td>{{#lookup ../summary.roleSizeBreakdown @key}}{{formatFileSize this}}{{/lookup}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+
+{{#if (gt documents.length 0)}}
+<div class="table-section large-table">
+    <div class="table-title">Detailed Document Listing</div>
+    <table class="data-table cols-{{#if (gt documents.length 50)}}8{{else}}7{{/if}}">
+        <thead>
+            <tr>
+                <th>Document Name</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th>Size</th>
+                <th>Status</th>
+                <th>Verified</th>
+                <th>Uploaded By</th>
+                <th>Upload Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each documents}}
+            <tr>
+                <td class="name-col">{{name}}</td>
+                <td>{{type}}</td>
+                <td>{{category}}</td>
+                <td>{{sizeFormatted}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td>{{#if isVerified}}<span class="status active">Verified</span>{{else}}<span class="status pending">Pending</span>{{/if}}</td>
+                <td>{{uploadedBy}}</td>
+                <td>{{formatDate createdAt}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}

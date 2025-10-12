@@ -1,3 +1,15 @@
+// Bank-specific account number configurations
+const BANK_CONFIGS = {
+  'Bank of Ceylon': { digits: 10 },
+  'Hatton National Bank': { digits: 12 },
+  'Commercial Bank': { digits: 10 },
+  'Sampath Bank': { digits: 12 },
+  'Peoples Bank': { digits: 15 },
+  'Nations Trust Bank': { digits: 12 },
+  'DFCC Bank': { digits: 12 },
+  'NDB Bank': { digits: 12 }
+};
+
 export const validateForm = (formData) => {
   const errors = {};
   
@@ -34,16 +46,13 @@ export const validateForm = (formData) => {
   if (!formData.profile.nic) {
     errors.nic = 'NIC is required';
   } else {
-    // Updated NIC validation to handle both old and new formats
     const nic = formData.profile.nic.toUpperCase();
     
     if (nic.includes('V')) {
-      // Old NIC format validation (9 digits + V)
       if (!/^\d{9}V$/.test(nic)) {
         errors.nic = 'Invalid old NIC format. Must be 9 digits followed by V (e.g., 123456789V)';
       }
     } else {
-      // New NIC format validation (12 digits)
       if (!/^\d{12}$/.test(nic)) {
         errors.nic = 'Invalid new NIC format. Must be exactly 12 digits (e.g., 123456789012)';
       }
@@ -73,16 +82,6 @@ export const validateForm = (formData) => {
     
     if (!formData.employment.joinDate) {
       errors.joinDate = 'Join date is required';
-    } else {
-      // Validate join date is not in the future (account for timezone issues)
-      const joinDate = new Date(formData.employment.joinDate);
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1); // Set to yesterday to avoid timezone issues
-      yesterday.setHours(23, 59, 59, 999); // End of yesterday
-      
-      if (joinDate > yesterday) {
-        errors.joinDate = 'Join date cannot be in the future';
-      }
     }
     
     if (!formData.employment.salary) {
@@ -106,8 +105,21 @@ export const validateForm = (formData) => {
     
     if (!formData.bankDetails.accountNumber) {
       errors.accountNumber = 'Account number is required';
-    } else if (!/^\d{8,20}$/.test(formData.bankDetails.accountNumber)) {
-      errors.accountNumber = 'Account number must be 8-20 digits';
+    } else {
+      const accountNumber = formData.bankDetails.accountNumber;
+      const bankName = formData.bankDetails.bankName;
+      
+      // Check if account number contains only digits
+      if (!/^\d+$/.test(accountNumber)) {
+        errors.accountNumber = 'Account number must contain only digits';
+      } 
+      // Validate against bank-specific requirements
+      else if (bankName && BANK_CONFIGS[bankName]) {
+        const requiredDigits = BANK_CONFIGS[bankName].digits;
+        if (accountNumber.length !== requiredDigits) {
+          errors.accountNumber = `Invalid account number for ${bankName}`;
+        }
+      }
     }
   }
   
@@ -140,21 +152,19 @@ export const validateForm = (formData) => {
   return errors;
 };
 
-// Helper function to validate NIC format (can be used elsewhere in your app)
+// Helper function to validate NIC format
 export const validateNIC = (nic) => {
   if (!nic) return { isValid: false, message: 'NIC is required' };
   
   const nicUpper = nic.toUpperCase();
   
   if (nicUpper.includes('V')) {
-    // Old NIC format validation (9 digits + V)
     if (/^\d{9}V$/.test(nicUpper)) {
       return { isValid: true, message: 'Valid old NIC format' };
     } else {
       return { isValid: false, message: 'Invalid old NIC format. Must be 9 digits followed by V' };
     }
   } else {
-    // New NIC format validation (12 digits)
     if (/^\d{12}$/.test(nicUpper)) {
       return { isValid: true, message: 'Valid new NIC format' };
     } else {
@@ -163,28 +173,60 @@ export const validateNIC = (nic) => {
   }
 };
 
+// Helper function to validate account number for a specific bank
+export const validateAccountNumberForBank = (accountNumber, bankName) => {
+  if (!accountNumber) {
+    return { isValid: false, message: 'Account number is required' };
+  }
+  
+  if (!/^\d+$/.test(accountNumber)) {
+    return { isValid: false, message: 'Account number must contain only digits' };
+  }
+  
+  if (!bankName) {
+    return { isValid: false, message: 'Please select a bank first' };
+  }
+  
+  const bankConfig = BANK_CONFIGS[bankName];
+  if (!bankConfig) {
+    // Fallback validation for unknown banks
+    if (accountNumber.length >= 8 && accountNumber.length <= 20) {
+      return { isValid: true, message: 'Valid account number' };
+    }
+    return { isValid: false, message: 'Account number must be 8-20 digits' };
+  }
+  
+  if (accountNumber.length === bankConfig.digits) {
+    return { isValid: true, message: `Valid ${bankName} account number` };
+  }
+  
+  return { 
+    isValid: false, 
+    message: `Account number must be exactly ${bankConfig.digits} digits for ${bankName}` 
+  };
+};
+
 export const handleKeyPress = (e, type) => {
   const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
   
-  // Always allow control keys
   if (isControlKey) {
     return;
   }
 
   if (type === 'name') {
-    // Allow letters and space only
     if (!/[a-zA-Z\s]/.test(e.key)) {
       e.preventDefault();
     }
   } else if (type === 'phone' || type === 'accountNumber') {
-    // Allow numbers only
     if (!/[0-9]/.test(e.key)) {
       e.preventDefault();
     }
   } else if (type === 'nic') {
-    // Allow numbers and V only for NIC
     if (!/[0-9V]/.test(e.key.toUpperCase())) {
       e.preventDefault();
     }
   }
 };
+
+// Export bank configurations for use in components
+export { BANK_CONFIGS };

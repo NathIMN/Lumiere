@@ -7,7 +7,9 @@
                 <th>Full Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                {{#if (isEmployeeReport filters)}}
                 <th>Department</th>
+                {{/if}}
                 <th>Hire Date</th>
                 <th>Status</th>
                 <th>Last Login</th>
@@ -16,11 +18,13 @@
     <tbody>
         {{#each users}}
         <tr>
-            <td class="id-col">{{employeeId}}</td>
+            <td class="id-col">{{userId}}</td>
             <td class="name-col">{{fullName}}</td>
             <td class="email-col">{{email}}</td>
             <td>{{role}}</td>
-            <td>{{department}}</td>
+            {{#if (isEmployeeReport ../filters)}}
+                <td>{{department}}</td>
+            {{/if}}
             <td>{{formatDate hireDate}}</td>
             <td><span class="status {{status}}">{{status}}</span></td>
             <td>{{formatDate lastLogin}}</td>
@@ -30,7 +34,7 @@
 </table>
 </div>
 
-{{#if usersByRole}}
+{{!-- {{#if usersByRole}}
 <div class="letterhead">
     <div class="letterhead-left">
         <div class="company-name">LUMIERE INSURANCE</div>
@@ -63,8 +67,8 @@
         </tbody>
     </table>
 </div>
-{{/if}}
-
+{{/if}} --}}
+{{#if (isEmployeeReport filters)}}
 {{#if usersByDepartment}}
 <div class="letterhead">
     <div class="letterhead-left">
@@ -72,9 +76,11 @@
         <h1 class="report-title">{{reportTitle}}</h1>
         <p class="report-subtitle">{{reportSubtitle}}</p>
     </div>
-    <div class="letterhead-right">
-        <img src="data:image/svg+xml;base64,{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
-    </div>
+            <div class="letterhead-right">
+               {{#if logoBase64}}
+               <img src="{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
+               {{/if}}
+            </div>
 </div>
 
 <div class="table-section cols-6">
@@ -98,4 +104,5 @@
         </tbody>
     </table>
 </div>
+{{/if}}
 {{/if}}

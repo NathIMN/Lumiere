@@ -9,7 +9,7 @@ import {
   ArrowRight,
   AlertCircle,
   FileText,
-  BarChart3,
+  Download,
   History,
   Send,
   ArrowLeft
@@ -82,121 +82,17 @@ const Notification = ({ message, type = 'success', onClose }) => {
   );
 };
 
-// Reports Dropdown Component
-const ReportsDropdown = ({ filters, onGenerateReport }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const reportTypes = [
-    { 
-      id: 'claims', 
-      label: 'Claims Report', 
-      description: 'Generate detailed claims report with current filters',
-      icon: FileText 
-    },
-    { 
-      id: 'financial', 
-      label: 'Financial Report', 
-      description: 'Generate financial summary report',
-      icon: 'DollarSign' 
-    },
-    // { 
-    //   id: 'activity', 
-    //   label: 'Activity Report', 
-    //   description: 'Generate HR activity and claim processing report',
-    //   icon: History 
-    // }
-  ];
-
-  const handleGenerateReport = async (reportType) => {
-    setIsGenerating(true);
-    setIsOpen(false);
-    
-    try {
-      await onGenerateReport(reportType);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isGenerating}
-        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:from-blue-700 dark:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isGenerating ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>Generating...</span>
-          </>
-        ) : (
-          <>
-            <BarChart3 className="h-4 w-4" />
-            <span>Reports</span>
-          </>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 lg:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-10 max-w-[calc(100vw-2rem)]">
-          <div className="p-3 lg:p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Export data with current filters applied</p>
-          </div>
-          
-          <div className="p-2">
-            {reportTypes.map((report) => {
-              const Icon = report.icon;
-              return (
-                <button
-                  key={report.id}
-                  onClick={() => handleGenerateReport(report.id)}
-                  className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <div className="flex items-start space-x-3">
-                    <FileText className="h-5 w-5 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{report.label}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{report.description}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="p-3 lg:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Reports will be downloaded as PDF files with current filter settings applied.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-5" 
-          onClick={() => setIsOpen(false)}
-        ></div>
-      )}
-    </div>
-  );
-};
-
-// Updated Quick Action Panel Component - HR specific
-// REMOVED - Functionality moved to ClaimStats component to avoid duplication
-
 export const HRClaimReview = () => {
   const navigate = useNavigate();
   
   // State management
   const [claims, setClaims] = useState([]);
+  const [allClaims, setAllClaims] = useState([]); // Store unfiltered claims
   const [stats, setStats] = useState({});
   const [claimsRequiringAction, setClaimsRequiringAction] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   
   // Notification state
   const [notification, setNotification] = useState(null);
@@ -208,11 +104,9 @@ export const HRClaimReview = () => {
     employeeId: '',
     startDate: '',
     endDate: '',
-    searchTerm: '',
+    claimId: '',
+    employeeName: '',
     hrAction: '',
-    urgency: '',
-    hasReturnReason: '',
-    hasHRNotes: '',
     daysOld: ''
   });
   
@@ -245,19 +139,81 @@ export const HRClaimReview = () => {
     fetchClaims();
     fetchStats();
     fetchClaimsRequiringAction();
-  }, [filters, pagination.page, sortBy, sortOrder]);
+  }, [
+    filters.claimStatus,
+    filters.claimType,
+    filters.employeeId,
+    filters.startDate,
+    filters.endDate,
+    filters.hrAction,
+    filters.daysOld,
+    pagination.page,
+    sortBy,
+    sortOrder
+  ]); // Exclude claimId and employeeName from dependencies since they're filtered on frontend
+
+  // Apply frontend filtering whenever claimId or employeeName changes
+  useEffect(() => {
+    if (allClaims.length === 0) return;
+
+    let filteredClaims = [...allClaims];
+
+    // Filter by Claim ID (exact match)
+    if (filters.claimId && filters.claimId.trim()) {
+      filteredClaims = filteredClaims.filter(claim => 
+        claim.claimId === filters.claimId.trim()
+      );
+    }
+
+    // Filter by Employee Name (first name starts with, then space + last name starts with)
+    if (filters.employeeName && filters.employeeName.trim()) {
+      const searchTerm = filters.employeeName.trim().toLowerCase();
+      const searchParts = searchTerm.split(/\s+/);
+      
+      filteredClaims = filteredClaims.filter(claim => {
+        if (!claim.employeeId || !claim.employeeId.fullName) return false;
+        
+        const fullName = claim.employeeId.fullName.toLowerCase();
+        
+        if (searchParts.length === 1) {
+          return fullName.startsWith(searchParts[0]);
+        } else if (searchParts.length >= 2) {
+          const nameParts = fullName.split(/\s+/);
+          
+          if (nameParts.length < 2) return false;
+          
+          const firstName = nameParts[0];
+          const lastName = nameParts[nameParts.length - 1];
+          
+          return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
+        }
+        
+        return false;
+      });
+    }
+
+    setClaims(filteredClaims);
+    setPagination(prev => ({
+      ...prev,
+      totalClaims: filteredClaims.length
+    }));
+  }, [filters.claimId, filters.employeeName, allClaims]);
 
   const fetchClaims = async () => {
     try {
       setLoading(true);
 
-      // Clean filters - remove empty values
-    const cleanFilters = Object.keys(filters).reduce((acc, key) => {
-      if (filters[key] && filters[key] !== '') {
-        acc[key] = filters[key];
-      }
-      return acc;
-    }, {});
+      // Clean filters - remove empty values and exclude frontend-only filters
+      const cleanFilters = Object.keys(filters).reduce((acc, key) => {
+        // Exclude claimId and employeeName from backend request (frontend filtering)
+        if (key === 'claimId' || key === 'employeeName') {
+          return acc;
+        }
+        if (filters[key] && filters[key] !== '') {
+          acc[key] = filters[key];
+        }
+        return acc;
+      }, {});
       
       // Enhanced debugging - log the exact request being sent
       const requestParams = {
@@ -329,17 +285,61 @@ export const HRClaimReview = () => {
           claimsData = [];
         }
       }
+
+      // Store all claims for frontend filtering
+      setAllClaims(claimsData);
+
+      // Apply initial frontend filtering
+      let filteredClaims = claimsData;
+
+      // Filter by Claim ID (exact match)
+      if (filters.claimId && filters.claimId.trim()) {
+        filteredClaims = filteredClaims.filter(claim => 
+          claim.claimId === filters.claimId.trim()
+        );
+      }
+
+      // Filter by Employee Name (first name starts with, then space + last name starts with)
+      if (filters.employeeName && filters.employeeName.trim()) {
+        const searchTerm = filters.employeeName.trim().toLowerCase();
+        const searchParts = searchTerm.split(/\s+/);
+        
+        filteredClaims = filteredClaims.filter(claim => {
+          if (!claim.employeeId || !claim.employeeId.fullName) return false;
+          
+          const fullName = claim.employeeId.fullName.toLowerCase();
+          
+          if (searchParts.length === 1) {
+            // Single word: match if full name starts with this word
+            return fullName.startsWith(searchParts[0]);
+          } else if (searchParts.length >= 2) {
+            // Multiple words: match first name starts with first part AND last name starts with second part
+            const nameParts = fullName.split(/\s+/);
+            
+            if (nameParts.length < 2) return false;
+            
+            const firstName = nameParts[0];
+            const lastName = nameParts[nameParts.length - 1];
+            
+            // Check if first name starts with first search part AND last name starts with second search part
+            return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
+          }
+          
+          return false;
+        });
+      }
       
       console.log('=== PROCESSED DATA DEBUG ===');
-      console.log('Final claimsData length:', claimsData.length);
+      console.log('Final claimsData length:', filteredClaims.length);
       console.log('Final paginationData:', paginationData);
-      console.log('First few claims:', claimsData.slice(0, 3));
+      console.log('First few claims:', filteredClaims.slice(0, 3));
       console.log('=============================');
       
-      setClaims(claimsData);
+      setClaims(filteredClaims);
       setPagination(prev => ({
         ...prev,
-        ...paginationData
+        ...paginationData,
+        totalClaims: filteredClaims.length // Update to show filtered count
       }));
       
     } catch (err) {
@@ -479,54 +479,42 @@ export const HRClaimReview = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  // Report generation handler
-  const handleGenerateReport = async (reportType) => {
+  // Simplified report generation - directly download claims report
+  const handleGenerateClaimsReport = async () => {
+    setIsGeneratingReport(true);
+    
     try {
-      let blob;
       const reportFilters = {
         ...filters,
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
+        hrOnly: true
       };
 
-      // For claims report from HR page, only include HR status claims
-      if (reportType === 'claims') {
-        reportFilters.hrOnly = true;
-      }
-
+      // Remove empty filters
       Object.keys(reportFilters).forEach(key => {
-        if (!reportFilters[key]) {
+        if (!reportFilters[key] && reportFilters[key] !== false) {
           delete reportFilters[key];
         }
       });
 
-      switch (reportType) {
-        case 'claims':
-          blob = await reportsApiService.generateClaimsReport(reportFilters);
-          break;
-        case 'financial':
-          blob = await reportsApiService.generateFinancialReport(reportFilters);
-          break;
-        case 'activity':
-          blob = await reportsApiService.generateActivityReport(reportFilters);
-          break;
-        default:
-          throw new Error('Invalid report type');
-      }
+      const blob = await reportsApiService.generateClaimsReport(reportFilters);
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `claims_report_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      showNotification(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generated successfully`, 'success');
+      showNotification('Claims report generated successfully', 'success');
     } catch (error) {
       console.error('Report generation failed:', error);
-      showNotification(`Failed to generate ${reportType} report: ${error.message}`, 'error');
+      showNotification(`Failed to generate claims report: ${error.message}`, 'error');
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -564,10 +552,24 @@ export const HRClaimReview = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:space-x-4 flex-shrink-0">
-          <ReportsDropdown 
-            filters={filters}
-            onGenerateReport={handleGenerateReport}
-          />
+          {/* Direct Claims Report Button */}
+          <button
+            onClick={handleGenerateClaimsReport}
+            disabled={isGeneratingReport}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:from-blue-700 dark:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingReport ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Generating Report...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>Download Report</span>
+              </>
+            )}
+          </button>
           
           {claimsRequiringAction.length > 0 && (
             <div className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 px-4 py-2 lg:px-6 lg:py-3 rounded-xl border border-amber-200 dark:border-amber-700 shadow-sm max-w-full">
@@ -582,7 +584,7 @@ export const HRClaimReview = () => {
         </div>
       </div>
 
-      {/* Statistics Cards - HR Claim Status Overview and Financial Summary */}
+      {/* Statistics Cards */}
       <ClaimStats stats={stats} />
 
       {/* Claims Requiring Immediate Action */}
@@ -735,11 +737,9 @@ export const HRClaimReview = () => {
                     employeeId: '',
                     startDate: '',
                     endDate: '',
-                    searchTerm: '',
+                    claimId: '',
+                    employeeName: '',
                     hrAction: '',
-                    urgency: '',
-                    hasReturnReason: '',
-                    hasHRNotes: '',
                     daysOld: ''
                   });
                 }}

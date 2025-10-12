@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { Shield } from 'lucide-react';
+/* eslint-disable no-unused-vars */
+import React, { useState, useEffect } from 'react';
+import { Shield, CheckCircle, Users } from 'lucide-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SteppedProgress from '../../components/common/SteppedProgress';
 import BasicInformation from "../../components/registration/BasicInformation";
 import PersonalInformation from "../../components/registration/PersonalInformation";
@@ -13,12 +15,21 @@ import { initialFormData } from '../../utils/constants';
 import userApiService from '../../services/user-api';
 
 export const Registration = () => {
+  const navigate = useNavigate();
+  
+  // Debug: Check if navigate is available
+  useEffect(() => {
+    console.log('Navigate function available:', typeof navigate === 'function');
+  }, []);
+  
   const [formData, setFormData] = useState(initialFormData);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState([]);
   const [allowSubmission, setAllowSubmission] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registeredEmployee, setRegisteredEmployee] = useState(null);
 
   const totalSteps = 5;
 
@@ -30,12 +41,12 @@ export const Registration = () => {
     if (validationType === 'name') {
       const nameRegex = /^[a-zA-Z\s]*$/;
       if (!nameRegex.test(value)) {
-        return; // Don't update if invalid
+        return;
       }
     } else if (validationType === 'phone') {
       const phoneRegex = /^[0-9]*$/;
       if (!phoneRegex.test(value)) {
-        return; // Don't update if invalid
+        return;
       }
     }
 
@@ -62,7 +73,6 @@ export const Registration = () => {
       }));
     }
     
-    // Special handling for confirm password validation
     if (name === 'confirmPassword' && errors.confirmPassword) {
       setErrors(prev => ({
         ...prev,
@@ -70,7 +80,6 @@ export const Registration = () => {
       }));
     }
     
-    // Clear confirm password error when password changes
     if (name === 'password' && errors.confirmPassword) {
       setErrors(prev => ({
         ...prev,
@@ -103,11 +112,10 @@ export const Registration = () => {
   const updateDependent = (index, field, value, validationType = null) => {
     let processedValue = value;
     
-    // Apply validation for dependent fields
     if (validationType === 'name') {
       const nameRegex = /^[a-zA-Z\s]*$/;
       if (!nameRegex.test(value)) {
-        return; // Don't update if invalid
+        return;
       }
     }
 
@@ -126,7 +134,6 @@ export const Registration = () => {
     
     switch (currentStep) {
       case 1:
-        // Basic Information validation
         ['email', 'password', 'confirmPassword'].forEach(field => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
@@ -135,7 +142,6 @@ export const Registration = () => {
         break;
         
       case 2:
-        // Personal Information validation
         ['firstName', 'lastName', 'dateOfBirth', 'nic', 'phoneNumber', 'address'].forEach(field => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
@@ -144,7 +150,6 @@ export const Registration = () => {
         break;
         
       case 3:
-        // Employment Details validation
         ['department', 'designation', 'joinDate', 'salary'].forEach(field => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
@@ -153,7 +158,6 @@ export const Registration = () => {
         break;
         
       case 4:
-        // Bank Details validation
         ['accountHolderName', 'bankName', 'branchName', 'accountNumber'].forEach(field => {
           if (validationErrors[field]) {
             stepErrors[field] = validationErrors[field];
@@ -162,7 +166,6 @@ export const Registration = () => {
         break;
         
       case 5:
-        // Dependents validation (optional step - no required fields)
         break;
     }
     
@@ -171,9 +174,7 @@ export const Registration = () => {
   };
 
   const handleNext = () => {
-   console.log("cliacked next ")
     if (validateCurrentStep()) {
-      // Mark current step as completed
       if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => [...prev, currentStep]);
       }
@@ -181,7 +182,6 @@ export const Registration = () => {
       if (currentStep < totalSteps) {
         const nextStep = currentStep + 1;
         setCurrentStep(nextStep);
-        // Reset submission permission for new step
         setAllowSubmission(false);
       }
     }
@@ -194,39 +194,38 @@ export const Registration = () => {
   };
 
   const handleSubmit = async (e) => {
-   console.log("clicked submit ")
     e.preventDefault();
     e.stopPropagation();
     
-    // Prevent double submissions
     if (isSubmitting) {
       return;
     }
     
-    // Prevent auto-submission - require explicit user action
     if (!allowSubmission) {
       return;
     }
     
-    // Ensure we're on the final step before submitting
     if (currentStep !== totalSteps) {
       return;
     }
     
-    // Add a small delay to ensure this is an intentional submission
     await new Promise(resolve => setTimeout(resolve, 100));
     
     const validationErrors = validateForm(formData);
     setErrors(validationErrors);
     
     if (Object.keys(validationErrors).length > 0) {
+      console.error('Validation errors:', validationErrors);
+      alert('Please fix validation errors before submitting');
       return;
     }
 
     setIsSubmitting(true);
     
     try {
-      // Create user data in the exact format your API expects
+      // Log the form data before sending
+      console.log('Form Data being submitted:', formData);
+      
       const userData = {
         email: formData.email,
         password: formData.password,
@@ -254,7 +253,6 @@ export const Registration = () => {
         }
       };
 
-      // Only add dependents if they exist and are complete
       if (formData.dependents && formData.dependents.length > 0) {
         userData.dependents = formData.dependents
           .filter(dep => dep.name && dep.relationship && dep.dateOfBirth)
@@ -266,35 +264,148 @@ export const Registration = () => {
           }));
       }
 
-      // Register the user
+      // Log the userData being sent to API
+      console.log('User Data being sent to API:', JSON.stringify(userData, null, 2));
+
       const response = await userApiService.register(userData);
       
-      alert('Employee registered successfully!');
+      console.log('Registration response:', response);
       
-      // Reset form
-      setFormData(initialFormData);
-      setCurrentStep(1);
-      setCompletedSteps([]);
+      // Store registered employee data
+      setRegisteredEmployee({
+        fullName: `${formData.profile.firstName} ${formData.profile.lastName}`,
+        email: formData.email,
+        department: formData.employment.department,
+        designation: formData.employment.designation
+      });
+      
+      // Show success modal
+      setShowSuccessModal(true);
       
     } catch (error) {
-      // Show more detailed error message to user
+      console.error('Registration error:', error);
+      console.error('Error details:', error.details);
+      console.error('Error response:', error.response);
+      
       let errorMessage = 'Registration failed. Please try again.';
-      if (error.details && error.details.message) {
+      
+      // Better error handling
+      if (error.response?.data?.message) {
+        errorMessage = `Registration failed: ${error.response.data.message}`;
+      } else if (error.details?.message) {
         errorMessage = `Registration failed: ${error.details.message}`;
       } else if (error.message && error.message !== 'API request failed') {
         errorMessage = `Registration failed: ${error.message}`;
       }
       
+      // Show detailed error in console for debugging
+      console.error('Full error object:', JSON.stringify(error, null, 2));
+      
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
+      setAllowSubmission(false);
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    // Reset form
+    setFormData(initialFormData);
+    setCurrentStep(1);
+    setCompletedSteps([]);
+    setRegisteredEmployee(null);
+  };
+
+  const handleViewEmployees = () => {
+    console.log('Navigating to employee directory...');
+    
+    // Close modal first
+    setShowSuccessModal(false);
+    
+    // Navigate to the correct route with underscore (as defined in AllRoutes.jsx)
+    setTimeout(() => {
+      try {
+        navigate('/hr/employee', { 
+          state: { refresh: true, newEmployee: registeredEmployee },
+          replace: false 
+        });
+        console.log('✓ Navigation successful');
+      } catch (error) {
+        console.error('Navigation error:', error);
+        window.location.href = '/hr/employee';
+      }
+    }, 100);
+  };
+
+  const SuccessModal = () => {
+    if (!showSuccessModal || !registeredEmployee) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg max-w-md w-full p-8 shadow-2xl animate-fadeIn">
+          {/* Success Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-12 h-12 text-green-600" />
+            </div>
+          </div>
+
+          {/* Success Message */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Registration Successful!
+            </h2>
+            <p className="text-gray-600">
+              Employee has been successfully registered in the system.
+            </p>
+          </div>
+
+          {/* Employee Details */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Name:</span>
+              <span className="text-sm font-medium text-gray-900">{registeredEmployee.fullName}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Email:</span>
+              <span className="text-sm font-medium text-gray-900">{registeredEmployee.email}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Department:</span>
+              <span className="text-sm font-medium text-gray-900">{registeredEmployee.department}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Designation:</span>
+              <span className="text-sm font-medium text-gray-900">{registeredEmployee.designation}</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={handleViewEmployees}
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              <Users className="w-5 h-5" />
+              View Employee Directory
+            </button>
+            
+            <button
+              onClick={handleCloseSuccessModal}
+              className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              Register Another Employee
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
-         console.log("step: ", currentStep);
         return (
           <BasicInformation 
             formData={formData} 
@@ -303,7 +414,6 @@ export const Registration = () => {
           />
         );
       case 2:
-         console.log("step: ", currentStep);
         return (
           <PersonalInformation 
             formData={formData.profile || {}} 
@@ -312,7 +422,6 @@ export const Registration = () => {
           />
         );
       case 3:
-         console.log("step: ", currentStep);
         return (
           <EmploymentDetails 
             formData={formData.employment || {}} 
@@ -321,7 +430,6 @@ export const Registration = () => {
           />
         );
       case 4:
-         console.log("step: ", currentStep);
         return (
           <BankDetails 
             formData={formData.bankDetails || {}} 
@@ -330,7 +438,6 @@ export const Registration = () => {
           />
         );
       case 5:
-         console.log("step: ", currentStep);
         return (
           <Dependents 
             dependents={formData.dependents || []}
@@ -400,11 +507,9 @@ export const Registration = () => {
                   type="button"
                   disabled={isSubmitting}
                   onClick={async (e) => {
-                    // Manually trigger form submission
                     const form = e.target.closest('form');
                     if (form) {
                       setAllowSubmission(true);
-                      // Small delay to ensure state is updated
                       setTimeout(() => {
                         const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
                         form.dispatchEvent(submitEvent);
@@ -441,6 +546,25 @@ export const Registration = () => {
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <SuccessModal />
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

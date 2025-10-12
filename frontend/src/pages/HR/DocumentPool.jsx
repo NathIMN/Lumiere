@@ -15,9 +15,17 @@ import {
   Tag,
   Archive,
   RefreshCw,
-  MoreVertical
+  MoreVertical,
+  BarChart3,
+  Shield,
+  PieChart,
+  Plus
 } from 'lucide-react';
 import documentApiService from '../../services/document-api';
+import userApiService from '../../services/user-api';
+import reportsApiService from '../../services/reports-api';
+import AddDocumentModal from '../../components/AddDocumentModal';
+import UserDisplayName from '../../components/UserDisplayName';
 
 // Helper functions
 const formatFileSize = (bytes) => {
@@ -46,8 +54,129 @@ const getFileIcon = (mimeType) => {
   return '📎';
 };
 
+// Document Reports Dropdown Component
+const DocumentReportsDropdown = ({ documents, filters, onGenerateReport }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const reportTypes = [
+    {
+      id: 'document-analytics',
+      title: 'Document Analytics Report',
+      description: 'Comprehensive analytics including usage, verification status, and metrics',
+      icon: BarChart3,
+      color: 'blue'
+    },
+    {
+      id: 'storage-analysis',
+      title: 'Storage & Category Analysis',
+      description: 'Breakdown by types, sizes, categories, and storage usage',
+      icon: Archive,
+      color: 'orange'
+    }
+  ];
+
+  const handleReportSelect = async (reportType) => {
+    try {
+      setLoading(true);
+      setIsOpen(false);
+      
+      // Prepare filter data for the report
+      const reportFilters = {
+        ...filters,
+        totalDocuments: documents.length,
+        verifiedCount: documents.filter(doc => doc.isVerified).length,
+        unverifiedCount: documents.filter(doc => !doc.isVerified).length,
+        categories: documents.reduce((acc, doc) => {
+          acc[doc.docType] = (acc[doc.docType] || 0) + 1;
+          return acc;
+        }, {}),
+        totalSize: documents.reduce((sum, doc) => sum + doc.size, 0)
+      };
+
+      await onGenerateReport(reportType.id, reportFilters);
+    } catch (error) {
+      console.error('Error generating document report:', error);
+      alert('Failed to generate report. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={loading}
+        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg transform hover:scale-105 disabled:opacity-50"
+      >
+        <BarChart3 className="h-4 w-4" />
+        <span>{loading ? 'Generating...' : 'Document Reports'}</span>
+        {!loading && (
+          <svg className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Document Reports</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Generate comprehensive reports for {documents.length} documents
+            </p>
+          </div>
+          
+          <div className="p-4 space-y-3">
+            {reportTypes.map((report) => {
+              const Icon = report.icon;
+              return (
+                <button
+                  key={report.id}
+                  onClick={() => handleReportSelect(report)}
+                  disabled={loading}
+                  className="w-full text-left p-4 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-50"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2.5 rounded-lg ${report.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 
+                                                      report.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' :
+                                                      report.color === 'green' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                                                      report.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white">{report.title}</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">{report.description}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span>Active filters: {Object.values(filters).filter(v => v && v !== '').length}</span>
+              <span>PDF format • Current view scope</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop to close dropdown */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setIsOpen(false)}
+        ></div>
+      )}
+    </div>
+  );
+};
+
 // Document Card Component for Grid Layout
-const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArchive, onVerify, documentCategories }) => {
+const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArchive, onVerify, documentCategories, usersCache }) => {
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const [thumbnailLoading, setThumbnailLoading] = useState(true);
 
@@ -137,6 +266,12 @@ const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArc
               Pending
             </span>
           )}
+          {document.metadata?.isConfidential && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+              <Shield className="h-3 w-3 mr-1" />
+              Confidential
+            </span>
+          )}
         </div>
 
         <div className="absolute top-2 right-2">
@@ -178,7 +313,12 @@ const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArc
 
         <div className="mb-3">
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            <span className="font-medium">Uploaded by:</span> {document.uploadedBy}
+            <span className="font-medium">Uploaded by:</span>{' '}
+            <UserDisplayName 
+              userId={document.uploadedBy} 
+              className="text-gray-600 dark:text-gray-400"
+              userCache={usersCache}
+            />
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500 capitalize">
             {document.uploadedByRole}
@@ -273,8 +413,10 @@ const DocumentPool = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [stats, setStats] = useState({});
+  const [usersCache, setUsersCache] = useState(new Map()); // Cache for user data
   
   const documentApi = documentApiService;
 
@@ -287,17 +429,43 @@ const DocumentPool = () => {
   ];
 
   const documentCategories = [
+    // General document types
     { value: 'nic', label: 'NIC' },
     { value: 'passport', label: 'Passport' },
     { value: 'invoice', label: 'Invoice' },
-    { value: 'medical_bill', label: 'Medical Bill' },
-    { value: 'police_report', label: 'Police Report' },
     { value: 'photo', label: 'Photo' },
     { value: 'receipt', label: 'Receipt' },
     { value: 'policy_document', label: 'Policy Document' },
     { value: 'claim_form', label: 'Claim Form' },
     { value: 'supporting_document', label: 'Supporting Document' },
-    { value: 'other', label: 'Other' }
+    { value: 'supporting', label: 'Supporting' },
+    { value: 'identification', label: 'Identification' },
+    { value: 'proof_of_policy', label: 'Proof of Policy' },
+    { value: 'other', label: 'Other' },
+    
+    // Life insurance specific
+    { value: 'medical_bill', label: 'Medical Bill' },
+    { value: 'discharge_summary', label: 'Discharge Summary' },
+    { value: 'prescription', label: 'Prescription' },
+    { value: 'lab_report', label: 'Lab Report' },
+    { value: 'channelling_receipt', label: 'Channelling Receipt' },
+    { value: 'doctor_report', label: 'Doctor Report' },
+    { value: 'pharmacy_receipt', label: 'Pharmacy Receipt' },
+    { value: 'medical_report', label: 'Medical Report' },
+    { value: 'death_certificate', label: 'Death Certificate' },
+    
+    // Vehicle insurance specific
+    { value: 'police_report', label: 'Police Report' },
+    { value: 'damage_assessment', label: 'Damage Assessment' },
+    { value: 'repair_estimate', label: 'Repair Estimate' },
+    { value: 'photos', label: 'Photos' },
+    { value: 'fir_copy', label: 'FIR Copy' },
+    { value: 'vehicle_registration', label: 'Vehicle Registration' },
+    { value: 'fire_department_report', label: 'Fire Department Report' },
+    { value: 'weather_report', label: 'Weather Report' },
+    
+    // Questionnaire related
+    { value: 'questionnaire_answer', label: 'Questionnaire Answer' }
   ];
 
   const roleTypes = [
@@ -311,27 +479,81 @@ const DocumentPool = () => {
   useEffect(() => {
     loadDocuments();
     loadStats();
+    loadUsers(); // Load all users for the cache
   }, [filters]);
+
+  const loadUsers = async () => {
+    try {
+      // Only load users once (when the cache is empty)
+      if (usersCache.size === 0) {
+        const response = await userApiService.getUsers();
+        const users = response.users || [];
+        
+        // Create a Map for efficient lookup by user ID
+        const userMap = new Map();
+        users.forEach(user => {
+          userMap.set(user._id, user);
+        });
+        
+        setUsersCache(userMap);
+        console.log(`Cached ${users.length} users for display names`);
+      }
+    } catch (err) {
+      console.warn('Failed to load users for name display:', err.message);
+      // Continue without user cache - UserDisplayName will handle individual lookups
+    }
+  };
 
   const loadDocuments = async () => {
     try {
       setLoading(true);
+      
+      // Prepare backend query parameters (exclude search, handle it client-side)
+      const { search, ...backendFilters } = filters;
       const queryParams = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value !== '' && value !== null)
+        Object.entries(backendFilters).filter(([_, value]) => value !== '' && value !== null)
       );
       
       const response = await documentApi.getDocuments(queryParams);
       let filteredDocs = response.documents || [];
       
-      // Apply client-side search filter
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        filteredDocs = filteredDocs.filter(doc => 
-          doc.originalName.toLowerCase().includes(searchTerm) ||
-          doc.metadata?.description?.toLowerCase().includes(searchTerm) ||
-          doc.metadata?.tags?.some(tag => tag.toLowerCase().includes(searchTerm)) ||
-          doc.uploadedBy.toLowerCase().includes(searchTerm)
-        );
+      // Apply client-side search filter with word-start matching only if search term exists
+      if (search) {
+        const searchTerm = search.toLowerCase().trim();
+        if (searchTerm) {
+          filteredDocs = filteredDocs.filter(doc => {
+            // Helper function to check if search term matches the start of any word
+            const matchesWordStart = (text) => {
+              if (!text) return false;
+              const words = text.toLowerCase().split(/\s+/);
+              return words.some(word => word.startsWith(searchTerm));
+            };
+            
+            // Search in document name (word-start matching)
+            const matchesFileName = matchesWordStart(doc.originalName);
+            
+            // Search in description (word-start matching)
+            const matchesDescription = matchesWordStart(doc.metadata?.description);
+            
+            // Search in tags (word-start matching for each tag)
+            const matchesTags = doc.metadata?.tags?.some(tag => matchesWordStart(tag)) || false;
+            
+            // Search in uploader's first name and last name (word-start matching)
+            let matchesUploaderName = false;
+            if (usersCache.has(doc.uploadedBy)) {
+              const user = usersCache.get(doc.uploadedBy);
+              const userProfile = user.profile || {};
+              const firstName = (userProfile.firstName || '').toLowerCase();
+              const lastName = (userProfile.lastName || '').toLowerCase();
+              
+              matchesUploaderName = 
+                firstName.startsWith(searchTerm) ||
+                lastName.startsWith(searchTerm);
+            }
+            
+            return matchesFileName || matchesDescription || matchesTags || matchesUploaderName;
+          });
+        }
       }
       
       setDocuments(filteredDocs);
@@ -351,6 +573,86 @@ const DocumentPool = () => {
     } catch (err) {
       console.error('Error loading stats:', err);
     }
+  };
+
+  const handleGenerateDocumentReport = async (reportType, reportData) => {
+    try {
+      const currentDate = new Date().toISOString().split('T')[0];
+      
+      // Map report types to more descriptive names for filename
+      const reportTypeNames = {
+        'document-analytics': 'document-analytics',
+        'document-audit': 'document-audit',
+        'compliance-report': 'document-compliance',
+        'storage-analysis': 'storage-analysis',
+        'verification-summary': 'verification-summary'
+      };
+      
+      const filename = `${reportTypeNames[reportType] || reportType}-report-${currentDate}.pdf`;
+      
+      // Prepare document data for backend
+      const documentsData = documents.map(doc => ({
+        name: doc.originalName,
+        type: doc.type,
+        category: doc.docType,
+        size: doc.size,
+        status: doc.status,
+        isVerified: doc.isVerified,
+        uploadedBy: doc.uploadedBy,
+        uploadedByRole: doc.uploadedByRole,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        mimeType: doc.mimeType
+      }));
+
+      // Create report configuration for backend
+      const reportConfig = {
+        reportType,
+        filters: {
+          ...filters,
+          appliedFilters: filters,
+          dateGenerated: new Date().toISOString(),
+          scope: `${documents.length} documents from Document Pool`
+        },
+        documents: documentsData,
+        format: 'pdf'
+      };
+
+      console.log('Generating PDF document report:', reportType);
+      
+      // Use the new documents report endpoint
+      const blob = await reportsApiService.generateDocumentsReport(reportConfig);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message
+      const reportTitle = reportType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      alert(`${reportTitle} PDF report generated successfully!\n\nReport details:\n• ${documents.length} documents included\n• Professional PDF format\n• Comprehensive analytics\n• Category breakdowns\n• Verification status\n\nThe PDF report has been downloaded.`);
+      
+    } catch (error) {
+      console.error('Error generating document report:', error);
+      alert('Failed to generate PDF document report. Please try again.\n\nError: ' + error.message);
+    }
+  };
+
+  // Helper function to get report description
+  const getReportDescription = (reportType) => {
+    const descriptions = {
+      'document-analytics': 'Comprehensive analysis of document types, sizes, categories, and verification status',
+      'document-audit': 'Detailed log of document uploads, modifications, and user interactions',
+      'compliance-report': 'Status report on document verification and compliance requirements',
+      'storage-analysis': 'Breakdown by types, sizes, categories, and storage usage',
+      'verification-summary': 'Summary of verified vs unverified documents by category'
+    };
+    return descriptions[reportType] || 'Document management report';
   };
 
   const handleFilterChange = (key, value) => {
@@ -424,6 +726,14 @@ const DocumentPool = () => {
     }
   };
 
+  const handleDocumentAdded = (newDocument) => {
+    // Refresh the documents list to include the new document
+    loadDocuments();
+    
+    // Show success message
+    alert('Document uploaded successfully!');
+  };
+
   const handlePreview = (document) => {
     setSelectedDocument(document);
     setShowPreview(true);
@@ -457,6 +767,18 @@ const DocumentPool = () => {
           </h1>
           <div className="flex gap-2">
             <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg transform hover:scale-105"
+            >
+              <Plus className="h-4 w-4" />
+              Add Document
+            </button>
+            <DocumentReportsDropdown 
+              documents={documents}
+              filters={filters}
+              onGenerateReport={handleGenerateDocumentReport}
+            />
+            <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 showFilters 
@@ -478,7 +800,7 @@ const DocumentPool = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
             <div className="text-blue-600 dark:text-blue-400 text-sm font-medium">Total Documents</div>
             <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">{documents.length}</div>
@@ -501,12 +823,18 @@ const DocumentPool = () => {
               {formatFileSize(documents.reduce((sum, doc) => sum + doc.size, 0))}
             </div>
           </div>
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+            <div className="text-indigo-600 dark:text-indigo-400 text-sm font-medium">Categories</div>
+            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
+              {new Set(documents.map(doc => doc.docType)).size}
+            </div>
+          </div>
         </div>
 
         {/* Filters Panel */}
         {showFilters && (
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Search */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -542,7 +870,7 @@ const DocumentPool = () => {
               </div>
 
               {/* Document Category */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Category
                 </label>
@@ -556,7 +884,7 @@ const DocumentPool = () => {
                     <option key={category.value} value={category.value}>{category.label}</option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               {/* Status */}
               <div>
@@ -570,7 +898,6 @@ const DocumentPool = () => {
                 >
                   <option value="active">Active</option>
                   <option value="archived">Archived</option>
-                  <option value="deleted">Deleted</option>
                 </select>
               </div>
 
@@ -645,6 +972,7 @@ const DocumentPool = () => {
                     onArchive={handleArchive}
                     onVerify={handleVerify}
                     documentCategories={documentCategories}
+                    usersCache={usersCache}
                   />
                 ))}
               </div>
@@ -658,6 +986,7 @@ const DocumentPool = () => {
         <DocumentPreviewModal 
           document={selectedDocument} 
           onClose={() => setShowPreview(false)} 
+          usersCache={usersCache}
         />
       )}
 
@@ -669,12 +998,19 @@ const DocumentPool = () => {
           onSave={loadDocuments}
         />
       )}
+
+      {/* Add Document Modal */}
+      <AddDocumentModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleDocumentAdded}
+      />
     </div>
   );
 };
 
 // Document Preview Modal Component
-const DocumentPreviewModal = ({ document, onClose }) => {
+const DocumentPreviewModal = ({ document, onClose, usersCache }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -839,6 +1175,23 @@ const DocumentPreviewModal = ({ document, onClose }) => {
                 {document.isVerified ? 'Yes' : 'No'}
               </p>
             </div>
+            <div>
+              <span className="font-medium text-gray-900 dark:text-white">Confidential:</span>
+              <p className="text-gray-600 dark:text-gray-400">
+                {document.metadata?.isConfidential ? 'Yes' : 'No'}
+              </p>
+            </div>
+          </div>
+          <div className="mt-3">
+            <span className="font-medium text-gray-900 dark:text-white">Uploaded by:</span>{' '}
+            <UserDisplayName 
+              userId={document.uploadedBy} 
+              className="text-gray-600 dark:text-gray-400"
+              userCache={usersCache}
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-500 capitalize ml-2">
+              ({document.uploadedByRole})
+            </span>
           </div>
           {document.metadata?.tags && document.metadata.tags.length > 0 && (
             <div className="mt-3">
@@ -864,8 +1217,6 @@ const DocumentPreviewModal = ({ document, onClose }) => {
 // Document Edit Modal Component
 const DocumentEditModal = ({ document, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    type: document.type,
-    docType: document.docType,
     metadata: {
       description: document.metadata?.description || '',
       tags: document.metadata?.tags?.join(', ') || '',
@@ -878,35 +1229,13 @@ const DocumentEditModal = ({ document, onClose, onSave }) => {
   
   const documentApi = documentApiService;
 
-  const documentTypes = [
-    { value: 'policy', label: 'Policy' },
-    { value: 'claim', label: 'Claim' },
-    { value: 'user', label: 'User' },
-    { value: 'general', label: 'General' }
-  ];
-
-  const documentCategories = [
-    { value: 'nic', label: 'NIC' },
-    { value: 'passport', label: 'Passport' },
-    { value: 'invoice', label: 'Invoice' },
-    { value: 'medical_bill', label: 'Medical Bill' },
-    { value: 'police_report', label: 'Police Report' },
-    { value: 'photo', label: 'Photo' },
-    { value: 'receipt', label: 'Receipt' },
-    { value: 'policy_document', label: 'Policy Document' },
-    { value: 'claim_form', label: 'Claim Form' },
-    { value: 'supporting_document', label: 'Supporting Document' },
-    { value: 'other', label: 'Other' }
-  ];
-
   const handleSave = async () => {
     try {
       setSaving(true);
       
       const updateData = {
-        type: formData.type,
-        docType: formData.docType,
         metadata: {
+          ...document.metadata, // Preserve existing metadata
           ...formData.metadata,
           tags: formData.metadata.tags 
             ? formData.metadata.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
@@ -949,38 +1278,6 @@ const DocumentEditModal = ({ document, onClose, onSave }) => {
         
         <div className="p-4">
           <div className="space-y-4">
-            {/* Document Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Document Type
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {documentTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Document Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Document Category
-              </label>
-              <select
-                value={formData.docType}
-                onChange={(e) => setFormData(prev => ({ ...prev, docType: e.target.value }))}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {documentCategories.map(category => (
-                  <option key={category.value} value={category.value}>{category.label}</option>
-                ))}
-              </select>
-            </div>
-
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1012,22 +1309,6 @@ const DocumentEditModal = ({ document, onClose, onSave }) => {
                 }))}
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="tag1, tag2, tag3..."
-              />
-            </div>
-
-            {/* Expiry Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Expiry Date (optional)
-              </label>
-              <input
-                type="date"
-                value={formData.metadata.expiryDate}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  metadata: { ...prev.metadata, expiryDate: e.target.value }
-                }))}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 

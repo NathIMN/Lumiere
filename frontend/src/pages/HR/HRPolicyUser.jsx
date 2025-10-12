@@ -13,24 +13,19 @@ import {
   UserPlus,
   UserMinus,
   AlertTriangle,
-  BarChart3,
   Shield,
-  Clock,
-  TrendingUp,
-  Calendar,
-  DollarSign,
   Users,
   User,
   Phone,
   Mail,
   X,
   ChevronDown,
-  Download,
-  FileText,
-  Printer,
   Heart,
   Car,
   FileBarChart,
+  CheckCircle2,
+  Clock,
+  Download
 } from "lucide-react";
 
 import insuranceApiService from "../../services/insurance-api";
@@ -38,7 +33,6 @@ import reportsApiService from "../../services/reports-api";
 import { PolicyUsersList } from "../../components/policy/PolicyUsersList";
 import { BeneficiaryManagementModal } from "../../components/policy/BeneficiaryManagementModal";
 import { PolicyDetailsModal } from "../../components/policy/PolicyDetailsModal";
-import { EnhancedGridActionBar } from "../../components/policy/EnhancedActionBars";
 
 // Format currency
 const formatCurrency = (amount) => {
@@ -78,7 +72,7 @@ const formatExpiryStatus = (endDate) => {
   return { text: `Expires in ${diffDays} days`, color: "text-green-600" };
 };
 
-// Inline Notification Component
+// Notification Component
 const Notification = ({ message, type = "success", onClose }) => {
   const getNotificationStyles = () => {
     switch (type) {
@@ -87,21 +81,18 @@ const Notification = ({ message, type = "success", onClose }) => {
           bg: "bg-green-100 dark:bg-green-900/20",
           border: "border-green-200 dark:border-green-800",
           text: "text-green-800 dark:text-green-200",
-          iconColor: "text-green-500",
         };
       case "error":
         return {
           bg: "bg-red-100 dark:bg-red-900/20",
           border: "border-red-200 dark:border-red-800",
           text: "text-red-800 dark:text-red-200",
-          iconColor: "text-red-500",
         };
       default:
         return {
           bg: "bg-blue-100 dark:bg-blue-900/20",
           border: "border-blue-200 dark:border-blue-800",
           text: "text-blue-800 dark:text-blue-200",
-          iconColor: "text-blue-500",
         };
     }
   };
@@ -111,43 +102,35 @@ const Notification = ({ message, type = "success", onClose }) => {
   return (
     <div className="fixed top-4 right-4 z-50 max-w-sm w-full">
       <div
-        className={`${styles.bg} ${styles.border} border rounded-lg shadow-lg p-4 transform transition-all duration-300 ease-in-out`}
+        className={`${styles.bg} ${styles.border} border rounded-lg shadow-lg p-4`}
       >
         <div className="flex items-start space-x-3">
           <div className="flex-1 min-w-0">
             <p className={`text-sm font-medium ${styles.text}`}>{message}</p>
           </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={onClose}
-              className={`inline-flex rounded-md p-1.5 hover:bg-black/10 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-offset-2 ${styles.text}`}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
+          <button onClick={onClose} className="flex-shrink-0">
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// Enhanced PolicyStats Component with better data handling
+// PolicyStats Component
 const PolicyStats = ({ stats, loading, policies }) => {
-  console.log("Stats data received:", stats);
-  console.log("Policies data received:", policies);
-
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {[...Array(4)].map((_, index) => (
           <div
             key={index}
-            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border"
           >
             <div className="animate-pulse">
-              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded mb-3"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
-              <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
+              <div className="w-8 h-8 bg-gray-300 rounded mb-3"></div>
+              <div className="h-4 bg-gray-300 rounded mb-2"></div>
+              <div className="h-6 bg-gray-300 rounded"></div>
             </div>
           </div>
         ))}
@@ -155,7 +138,6 @@ const PolicyStats = ({ stats, loading, policies }) => {
     );
   }
 
-  // Calculate statistics from policies if stats API doesn't provide detailed breakdown
   const calculateStatsFromPolicies = () => {
     if (!policies || !Array.isArray(policies)) {
       return {
@@ -197,36 +179,36 @@ const PolicyStats = ({ stats, loading, policies }) => {
       title: "Total Policies",
       value: totalPolicies,
       icon: Shield,
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
-      iconColor: "text-blue-600 dark:text-blue-400",
-      textColor: "text-blue-700 dark:text-blue-300",
+      bgColor: "bg-blue-50",
+      iconColor: "text-blue-600",
+      textColor: "text-blue-700",
       borderColor: "border-l-4 border-blue-500",
     },
     {
       title: "Active Policies",
       value: activePolicies,
-      icon: TrendingUp,
-      bgColor: "bg-green-50 dark:bg-green-900/20",
-      iconColor: "text-green-600 dark:text-green-400",
-      textColor: "text-green-700 dark:text-green-300",
+      icon: CheckCircle2,
+      bgColor: "bg-green-50",
+      iconColor: "text-green-600",
+      textColor: "text-green-700",
       borderColor: "border-l-4 border-green-500",
     },
     {
       title: "Life Policies",
       value: lifePolicies,
       icon: Heart,
-      bgColor: "bg-red-50 dark:bg-red-900/20",
-      iconColor: "text-red-600 dark:text-red-400",
-      textColor: "text-red-700 dark:text-red-300",
+      bgColor: "bg-red-50",
+      iconColor: "text-red-600",
+      textColor: "text-red-700",
       borderColor: "border-l-4 border-red-500",
     },
     {
       title: "Vehicle Policies",
       value: vehiclePolicies,
       icon: Car,
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
-      iconColor: "text-purple-600 dark:text-purple-400",
-      textColor: "text-purple-700 dark:text-purple-300",
+      bgColor: "bg-purple-50",
+      iconColor: "text-purple-600",
+      textColor: "text-purple-700",
       borderColor: "border-l-4 border-purple-500",
     },
   ];
@@ -238,51 +220,19 @@ const PolicyStats = ({ stats, loading, policies }) => {
         return (
           <div
             key={stat.title}
-            className={`bg-white dark:bg-gray-800 ${stat.bgColor} p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 ${stat.borderColor}`}
+            className={`bg-white ${stat.bgColor} p-6 rounded-lg shadow-sm border ${stat.borderColor}`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                <p className="text-sm font-medium text-gray-600 mb-1">
                   {stat.title}
                 </p>
                 <p className={`text-3xl font-bold ${stat.textColor}`}>
                   {stat.value || 0}
                 </p>
-                {stat.title === "Active Policies" && totalPolicies > 0 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {Math.round((activePolicies / totalPolicies) * 100)}% of
-                    total
-                  </p>
-                )}
               </div>
-              <div
-                className={`p-3 rounded-lg ${stat.bgColor
-                  .replace("50", "100")
-                  .replace("900/20", "800/30")}`}
-              >
+              <div className={`p-3 rounded-lg ${stat.bgColor.replace("50", "100")}`}>
                 <IconComponent className={`h-8 w-8 ${stat.iconColor}`} />
-              </div>
-            </div>
-            {/* Progress bar for visual appeal */}
-            <div className="mt-4">
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${stat.iconColor.replace(
-                    "text-",
-                    "bg-"
-                  )}`}
-                  style={{
-                    width:
-                      stat.title === "Total Policies"
-                        ? "100%"
-                        : totalPolicies > 0
-                        ? `${Math.min(
-                            (stat.value / totalPolicies) * 100,
-                            100
-                          )}%`
-                        : "0%",
-                  }}
-                ></div>
               </div>
             </div>
           </div>
@@ -337,23 +287,17 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
       let blob;
 
       if (reportType === "policies") {
-        // Prepare report filters including current filters and date range
+        // ✅ FIXED: Map startDate/endDate to dateFrom/dateTo for backend
         const reportFilters = {
-          ...filters,
-          ...(dateRange.startDate && { startDate: dateRange.startDate }),
-          ...(dateRange.endDate && { endDate: dateRange.endDate }),
+          ...(filters.policyType && { policyType: filters.policyType }),
+          ...(filters.policyCategory && { policyCategory: filters.policyCategory }),
+          ...(filters.status && { status: filters.status }),
+          // ✅ Map to backend expected field names
+          ...(dateRange.startDate && { dateFrom: dateRange.startDate }),
+          ...(dateRange.endDate && { dateTo: dateRange.endDate }),
         };
 
-        // Remove empty filters
-        Object.keys(reportFilters).forEach((key) => {
-          if (
-            reportFilters[key] === "" ||
-            reportFilters[key] === null ||
-            reportFilters[key] === undefined
-          ) {
-            delete reportFilters[key];
-          }
-        });
+        console.log('Generating policies report with filters:', reportFilters);
 
         // Generate policies report
         blob = await reportsApiService.generatePoliciesReport(reportFilters);
@@ -362,6 +306,8 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
           showNotification("Please select a policy for the Policy Beneficiaries report", "error");
           return;
         }
+
+        console.log('Generating policy users report for policy:', selectedPolicy);
 
         // Generate policy users report
         blob = await reportsApiService.generatePolicyUsersReport(selectedPolicy);
@@ -395,7 +341,7 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
     }
   };
 
-  const getColorClasses = (color) => {
+   const getColorClasses = (color) => {
     const colors = {
       blue: {
         bg: "bg-blue-50 dark:bg-blue-900/20",
@@ -495,7 +441,7 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
                         <input
                           type="date"
                           value={dateRange.startDate}
-                          max={new Date().toISOString().split("T")[0]}
+                          max={new Date().toISOString().split("T")[0]} 
                           onChange={(e) =>
                             setDateRange((prev) => ({
                               ...prev,
@@ -510,14 +456,14 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
                           End Date
                         </label>
                         <input
-                           type="date"
-                           value={dateRange.endDate}
-                           max={new Date().toISOString().split("T")[0]}  // 👈 sets max to today
-                           onChange={(e) =>
-                              setDateRange((prev) => ({ ...prev, endDate: e.target.value }))
-                           }
-                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                           />
+                          type="date"
+                          value={dateRange.endDate}
+                          max={new Date().toISOString().split("T")[0]} 
+                          onChange={(e) =>
+                            setDateRange((prev) => ({ ...prev, endDate: e.target.value }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
                       </div>
                     </div>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
@@ -735,143 +681,67 @@ const InteractivePolicyActions = ({
   const [showTooltip, setShowTooltip] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Define available actions with their configurations
   const actions = [
     {
       key: "view",
       label: "View Details",
       icon: Eye,
-      onClick: () => onViewPolicy(policy._id || policy.id),
-      color: "text-blue-600 hover:text-blue-700 dark:text-blue-400",
-      bgHover: "hover:bg-blue-50 dark:hover:bg-blue-900/20",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
-      primary: true,
+      onClick: () => onViewPolicy(policy),
+      color: "text-blue-600 hover:text-blue-700",
+      bgHover: "hover:bg-blue-50",
     },
     {
       key: "add-beneficiary",
       label: "Add Beneficiary",
       icon: UserPlus,
       onClick: () => onAddBeneficiary(policy._id || policy.id),
-      color: "text-green-600 hover:text-green-700 dark:text-green-400",
-      bgHover: "hover:bg-green-50 dark:hover:bg-green-900/20",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
-      primary: true,
+      color: "text-green-600 hover:text-green-700",
+      bgHover: "hover:bg-green-50",
     },
     {
       key: "remove-beneficiary",
       label: "Remove Beneficiary",
       icon: UserMinus,
       onClick: () => onRemoveBeneficiary(policy._id || policy.id),
-      color: "text-red-600 hover:text-red-700 dark:text-red-400",
-      bgHover: "hover:bg-red-50 dark:hover:bg-red-900/20",
-      bgColor: "bg-red-50 dark:bg-red-900/20",
+      color: "text-red-600 hover:text-red-700",
+      bgHover: "hover:bg-red-50",
       disabled: !policy.beneficiaries || policy.beneficiaries.length === 0,
-      primary: true,
     },
   ];
 
-  // Filter primary actions (now includes all 3 actions)
-  const primaryActions = actions.filter(action => action.primary);
-  const dropdownActions = actions.filter(action => !action.primary);
-
   return (
-    <div className="flex items-center justify-end gap-1 relative">
-      {/* Primary Actions - Now includes all 3 actions */}
-      <div className="flex items-center gap-1">
-        {primaryActions.map((action) => {
-          const IconComponent = action.icon;
-          return (
-            <div
-              key={action.key}
-              className="relative"
-              onMouseEnter={() => setShowTooltip(action.key)}
-              onMouseLeave={() => setShowTooltip("")}
-            >
-              <button
-                onClick={action.onClick}
-                disabled={action.disabled}
-                className={`p-2 rounded-lg transition-all duration-200 ${action.color} ${action.bgHover} border border-transparent hover:border-gray-200 dark:hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed`}
-                title={action.label}
-              >
-                <IconComponent className="h-4 w-4" />
-              </button>
-
-              {/* Tooltip */}
-              {showTooltip === action.key && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 dark:bg-gray-700 rounded shadow-lg whitespace-nowrap z-50">
-                  {action.label}
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* More Actions Dropdown - Only show if there are dropdown actions */}
-      {dropdownActions.length > 0 && (
-        <div className="relative">
-          <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="p-2 rounded-lg transition-all duration-200 text-gray-600 hover:text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600"
-            title="More actions"
+    <div className="flex items-center justify-end gap-1">
+      {actions.map((action) => {
+        const IconComponent = action.icon;
+        return (
+          <div
+            key={action.key}
+            className="relative"
+            onMouseEnter={() => setShowTooltip(action.key)}
+            onMouseLeave={() => setShowTooltip("")}
           >
-            <MoreVertical className="h-4 w-4" />
-          </button>
+            <button
+              onClick={action.onClick}
+              disabled={action.disabled}
+              className={`p-2 rounded-lg transition-all ${action.color} ${action.bgHover} disabled:opacity-50 disabled:cursor-not-allowed`}
+              title={action.label}
+            >
+              <IconComponent className="h-4 w-4" />
+            </button>
 
-          {/* Dropdown Menu */}
-          {isDropdownOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setIsDropdownOpen(false)}
-              ></div>
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20">
-                <div className="py-2">
-                  {dropdownActions.map((action) => {
-                    const IconComponent = action.icon;
-                    return (
-                      <button
-                        key={action.key}
-                        onClick={() => {
-                          if (!action.disabled) {
-                            action.onClick();
-                          }
-                          setIsDropdownOpen(false);
-                        }}
-                        disabled={action.disabled}
-                        className={`w-full text-left px-4 py-3 text-sm transition-colors flex items-center space-x-3 ${action.color} ${action.bgHover} disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <div className={`p-1 rounded ${action.bgColor}`}>
-                          <IconComponent className="h-4 w-4" />
-                        </div>
-                        <span>{action.label}</span>
-                        {action.disabled && (
-                          <span className="ml-auto text-xs text-gray-400">
-                            (No beneficiaries)
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+            {showTooltip === action.key && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-900 rounded shadow-lg whitespace-nowrap z-50">
+                {action.label}
               </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Status Indicator for Beneficiaries */}
-      {policy.beneficiaries && policy.beneficiaries.length > 0 && (
-        <div className="absolute -top-1 -right-1">
-          <div className="w-2 h-2 bg-green-400 border border-white dark:border-gray-800 rounded-full"></div>
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-// PolicyTable Component with Add/Remove Beneficiary Actions
+// PolicyTable Component
 const PolicyTable = ({
   policies,
   loading,
@@ -892,13 +762,10 @@ const PolicyTable = ({
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border">
+      <div className="bg-white shadow-sm rounded-lg border">
         <div className="p-6 animate-pulse space-y-4">
           {[...Array(5)].map((_, index) => (
-            <div
-              key={index}
-              className="h-12 bg-gray-300 dark:bg-gray-600 rounded"
-            ></div>
+            <div key={index} className="h-12 bg-gray-300 rounded"></div>
           ))}
         </div>
       </div>
@@ -907,9 +774,9 @@ const PolicyTable = ({
 
   if (!policies || policies.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border p-12 text-center">
+      <div className="bg-white shadow-sm rounded-lg border p-12 text-center">
         <AlertTriangle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
           No policies found
         </h3>
         <p className="text-gray-500">
@@ -920,10 +787,10 @@ const PolicyTable = ({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border overflow-hidden">
+    <div className="bg-white shadow-sm rounded-lg border overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-900">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Policy Details
@@ -943,26 +810,20 @@ const PolicyTable = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Beneficiaries
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Agent
-              </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-200">
             {policies.map((policy) => {
               const expiryStatus = formatExpiryStatus(policy.validity?.endDate);
 
               return (
-                <tr
-                  key={policy._id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
+                <tr key={policy._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-white">
+                      <div className="font-medium text-gray-900">
                         {policy.policyNumber || policy.policyId}
                       </div>
                       <div className="text-sm text-gray-500 capitalize">
@@ -981,27 +842,24 @@ const PolicyTable = ({
                           policy.status
                         )}`}
                       >
-                        {policy.status
-                          ? policy.status.charAt(0).toUpperCase() +
-                            policy.status.slice(1)
-                          : "Unknown"}
+                        {policy.status?.charAt(0).toUpperCase() +
+                          policy.status?.slice(1) || "Unknown"}
                       </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-white">
+                      <div className="font-medium text-gray-900">
                         {formatCurrency(policy.coverage?.coverageAmount)}
                       </div>
                       <div className="text-sm text-gray-500">
-                        Deductible:{" "}
-                        {formatCurrency(policy.coverage?.deductible)}
+                        Deductible: {formatCurrency(policy.coverage?.deductible)}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900 dark:text-white">
+                      <div className="font-medium text-gray-900">
                         {formatCurrency(policy.premium?.amount)}
                       </div>
                       <div className="text-sm text-gray-500">
@@ -1011,7 +869,7 @@ const PolicyTable = ({
                   </td>
                   <td className="px-6 py-4">
                     <div>
-                      <div className="text-sm text-gray-900 dark:text-white">
+                      <div className="text-sm text-gray-900">
                         {formatDate(policy.validity?.startDate)} -{" "}
                         {formatDate(policy.validity?.endDate)}
                       </div>
@@ -1023,17 +881,9 @@ const PolicyTable = ({
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                      <span className="text-sm font-medium text-gray-900">
                         {policy.beneficiaries?.length || 0}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 dark:text-white">
-                      {policy.insuranceAgent?.firstName} {policy.insuranceAgent?.lastName}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {policy.insuranceAgent?.email}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -1056,7 +906,6 @@ const PolicyTable = ({
 
 // Main HRPolicyUser Component
 export const HRPolicyUser = () => {
-  // States
   const [viewMode, setViewMode] = useState("table");
   const [showFilters, setShowFilters] = useState(true);
   const [showReports, setShowReports] = useState(false);
@@ -1079,7 +928,7 @@ export const HRPolicyUser = () => {
   const [selectedPolicy, setSelectedPolicy] = useState(null);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [showBeneficiaryModal, setShowBeneficiaryModal] = useState(false);
-  const [beneficiaryModalMode, setBeneficiaryModalMode] = useState("add"); // 'add' or 'remove'
+  const [beneficiaryModalMode, setBeneficiaryModalMode] = useState("add");
 
   // Notification helper
   const showNotification = (message, type = "success") => {
@@ -1098,23 +947,15 @@ export const HRPolicyUser = () => {
         limit: 10,
       };
 
-      // Remove empty values
       Object.keys(params).forEach((key) => {
-        if (
-          params[key] === "" ||
-          params[key] === null ||
-          params[key] === undefined
-        ) {
+        if (params[key] === "" || params[key] === null || params[key] === undefined) {
           delete params[key];
         }
       });
 
-      console.log("Fetching policies with params:", params);
       const response = await insuranceApiService.getPolicies(params);
-      console.log("Policies response:", response);
 
       if (response && response.success !== false) {
-        // Handle different response structures
         let policiesData = [];
         let totalCount = 0;
 
@@ -1124,8 +965,7 @@ export const HRPolicyUser = () => {
             totalCount = response.totalCount || response.data.length;
           } else if (response.data.policies) {
             policiesData = response.data.policies;
-            totalCount =
-              response.data.totalCount || response.data.policies.length;
+            totalCount = response.data.totalCount || response.data.policies.length;
           }
         } else if (Array.isArray(response)) {
           policiesData = response;
@@ -1147,8 +987,6 @@ export const HRPolicyUser = () => {
       console.error("Error fetching policies:", error);
       showNotification("Failed to fetch policies: " + error.message, "error");
       setPolicies([]);
-      setTotalPolicies(0);
-      setTotalPages(0);
     } finally {
       setLoading(false);
     }
@@ -1159,8 +997,6 @@ export const HRPolicyUser = () => {
     setStatsLoading(true);
     try {
       const response = await insuranceApiService.getPolicyStatistics();
-      console.log("Stats response:", response);
-
       if (response && response.success !== false) {
         if (response.data) {
           setStats(response.data);
@@ -1172,7 +1008,6 @@ export const HRPolicyUser = () => {
       }
     } catch (error) {
       console.error("Error fetching stats:", error);
-      // Don't show error notification for stats as it's not critical
     } finally {
       setStatsLoading(false);
     }
@@ -1199,59 +1034,130 @@ export const HRPolicyUser = () => {
     setCurrentPage(1);
   };
 
-  // *** FIXED handleViewPolicy function ***
+  // FIXED handleViewPolicy function with comprehensive debugging
   const handleViewPolicy = async (policyData) => {
+    console.log('=== handleViewPolicy DEBUG ===');
+    console.log('1. Input policyData:', policyData);
+    console.log('2. Type of policyData:', typeof policyData);
+    
     try {
       let policy = null;
 
-      if (typeof policyData === "string") {
-        // If it's an ID, fetch the policy
-        const response = await insuranceApiService.getPolicyById(policyData);
-        console.log('API Response structure:', response);
-        
-        // Handle the nested response structure properly
-        if (response && response.success && response.policy) {
-          policy = response.policy; // Extract the actual policy from the response
-        } else if (response && response.data) {
-          policy = response.data;
-        } else if (response && (response._id || response.policyId || response.policyNumber)) {
-          policy = response; // Direct policy object
-        } else {
-          throw new Error('Policy data not found in response');
-        }
-        
-      } else if (policyData && (policyData._id || policyData.id)) {
-        // If policy object is passed directly
+      // If policyData is already a complete policy object, use it directly
+      if (policyData && typeof policyData === 'object' && 
+          (policyData.policyId || policyData.policyNumber)) {
+        console.log('3. Using policy object directly');
         policy = policyData;
-      } else {
-        throw new Error("Invalid policy data provided");
+      } 
+      // If it's a string ID, fetch the full policy details
+      else if (typeof policyData === "string") {
+        console.log('3. Fetching policy by ID:', policyData);
+        const response = await insuranceApiService.getPolicyById(policyData);
+        console.log('4. API Response:', response);
+        
+        // Handle different response structures from the API
+        if (response) {
+          if (response.success && response.policy) {
+            policy = response.policy;
+          } else if (response.data && response.data.policy) {
+            policy = response.data.policy;
+          } else if (response.data) {
+            policy = response.data;
+          } else if (response.policy) {
+            policy = response.policy;
+          } else if (response._id || response.policyId || response.policyNumber) {
+            policy = response;
+          }
+        }
+      }
+      // If policyData has an ID but not complete data, fetch it
+      else if (policyData && (policyData._id || policyData.id)) {
+        const policyId = policyData._id || policyData.id;
+        console.log('3. Fetching policy by object ID:', policyId);
+        const response = await insuranceApiService.getPolicyById(policyId);
+        console.log('4. API Response:', response);
+        
+        if (response) {
+          if (response.success && response.policy) {
+            policy = response.policy;
+          } else if (response.data && response.data.policy) {
+            policy = response.data.policy;
+          } else if (response.data) {
+            policy = response.data;
+          } else if (response.policy) {
+            policy = response.policy;
+          } else if (response._id || response.policyId || response.policyNumber) {
+            policy = response;
+          }
+        }
       }
 
-      console.log('Extracted policy data:', policy);
-      
+      console.log('5. Final policy data:', policy);
+
+      // Validate that we have a valid policy object
       if (!policy) {
-        throw new Error('Policy data is incomplete or invalid');
+        throw new Error('Policy data could not be loaded');
       }
+
+      // Ensure policy has required fields
+      if (!policy.policyId && !policy.policyNumber) {
+        console.error('6. Policy missing required fields:', policy);
+        throw new Error('Invalid policy data - missing policy ID or number');
+      }
+
+      // Ensure policy has all necessary nested objects
+      if (!policy.coverage) {
+        console.warn('Policy missing coverage data');
+        policy.coverage = {};
+      }
+      if (!policy.premium) {
+        console.warn('Policy missing premium data');
+        policy.premium = {};
+      }
+      if (!policy.validity) {
+        console.warn('Policy missing validity data');
+        policy.validity = {};
+      }
+      if (!policy.beneficiaries) {
+        console.warn('Policy missing beneficiaries data');
+        policy.beneficiaries = [];
+      }
+
+      console.log('6. Setting selectedPolicy and opening modal');
+      console.log('7. Policy to display:', {
+        id: policy._id,
+        policyId: policy.policyId,
+        policyNumber: policy.policyNumber,
+        hasCoverage: !!policy.coverage,
+        hasPremium: !!policy.premium,
+        hasValidity: !!policy.validity,
+        beneficiariesCount: policy.beneficiaries?.length || 0
+      });
 
       setSelectedPolicy(policy);
       setShowPolicyModal(true);
       
     } catch (error) {
-      console.error("Error viewing policy:", error);
+      console.error("=== ERROR in handleViewPolicy ===");
+      console.error("Error details:", error);
+      console.error("Error message:", error.message);
+      
       showNotification(
-        "Failed to load policy details: " + error.message,
+        "Failed to load policy details: " + (error.message || 'Unknown error'),
         "error"
       );
+      
+      // Reset modal state
+      setShowPolicyModal(false);
+      setSelectedPolicy(null);
     }
   };
 
   const handleAddBeneficiary = async (policyId) => {
     try {
-      // Find the policy from current policies list
       const policy = policies.find((p) => (p._id || p.id) === policyId);
 
       if (!policy) {
-        // If not found, fetch it
         const response = await insuranceApiService.getPolicyById(policyId);
         const fetchedPolicy = response.success && response.policy ? response.policy : response.data || response;
         setSelectedPolicy(fetchedPolicy);
@@ -1272,11 +1178,9 @@ export const HRPolicyUser = () => {
 
   const handleRemoveBeneficiary = async (policyId) => {
     try {
-      // Find the policy from current policies list
       const policy = policies.find((p) => (p._id || p.id) === policyId);
 
       if (!policy) {
-        // If not found, fetch it
         const response = await insuranceApiService.getPolicyById(policyId);
         const fetchedPolicy = response.success && response.policy ? response.policy : response.data || response;
         setSelectedPolicy(fetchedPolicy);
@@ -1295,7 +1199,6 @@ export const HRPolicyUser = () => {
     }
   };
 
-  // Enhanced beneficiary management functions for the modal
   const handleModalAddBeneficiary = async (policyId, beneficiaryId) => {
     const response = await insuranceApiService.addPolicyBeneficiary(
       policyId,
@@ -1325,7 +1228,6 @@ export const HRPolicyUser = () => {
   const handleBeneficiaryModalClose = () => {
     setShowBeneficiaryModal(false);
     setSelectedPolicy(null);
-    // Refresh policies to show updated beneficiary counts
     fetchPolicies();
     fetchStats();
     showNotification(
@@ -1341,7 +1243,6 @@ export const HRPolicyUser = () => {
     showNotification("Data refreshed successfully");
   };
 
-  // Get filter description for display
   const getFilterDescription = () => {
     let description = [];
 
@@ -1385,10 +1286,10 @@ export const HRPolicyUser = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-gray-900">
               Policy Management
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-gray-600 mt-2">
               {getFilterDescription()} • {totalPolicies} policies found
             </p>
           </div>
@@ -1401,14 +1302,12 @@ export const HRPolicyUser = () => {
           </button>
         </div>
 
-        {/* Statistics - Pass policies as prop for calculation fallback */}
         <PolicyStats stats={stats} loading={statsLoading} policies={policies} />
       </div>
 
       {/* Search and Controls */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-          {/* Search */}
           <div className="flex-1 max-w-md">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1417,12 +1316,12 @@ export const HRPolicyUser = () => {
                 placeholder="Search policies..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
 
-          {/* Controls */}
+            {/* Controls */}
           <div className="flex items-center gap-3">
             {/* Reports Button */}
             <button
@@ -1446,6 +1345,7 @@ export const HRPolicyUser = () => {
                   : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
               }`}
             >
+          
               <Filter className="h-4 w-4" />
               Filters
               <ChevronDown
@@ -1455,14 +1355,13 @@ export const HRPolicyUser = () => {
               />
             </button>
 
-            {/* View Mode Toggle */}
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode("table")}
                 className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm transition-colors ${
                   viewMode === "table"
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 <List className="h-4 w-4" />
@@ -1472,8 +1371,8 @@ export const HRPolicyUser = () => {
                 onClick={() => setViewMode("grid")}
                 className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm transition-colors ${
                   viewMode === "grid"
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 <Grid className="h-4 w-4" />
@@ -1483,7 +1382,7 @@ export const HRPolicyUser = () => {
           </div>
         </div>
 
-        {/* Reports Panel */}
+         {/* Reports Panel */}
         {showReports && (
           <div className="mt-4">
             <ReportsPanel
@@ -1495,7 +1394,6 @@ export const HRPolicyUser = () => {
           </div>
         )}
 
-        {/* Filters */}
         {showFilters && (
           <div className="mt-4">
             <PolicyFilters
@@ -1536,53 +1434,21 @@ export const HRPolicyUser = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white dark:bg-gray-800 px-6 py-3 border border-gray-200 dark:border-gray-700 rounded-lg">
-          <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className="flex items-center justify-between bg-white px-6 py-3 border rounded-lg">
+          <div className="text-sm text-gray-700">
             Showing {policies.length} of {totalPolicies} policies
-            {(filters.policyType ||
-              filters.policyCategory ||
-              filters.status) && (
-              <span className="text-blue-600 dark:text-blue-400">
-                {" "}
-                • Filtered by:{" "}
-                {filters.policyType && (
-                  <span>
-                    {filters.policyType === "life" ? "Life" : "Vehicle"}{" "}
-                    Insurance
-                  </span>
-                )}
-                {filters.policyCategory && (
-                  <span>
-                    {" "}
-                    →{" "}
-                    {filters.policyCategory === "individual"
-                      ? "Individual"
-                      : "Group"}{" "}
-                    Policy
-                  </span>
-                )}
-                {filters.status && (
-                  <span>
-                    {" "}
-                    →{" "}
-                    {filters.status.charAt(0).toUpperCase() +
-                      filters.status.slice(1)}
-                  </span>
-                )}
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1 || loading}
-              className="flex items-center gap-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="flex items-center gap-1 px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
             </button>
 
-            <span className="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">
+            <span className="px-3 py-1 text-sm text-gray-700">
               Page {currentPage} of {totalPages}
             </span>
 
@@ -1591,7 +1457,7 @@ export const HRPolicyUser = () => {
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
               disabled={currentPage === totalPages || loading}
-              className="flex items-center gap-1 px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="flex items-center gap-1 px-3 py-1 text-sm border rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -1600,12 +1466,14 @@ export const HRPolicyUser = () => {
         </div>
       )}
 
-      {/* Policy Details Modal */}
+      {/* Policy Details Modal - CRITICAL: Check both conditions and log */}
+      {console.log('Modal Render Check:', { showPolicyModal, hasSelectedPolicy: !!selectedPolicy })}
       {showPolicyModal && selectedPolicy && (
         <PolicyDetailsModal
           policy={selectedPolicy}
           isOpen={showPolicyModal}
           onClose={() => {
+            console.log('Closing policy modal');
             setShowPolicyModal(false);
             setSelectedPolicy(null);
           }}

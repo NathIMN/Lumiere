@@ -413,6 +413,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
     claimType,
     startDate,
     endDate,
+    search,
     page = 1,
     limit = 100,
     sortBy = "createdAt",
@@ -431,6 +432,15 @@ const getAllClaims = asyncWrapper(async (req, res) => {
     query.createdAt = {};
     if (startDate) query.createdAt.$gte = new Date(startDate);
     if (endDate) query.createdAt.$lte = new Date(endDate);
+  }
+
+  // Search functionality
+  if (search) {
+    query.$or = [
+      { claimId: { $regex: search, $options: "i" } },
+      { claimType: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } }
+    ];
   }
 
   // Role-based filtering
@@ -454,7 +464,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
 
   const claims = await Claim.find(query)
     .populate("policy", "policyNumber policyType provider policyId")
-    .populate("employeeId", "userId firstName lastName email")
+    .populate("employeeId", "userId profile fullname email employment")
     .populate("documents", "filename originalName uploadedAt")
     .sort(sortOptions)
     .skip(skip)
@@ -534,8 +544,8 @@ const getClaimsRequiringAction = asyncWrapper(async (req, res) => {
   }
 
   const claims = await Claim.find(query)
-    .populate("policy", "policyNumber policyType provider")
-    .populate("employeeId", "firstName lastName email")
+    .populate("policy", "policyNumber policyId policyType provider")
+  .populate("employeeId", "userId profile fullname email employment")
     .sort({ createdAt: -1 })
     .limit(20);
 

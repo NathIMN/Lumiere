@@ -1,58 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
    Search,
-   Filter,
    User,
-   Calendar,
-   Building,
    Phone,
    Mail,
-   MapPin,
-   Briefcase,
-   Users,
    RefreshCw,
    Eye,
    X,
-   ChevronDown,
-   Edit
+   Edit,
+   Users,
+   Download
 } from 'lucide-react';
 import userApiService from '../../services/user-api';
+import reportsApiService from '../../services/reports-api';
 
 export const EmployeeDirectory = () => {
    const [allEmployees, setAllEmployees] = useState([]);
    const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
-   const [showFilters, setShowFilters] = useState(false);
    const [selectedEmployee, setSelectedEmployee] = useState(null);
    const [editingEmployee, setEditingEmployee] = useState(null);
+   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
    // Filter states
    const [filters, setFilters] = useState({
-      status: '',
       userId: '',
-      nic: '',
-      department: '',
-      employmentType: '',
-      joinDateFrom: '',
-      joinDateTo: ''
+      name: ''
    });
-
-   // Dropdown options
-   const statusOptions = [
-      { value: '', label: 'All Statuses' },
-      { value: 'active', label: 'Active' },
-      { value: 'inactive', label: 'Inactive' },
-      { value: 'suspended', label: 'Suspended' },
-      { value: 'terminated', label: 'Terminated' }
-   ];
-
-   const employmentTypeOptions = [
-      { value: '', label: 'All Types' },
-      { value: 'permanent', label: 'Permanent' },
-      { value: 'contract', label: 'Contract' },
-      { value: 'probation', label: 'Probation' },
-      { value: 'executive', label: 'Executive' }
-   ];
 
    useEffect(() => {
       fetchAllEmployees();
@@ -79,45 +53,39 @@ export const EmployeeDirectory = () => {
       if (!allEmployees.length) return [];
 
       return allEmployees.filter((employee) => {
-         // Status filter
-         if (filters.status && employee.status !== filters.status) {
+         // User ID search (exact match)
+         if (filters.userId && employee.userId !== filters.userId.trim()) {
             return false;
          }
 
-         // User ID search (case-insensitive partial match)
-         if (filters.userId && !employee.userId.toLowerCase().includes(filters.userId.toLowerCase())) {
-            return false;
-         }
-
-         // NIC search (case-insensitive partial match)
-         if (filters.nic && employee.profile?.nic && !employee.profile.nic.toLowerCase().includes(filters.nic.toLowerCase())) {
-            return false;
-         }
-
-         // Department search (case-insensitive partial match)
-         if (filters.department && employee.employment?.department && !employee.employment.department.toLowerCase().includes(filters.department.toLowerCase())) {
-            return false;
-         }
-
-         // Employment type filter
-         if (filters.employmentType && employee.employment?.employmentType !== filters.employmentType) {
-            return false;
-         }
-
-         // Join date range filter
-         if (filters.joinDateFrom && employee.employment?.joinDate) {
-            const joinDate = new Date(employee.employment.joinDate);
-            const fromDate = new Date(filters.joinDateFrom);
-            if (joinDate < fromDate) {
-               return false;
-            }
-         }
-
-         if (filters.joinDateTo && employee.employment?.joinDate) {
-            const joinDate = new Date(employee.employment.joinDate);
-            const toDate = new Date(filters.joinDateTo);
-            if (joinDate > toDate) {
-               return false;
+         // Name search with first and last name logic
+         if (filters.name) {
+            const searchTerm = filters.name.trim().toLowerCase();
+            const fullName = employee.fullName.toLowerCase();
+            
+            // Split search term by spaces
+            const searchParts = searchTerm.split(/\s+/);
+            
+            if (searchParts.length === 1) {
+               // Single word: match if full name starts with this word
+               if (!fullName.startsWith(searchParts[0])) {
+                  return false;
+               }
+            } else if (searchParts.length >= 2) {
+               // Multiple words: match first name starts with first part AND last name starts with second part
+               const nameParts = fullName.split(/\s+/);
+               
+               if (nameParts.length < 2) {
+                  return false;
+               }
+               
+               const firstName = nameParts[0];
+               const lastName = nameParts[nameParts.length - 1];
+               
+               // Check if first name starts with first search part AND last name starts with second search part
+               if (!firstName.startsWith(searchParts[0]) || !lastName.startsWith(searchParts[1])) {
+                  return false;
+               }
             }
          }
 
@@ -134,13 +102,8 @@ export const EmployeeDirectory = () => {
 
    const handleReset = () => {
       setFilters({
-         status: '',
          userId: '',
-         nic: '',
-         department: '',
-         employmentType: '',
-         joinDateFrom: '',
-         joinDateTo: ''
+         name: ''
       });
    };
 
@@ -148,6 +111,35 @@ export const EmployeeDirectory = () => {
       // Refresh the employee list after successful update
       fetchAllEmployees();
       setEditingEmployee(null);
+   };
+
+   // Generate Employee Report
+   const handleGenerateReport = async () => {
+      setIsGeneratingReport(true);
+      
+      try {
+         // Use filters if any are set, otherwise get all employees
+         const reportFilters = {
+            role: 'employee'
+         };
+
+         const blob = await reportsApiService.generateUsersReport(reportFilters);
+
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `employee_directory_${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         link.remove();
+         window.URL.revokeObjectURL(url);
+
+      } catch (error) {
+         console.error('Report generation failed:', error);
+         setError(`Failed to generate employee report: ${error.message}`);
+      } finally {
+         setIsGeneratingReport(false);
+      }
    };
 
    const getStatusBadge = (status) => {
@@ -263,7 +255,6 @@ export const EmployeeDirectory = () => {
          if (!showConfirmation) return null;
 
          return (
-
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
                <div className="bg-white rounded-lg max-w-md w-full p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Confirm Changes</h3>
@@ -649,112 +640,36 @@ export const EmployeeDirectory = () => {
    return (
       <div className="min-h-screen mb-5">
          <div className="max-w-7xl mx-auto space-y-6">
-            
-
-            {/* Search and Filters */}
+            {/* Search Section */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-               <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium text-gray-900">Search & Filters</h2>
-                  <button
-                     onClick={() => setShowFilters(!showFilters)}
-                     className="flex items-center space-x-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                     <Filter className="h-4 w-4" />
-                     <span>Filters</span>
-                     <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                  </button>
-               </div>
+               <h2 className="text-lg font-medium text-gray-900 mb-4">Search Employees</h2>
 
-               {/* Quick Search */}
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+               {/* Search Inputs */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="relative">
                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                      <input
                         type="text"
-                        placeholder="Search by Employee ID"
+                        placeholder="Search by Employee ID (exact match)"
                         value={filters.userId}
                         onChange={(e) => handleFilterChange('userId', e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                      />
                   </div>
                   <div className="relative">
-                     <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                     <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                      <input
                         type="text"
-                        placeholder="Search by NIC"
-                        value={filters.nic}
-                        onChange={(e) => handleFilterChange('nic', e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                     />
-                  </div>
-                  <div className="relative">
-                     <Building className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                     <input
-                        type="text"
-                        placeholder="Search by Department"
-                        value={filters.department}
-                        onChange={(e) => handleFilterChange('department', e.target.value)}
+                        placeholder="Search by Name (e.g., 'John' or 'John D')"
+                        value={filters.name}
+                        onChange={(e) => handleFilterChange('name', e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                      />
                   </div>
                </div>
 
-               {/* Advanced Filters */}
-               {showFilters && (
-                  <div className="border-t pt-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                           <select
-                              value={filters.status}
-                              onChange={(e) => handleFilterChange('status', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           >
-                              {statusOptions.map(option => (
-                                 <option key={option.value} value={option.value}>{option.label}</option>
-                              ))}
-                           </select>
-                        </div>
-                        <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">Employment Type</label>
-                           <select
-                              value={filters.employmentType}
-                              onChange={(e) => handleFilterChange('employmentType', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           >
-                              {employmentTypeOptions.map(option => (
-                                 <option key={option.value} value={option.value}>{option.label}</option>
-                              ))}
-                           </select>
-                        </div>
-                        <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">Join Date From</label>
-                           <input
-                              type="date"
-                              value={filters.joinDateFrom}
-                              onChange={(e) => handleFilterChange('joinDateFrom', e.target.value)}
-                              min="2025-01-01"
-                              max={new Date().toISOString().split('T')[0]}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           />
-                        </div>
-                        <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">Join Date To</label>
-                           <input
-                              type="date"
-                              value={filters.joinDateTo}
-                              onChange={(e) => handleFilterChange('joinDateTo', e.target.value)}
-                              min="2025-01-01"
-                              max={new Date().toISOString().split('T')[0]}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           />
-                        </div>
-                     </div>
-                  </div>
-               )}
-
                {/* Action Buttons */}
-               <div className="flex items-center justify-between space-x-3">
+               <div className="flex items-center justify-between">
                   <div className='flex flex-row gap-4'>
                      <button
                         onClick={handleReset}
@@ -770,12 +685,28 @@ export const EmployeeDirectory = () => {
                         <RefreshCw className="h-4 w-4" />
                         <span>Refresh</span>
                      </button>
+                     <button
+                        onClick={handleGenerateReport}
+                        disabled={isGeneratingReport}
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                        {isGeneratingReport ? (
+                           <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Generating...</span>
+                           </>
+                        ) : (
+                           <>
+                              <Download className="h-4 w-4" />
+                              <span>Download Report</span>
+                           </>
+                        )}
+                     </button>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-500">
                      <Users className="h-4 w-4" />
                      <span>{filteredEmployees.length} of {allEmployees.length} employees</span>
                   </div>
-
                </div>
             </div>
 

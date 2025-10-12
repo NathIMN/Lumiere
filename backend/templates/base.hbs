@@ -283,14 +283,30 @@
          text-align: center;
       }
 
-      .status.active {
+      .status.active,
+      .status.ACTIVE {
          background: #dcfce7;
          color: #166534;
       }
 
-      .status.inactive {
+      .status.inactive,
+      .status.INACTIVE {
          background: #fee2e2;
          color: #991b1b;
+      }
+
+      .status.suspended,
+      .status.SUSPENDED,
+      .status.Suspended {
+         background: #fef3c7;
+         color: #92400e;
+      }
+
+      .status.terminated,
+      .status.TERMINATED,
+      .status.Terminated {
+         background: #fecaca;
+         color: #7f1d1d;
       }
 
       .status.pending {

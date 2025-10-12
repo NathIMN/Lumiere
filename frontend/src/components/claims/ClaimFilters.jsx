@@ -18,17 +18,45 @@ export const ClaimFilters = ({
 }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [localFilters, setLocalFilters] = useState(filters);
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
 
   useEffect(() => {
     setLocalFilters(filters);
   }, [filters]);
 
-  // Immediate filter change
+  // Immediate filter change (for dropdowns and quick filters)
   const handleImmediateChange = (field, value) => {
     const updatedFilters = { ...localFilters, [field]: value };
     setLocalFilters(updatedFilters);
-    onFilterChange(updatedFilters);
+    
+    // For claimId and employeeName, don't trigger parent onChange immediately
+    // These are filtered on frontend in HRClaimReview
+    if (field === 'claimId' || field === 'employeeName') {
+      // Clear any existing debounce timer
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+      
+      // Set a new debounce timer (500ms delay)
+      const timer = setTimeout(() => {
+        onFilterChange(updatedFilters);
+      }, 500);
+      
+      setSearchDebounceTimer(timer);
+    } else {
+      // For other filters, apply immediately
+      onFilterChange(updatedFilters);
+    }
   };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+      }
+    };
+  }, [searchDebounceTimer]);
 
   // Advanced filter changes
   const handleAdvancedChange = (field, value) => {
@@ -64,8 +92,6 @@ export const ClaimFilters = ({
           };
         }
       }
-    } else if (field === "hasHRNotes" || field === "hasReturnReason") {
-      updatedFilters[field] = value === "" ? "" : value === "true";
     } else {
       updatedFilters[field] = value;
     }
@@ -112,11 +138,9 @@ export const ClaimFilters = ({
       claimType: "",
       startDate: "",
       endDate: "",
-      searchTerm: "",
+      claimId: "",
+      employeeName: "",
       hrAction: "",
-      urgency: "",
-      hasReturnReason: "",
-      hasHRNotes: "",
       daysOld: "",
     };
     setLocalFilters(cleared);
@@ -134,11 +158,9 @@ export const ClaimFilters = ({
       claimType: "",
       startDate: "",
       endDate: "",
-      searchTerm: "",
+      claimId: "",
+      employeeName: "",
       hrAction: "",
-      urgency: "",
-      hasReturnReason: "",
-      hasHRNotes: "",
       daysOld: "",
     };
     setLocalFilters(defaults);
@@ -181,14 +203,27 @@ export const ClaimFilters = ({
 
       {/* Basic Filters */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end">
-        {/* Search */}
+        {/* Search by Claim ID */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search claims..."
-            value={localFilters.searchTerm || ""}
-            onChange={(e) => handleImmediateChange("searchTerm", e.target.value)}
+            placeholder="Search by Claim ID (exact match)"
+            value={localFilters.claimId || ""}
+            onChange={(e) => handleImmediateChange("claimId", e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-green-500 
+                       border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+          />
+        </div>
+
+        {/* Search by Employee Name */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by Name (e.g., 'John' or 'John D')"
+            value={localFilters.employeeName || ""}
+            onChange={(e) => handleImmediateChange("employeeName", e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-green-500 
                        border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           />
@@ -208,45 +243,27 @@ export const ClaimFilters = ({
             <option value="vehicle">Vehicle Insurance</option>
           </select>
         </div>
+      </div>
 
-        {/* Urgency (HR only) */}
-        {showHRActions && (
-          <div className="flex flex-col">
-            <label className="text-sm text-gray-600 dark:text-gray-400 mb-1">Urgency</label>
-            <select
-              value={localFilters.urgency || ""}
-              onChange={(e) => handleImmediateChange("urgency", e.target.value)}
-              className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 
-                         border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="">All</option>
-              <option value="high">High (7+ days)</option>
-              <option value="medium">Medium (3+ days)</option>
-              <option value="normal">Normal (&lt; 3 days)</option>
-            </select>
-          </div>
-        )}
+      {/* Toggle + Clear */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="flex items-center gap-2 text-green-600 hover:text-green-700 dark:text-green-400 font-medium"
+        >
+          <Filter className="h-4 w-4" />
+          <span>{showAdvanced ? "Less" : "More"} Filters</span>
+        </button>
 
-        {/* Toggle + Clear */}
-        <div className="flex items-center justify-between">
+        {hasActiveFilters() && (
           <button
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2 text-green-600 hover:text-green-700 dark:text-green-400 font-medium"
+            onClick={handleClearFilters}
+            className="flex items-center gap-1 text-gray-600 hover:text-gray-700 dark:text-gray-400 text-sm"
           >
-            <Filter className="h-4 w-4" />
-            <span>{showAdvanced ? "Less" : "More"} Filters</span>
+            <X className="h-4 w-4" />
+            <span>Clear</span>
           </button>
-
-          {hasActiveFilters() && (
-            <button
-              onClick={handleClearFilters}
-              className="flex items-center gap-1 text-gray-600 hover:text-gray-700 dark:text-gray-400 text-sm"
-            >
-              <X className="h-4 w-4" />
-              <span>Clear</span>
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Advanced Filters */}
@@ -298,57 +315,6 @@ export const ClaimFilters = ({
               </div>
             )}
           </div>
-
-          {/* HR-specific extra filters */}
-          {showHRActions && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Return Reason */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Return Status
-                </label>
-                <select
-                  value={
-                    localFilters.hasReturnReason === true
-                      ? "true"
-                      : localFilters.hasReturnReason === false
-                      ? "false"
-                      : ""
-                  }
-                  onChange={(e) => handleAdvancedChange("hasReturnReason", e.target.value)}
-                  className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 
-                             border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">All</option>
-                  <option value="true">Has Return Reason</option>
-                  <option value="false">No Return Reason</option>
-                </select>
-              </div>
-
-              {/* HR Notes */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  HR Notes Status
-                </label>
-                <select
-                  value={
-                    localFilters.hasHRNotes === true
-                      ? "true"
-                      : localFilters.hasHRNotes === false
-                      ? "false"
-                      : ""
-                  }
-                  onChange={(e) => handleAdvancedChange("hasHRNotes", e.target.value)}
-                  className="px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500 
-                             border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="">All</option>
-                  <option value="true">Has HR Notes</option>
-                  <option value="false">No HR Notes</option>
-                </select>
-              </div>
-            </div>
-          )}
 
           {/* Apply + Reset */}
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">

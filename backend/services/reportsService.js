@@ -133,6 +133,13 @@ class ReportsService {
     handlebars.registerHelper('eq', (a, b) => a === b);
     handlebars.registerHelper('gt', (a, b) => a > b);
     handlebars.registerHelper('lt', (a, b) => a < b);
+    handlebars.registerHelper('and', function() {
+      return Array.prototype.slice.call(arguments, 0, -1).every(Boolean);
+    });
+    handlebars.registerHelper('isEmployeeReport', function(filters) {
+      //console.log('Filters in isEmployeeReport helper:', filters);
+      return filters && filters.role === 'employee';
+    });
   }
 
   /**
@@ -242,16 +249,25 @@ async loadLogo() {
         };
       }
 
+      console.log('Query:', JSON.stringify(query, null, 2));
+
       const users = await User.find(query)
         .select('-password')
         .sort({ createdAt: -1 })
         .lean();
 
-            // Generate summary statistics
+      console.log('Total users found:', users.length);
+      console.log('Sample user:', users[0] ? {
+        department: users[0].employment?.department,
+        status: users[0].status
+      } : 'No users');
+
+      // Generate summary statistics for ALL statuses
       const totalUsers = users.length;
       const activeUsers = users.filter(user => user.status === 'active').length;
-
-      const inactiveUsers = totalUsers - activeUsers;
+      const inactiveUsers = users.filter(user => user.status === 'inactive').length;
+      const suspendedUsers = users.filter(user => user.status === 'suspended').length;
+      const terminatedUsers = users.filter(user => user.status === 'terminated').length;
 
       // Group by role
       const usersByRole = users.reduce((acc, user) => {
@@ -259,25 +275,53 @@ async loadLogo() {
         return acc;
       }, {});
 
-      // Group by department
+      // ✅ FIXED: Group by department with proper status tracking
       const usersByDepartment = users.reduce((acc, user) => {
+        // Get the department name (or 'Unassigned' if missing)
         const dept = user.employment?.department || 'Unassigned';
+        
+        // Initialize department object if it doesn't exist
         if (!acc[dept]) {
-          acc[dept] = { active: 0, inactive: 0, total: 0 };
+          acc[dept] = { 
+            active: 0, 
+            inactive: 0, 
+            suspended: 0, 
+            terminated: 0, 
+            total: 0 
+          };
         }
-        acc[dept][user.status === 'active' ? 'active' : 'inactive']++;
+        
+        // Get user's status (default to 'inactive' if missing)
+        const status = user.status || 'inactive';
+        
+        // Increment the appropriate status counter
+        if (status === 'active') {
+          acc[dept].active++;
+        } else if (status === 'inactive') {
+          acc[dept].inactive++;
+        } else if (status === 'suspended') {
+          acc[dept].suspended++;
+        } else if (status === 'terminated') {
+          acc[dept].terminated++;
+        }
+        
+        // Always increment total
         acc[dept].total++;
+        
         return acc;
       }, {});
 
+      console.log('Users by department:', JSON.stringify(usersByDepartment, null, 2));
+
       return {
         users: users.map(user => ({
-          employeeId: user.employeeId || user._id.toString().slice(-6).toUpperCase(),
+          userId: user.userId || user._id.toString().slice(-6).toUpperCase(),
           fullName: `${user.profile?.firstName || 'N/A'} ${user.profile?.lastName || 'N/A'}`,
           email: user.email || 'N/A',
           role: (user.role || 'user').replace('_', ' ').toUpperCase(),
           department: user.employment?.department || 'Unassigned',
-          hireDate: user.createdAt,
+          designation: user.employment?.designation || 'N/A',
+          hireDate: user.employment?.joinDate || user.createdAt,
           status: user.status || 'unknown',
           lastLogin: user.lastLogin || null
         })),
@@ -285,6 +329,8 @@ async loadLogo() {
           totalUsers,
           activeUsers,
           inactiveUsers,
+          suspendedUsers,
+          terminatedUsers,
           activePercentage: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : 0
         },
         usersByRole: Object.entries(usersByRole).map(([role, count]) => ({
@@ -292,11 +338,16 @@ async loadLogo() {
           count,
           percentage: totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(1) : 0
         })),
+        // ✅ FIXED: Return proper department data with all status counts
         usersByDepartment: Object.entries(usersByDepartment).map(([department, data]) => ({
           department,
           activeCount: data.active,
           inactiveCount: data.inactive,
-          totalCount: data.total
+          suspendedCount: data.suspended,
+          terminatedCount: data.terminated,
+          totalCount: data.total,
+          // Calculate percentage of total users in this department
+          percentage: totalUsers > 0 ? ((data.total / totalUsers) * 100).toFixed(1) : '0.0'
         }))
       };
     } catch (error) {
@@ -328,6 +379,7 @@ async loadLogo() {
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
         theme: this.getReportTheme('users'),
+        filters: filters, // ✅ ADD THIS LINE - Pass filters to template
         summary: [
           { label: 'Total Users', value: reportData.summary.totalUsers },
           { label: 'Active Users', value: reportData.summary.activeUsers },
@@ -368,6 +420,7 @@ async loadLogo() {
       }
 
       if (filters.dateFrom && filters.dateTo) {
+         console.log('Date filters:', filters.dateFrom, filters.dateTo);
         query.createdAt = {
           $gte: filters.dateFrom,
           $lte: filters.dateTo
@@ -685,7 +738,7 @@ async loadLogo() {
 
       // Get the specific policy with all its beneficiaries
       const policy = await Policy.findById(filters.policyId)
-        .populate('beneficiaries', 'profile.firstName profile.lastName email profile.phoneNumber profile.address profile.dateOfBirth profile.gender employeeId')
+        .populate('beneficiaries', 'profile.firstName profile.lastName email phoneNumber address dateOfBirth gender employeeId')
         .populate('insuranceAgent', 'profile.firstName profile.lastName email')
         .lean();
 
@@ -1411,6 +1464,378 @@ async loadLogo() {
       console.error('Error generating employee policy PDF:', error);
       throw new Error('Failed to generate employee policy PDF report');
     }
+  }
+
+  /**
+   * Generate Documents PDF Report
+   */
+  async generateDocumentsPDF(reportData) {
+    try {
+      const baseTemplate = await this.loadTemplate('base');
+      
+      // Load the appropriate template based on report type
+      const templateName = this.getDocumentTemplateByType(reportData.reportType);
+      const contentTemplate = await this.loadTemplate(templateName);
+      
+      // Process data based on report type
+      const processedData = this.processDocumentDataByType(reportData);
+      
+      const logoBase64 = await this.loadLogo();
+      
+      // Register additional helpers for document reports
+      this.registerDocumentHelpers();
+
+      const templateData = {
+        reportTitle: reportData.reportTitle,
+        reportSubtitle: `Generated on ${new Date(reportData.generatedAt).toLocaleDateString()}`,
+        generatedBy: reportData.generatedBy,
+        generatedAt: reportData.generatedAt,
+        appliedFilters: reportData.appliedFilters,
+        logoBase64: logoBase64,
+        theme: this.getReportTheme('default'),
+        ...processedData
+      };
+
+      handlebars.registerPartial('content', contentTemplate);
+      const html = baseTemplate(templateData);
+      return await this.generatePDF(html);
+    } catch (error) {
+      console.error('Error generating documents PDF:', error);
+      throw new Error('Failed to generate documents PDF report');
+    }
+  }
+
+  /**
+   * Get template name based on document report type
+   */
+  getDocumentTemplateByType(reportType) {
+    const templateMap = {
+      'document-analytics': 'document-analytics-report',
+      'storage-analysis': 'storage-analysis-report'
+    };
+    return templateMap[reportType] || 'document-analytics-report';
+  }
+
+  /**
+   * Process document data based on report type
+   */
+  processDocumentDataByType(reportData) {
+    const { reportType, documents, summary } = reportData;
+    
+    let processedData = {
+      summary,
+      documents,
+      ...reportData
+    };
+
+    switch (reportType) {
+      case 'document-analytics':
+        processedData = this.processAnalyticsData(reportData);
+        break;
+      case 'storage-analysis':
+        processedData = this.processStorageData(reportData);
+        break;
+      default:
+        processedData = this.processAnalyticsData(reportData);
+    }
+
+    return processedData;
+  }
+
+  /**
+   * Process data for analytics report
+   */
+  processAnalyticsData(reportData) {
+    const { documents, summary } = reportData;
+    
+    // Calculate additional analytics
+    const categorySizeBreakdown = documents.reduce((acc, doc) => {
+      acc[doc.category] = (acc[doc.category] || 0) + (doc.size || 0);
+      return acc;
+    }, {});
+
+    const typeAvgSizeBreakdown = {};
+    Object.keys(summary.typeBreakdown).forEach(type => {
+      const typeDocuments = documents.filter(doc => doc.type === type);
+      const totalSize = typeDocuments.reduce((sum, doc) => sum + (doc.size || 0), 0);
+      typeAvgSizeBreakdown[type] = typeDocuments.length > 0 ? totalSize / typeDocuments.length : 0;
+    });
+
+    const roleSizeBreakdown = documents.reduce((acc, doc) => {
+      acc[doc.uploadedByRole] = (acc[doc.uploadedByRole] || 0) + (doc.size || 0);
+      return acc;
+    }, {});
+
+    return {
+      ...reportData,
+      summary: {
+        ...summary,
+        categorySizeBreakdown,
+        typeAvgSizeBreakdown,
+        roleSizeBreakdown
+      }
+    };
+  }
+
+  /**
+   * Process data for storage analysis report
+   */
+  processStorageData(reportData) {
+    const { documents, summary } = reportData;
+    
+    // Calculate storage-specific metrics
+    const categorySizeBreakdown = documents.reduce((acc, doc) => {
+      acc[doc.category] = (acc[doc.category] || 0) + (doc.size || 0);
+      return acc;
+    }, {});
+
+    const typeSizeBreakdown = documents.reduce((acc, doc) => {
+      acc[doc.type] = (acc[doc.type] || 0) + (doc.size || 0);
+      return acc;
+    }, {});
+
+    const averageFileSize = summary.totalDocuments > 0 ? 
+      summary.totalSize / summary.totalDocuments : 0;
+    
+    const largestCategory = Object.keys(categorySizeBreakdown).reduce((a, b) => 
+      categorySizeBreakdown[a] > categorySizeBreakdown[b] ? a : b, '');
+    
+    const storageEfficiency = this.calculateStorageEfficiency(documents);
+    const monthlyGrowth = this.calculateMonthlyGrowth(documents);
+    
+    // Get largest files for optimization suggestions
+    const largeFiles = documents
+      .sort((a, b) => (b.size || 0) - (a.size || 0))
+      .slice(0, 20);
+
+    return {
+      ...reportData,
+      summary: {
+        ...summary,
+        categorySizeBreakdown,
+        typeSizeBreakdown,
+        averageFileSizeFormatted: this.formatFileSize(averageFileSize),
+        largestCategory,
+        storageEfficiency,
+        monthlyGrowth
+      },
+      largeFiles
+    };
+  }
+
+  /**
+   * Helper method to format file size
+   */
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  /**
+   * Calculate verification timeline
+   */
+  calculateVerificationTimeline(documents) {
+    const timeline = {};
+    const months = ['Last 3 months', 'Last 6 months', 'Last 12 months'];
+    
+    months.forEach(period => {
+      timeline[period] = {
+        verified: 0,
+        pending: 0,
+        rate: 0
+      };
+    });
+    
+    return timeline;
+  }
+
+  /**
+   * Calculate storage efficiency
+   */
+  calculateStorageEfficiency(documents) {
+    if (!documents.length) return 85;
+    
+    // Calculate efficiency based on file types and sizes
+    const totalSize = documents.reduce((sum, doc) => sum + (doc.size || 0), 0);
+    const avgSize = totalSize / documents.length;
+    
+    // Efficiency calculation (simplified)
+    if (avgSize < 1024 * 1024) return 95; // Small files are efficient
+    if (avgSize < 10 * 1024 * 1024) return 85; // Medium files
+    return 75; // Large files might need optimization
+  }
+
+  /**
+   * Calculate monthly growth
+   */
+  calculateMonthlyGrowth(documents) {
+    const growth = {};
+    const now = new Date();
+    
+    // Get last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      
+      const monthDocs = documents.filter(doc => {
+        const docDate = new Date(doc.createdAt);
+        return docDate.getMonth() === date.getMonth() && 
+               docDate.getFullYear() === date.getFullYear();
+      });
+      
+      const totalSize = monthDocs.reduce((sum, doc) => sum + (doc.size || 0), 0);
+      
+      growth[monthKey] = {
+        count: monthDocs.length,
+        size: totalSize,
+        cumulative: 0, // Will calculate below
+        growthRate: 0  // Will calculate below
+      };
+    }
+    
+    // Calculate cumulative and growth rates
+    let cumulative = 0;
+    let previousSize = 0;
+    
+    Object.keys(growth).forEach(month => {
+      cumulative += growth[month].size;
+      growth[month].cumulative = cumulative;
+      
+      if (previousSize > 0) {
+        growth[month].growthRate = ((growth[month].size / previousSize - 1) * 100).toFixed(1);
+      } else {
+        growth[month].growthRate = 0;
+      }
+      
+      previousSize = growth[month].size || 1; // Avoid division by zero
+    });
+    
+    return growth;
+  }
+
+  /**
+   * Calculate role average verification time
+   */
+  calculateRoleAvgVerificationTime(documents) {
+    const avgTimes = {};
+    // Calculate average verification time by role
+    // Placeholder implementation
+    return avgTimes;
+  }
+
+  /**
+   * Calculate monthly verification trend
+   */
+  calculateMonthlyVerificationTrend(documents) {
+    const trend = {};
+    // Calculate monthly verification trends
+    // Placeholder implementation
+    return trend;
+  }
+
+  /**
+   * Register additional Handlebars helpers for document reports
+   */
+  registerDocumentHelpers() {
+    // Register percentage calculation helper
+    handlebars.registerHelper('calculatePercentage', (count, total) => {
+      return total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+    });
+
+    // Register compliance rate helper
+    handlebars.registerHelper('calculateComplianceRate', (verified, total) => {
+      return total > 0 ? ((verified / total) * 100).toFixed(1) : 0;
+    });
+
+    // Register lookup helper
+    handlebars.registerHelper('lookup', (obj, key) => {
+      return obj && obj[key] ? obj[key] : 0;
+    });
+
+    // Register subtract helper
+    handlebars.registerHelper('subtract', (a, b) => {
+      return (a || 0) - (b || 0);
+    });
+
+    // Register formatFileSize helper
+    handlebars.registerHelper('formatFileSize', (bytes) => {
+      return this.formatFileSize(bytes || 0);
+    });
+
+    // Register days since upload helper
+    handlebars.registerHelper('daysSinceUpload', (date) => {
+      const now = new Date();
+      const uploadDate = new Date(date);
+      const diffTime = Math.abs(now - uploadDate);
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    });
+
+    // Register other specialized helpers
+    handlebars.registerHelper('getComplianceImpact', (status) => {
+      const impacts = {
+        'active': 'Positive',
+        'verified': 'High Positive',
+        'pending': 'Neutral',
+        'rejected': 'Negative'
+      };
+      return impacts[status] || 'Neutral';
+    });
+
+    handlebars.registerHelper('getPriority', (days) => {
+      if (days > 30) return 'High';
+      if (days > 14) return 'Medium';
+      return 'Low';
+    });
+
+    handlebars.registerHelper('getCategoryPriority', (category) => {
+      const priorities = {
+        'policy': 'Critical',
+        'claim': 'High',
+        'identity': 'High',
+        'financial': 'Medium',
+        'other': 'Low'
+      };
+      return priorities[category] || 'Medium';
+    });
+
+    // Register additional helpers for storage analysis
+    handlebars.registerHelper('sortByDate', (array) => {
+      if (!Array.isArray(array)) return array;
+      return array.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    });
+
+    handlebars.registerHelper('calculateAvgSize', (totalSize, count) => {
+      if (!count || count === 0) return 0;
+      return Math.round(totalSize / count);
+    });
+
+    handlebars.registerHelper('getVerificationPriority', (isVerified) => {
+      return isVerified ? 'Low' : 'High';
+    });
+
+    handlebars.registerHelper('formatBytes', (bytes) => {
+      return this.formatFileSize(bytes || 0);
+    });
+
+    handlebars.registerHelper('getStorageClass', (size) => {
+      if (size > 10 * 1024 * 1024) return 'Large';
+      if (size > 1024 * 1024) return 'Medium';
+      return 'Small';
+    });
+
+    handlebars.registerHelper('calculateStorageUsage', (documents) => {
+      if (!Array.isArray(documents)) return 0;
+      return documents.reduce((sum, doc) => sum + (doc.size || 0), 0);
+    });
+
+    handlebars.registerHelper('getOptimizationSuggestion', (size) => {
+      if (size > 50 * 1024 * 1024) return 'Consider compression';
+      if (size > 10 * 1024 * 1024) return 'Monitor size';
+      return 'Optimized';
+    });
   }
 }
 
