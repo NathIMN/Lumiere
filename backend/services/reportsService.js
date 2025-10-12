@@ -138,16 +138,18 @@ class ReportsService {
   /**
    * Load company logo as base64
    */
-  async loadLogo() {
-    try {
-      const logoPath = path.join(__dirname, '../public/LumiereLogo.svg');
-      const logoContent = await fs.readFile(logoPath);
-      return logoContent.toString('base64');
-    } catch (error) {
-      console.warn('Logo file not found, proceeding without logo');
-      return '';
-    }
+async loadLogo() {
+  try {
+    const logoPath = path.join(__dirname, '../public/lum2.png');
+    const logoContent = await fs.readFile(logoPath);
+    const base64Image = logoContent.toString('base64');
+    // Return with correct MIME type for PNG
+    return `data:image/png;base64,${base64Image}`;
+  } catch (error) {
+    console.warn('Logo file not found, proceeding without logo');
+    return '';
   }
+}
 
   /**
    * Load and compile Handlebars template

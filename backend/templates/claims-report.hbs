@@ -9,9 +9,9 @@
                 <th>Claim Type</th>
                 <th>Claim Amount</th>
                 <th>Date Filed</th>
-                <th>Status</th>
+                {{!-- <th>Status</th>
                 <th>Assigned Agent</th>
-                <th>Settlement Date</th>
+                <th>Settlement Date</th> --}}
             </tr>
         </thead>
     <tbody>
@@ -21,11 +21,11 @@
             <td>{{policyNumber}}</td>
             <td>{{claimantName}}</td>
             <td>{{claimType}}</td>
-            <td>${{formatCurrency claimAmount}}</td>
+            <td class="currency">Rs. {{formatCurrency claimAmount}}</td>
             <td>{{formatDate dateFiled}}</td>
-            <td><span class="status {{status}}">{{status}}</span></td>
+            {{!-- <td><span class="status {{status}}">{{status}}</span></td>
             <td>{{agentName}}</td>
-            <td>{{formatDate settlementDate}}</td>
+            <td>{{formatDate settlementDate}}</td> --}}
         </tr>
         {{/each}}
     </tbody>
@@ -53,8 +53,8 @@
             <td>{{claimType}}</td>
             <td>{{totalClaims}}</td>
             <td>{{approvedClaims}}</td>
-            <td>${{formatCurrency totalAmount}}</td>
-            <td>${{formatCurrency averageSettlement}}</td>
+            <td>Rs. {{formatCurrency totalAmount}}</td>
+            <td class="currency">Rs. {{formatCurrency averageSettlement}}</td>
             <td>{{approvalRate}}%</td>
         </tr>
         {{/each}}
@@ -82,7 +82,7 @@
             <td>{{month}}</td>
             <td>{{claimsFiled}}</td>
             <td>{{claimsSettled}}</td>
-            <td>${{formatCurrency amountSettled}}</td>
+            <td>Rs. {{formatCurrency amountSettled}}</td>
             <td>{{averageProcessingTime}}</td>
         </tr>
         {{/each}}
@@ -110,8 +110,8 @@
         <tr>
             <td>{{claimNumber}}</td>
             <td>{{claimantName}}</td>
-            <td>{{daysPending}}</td>
-            <td>${{formatCurrency claimAmount}}</td>
+            <td class="numeric">{{daysPending}}</td>
+            <td class="currency">Rs. {{formatCurrency claimAmount}}</td>
             <td><span class="status {{priority}}">{{priority}}</span></td>
             <td>{{assignedAgent}}</td>
         </tr>

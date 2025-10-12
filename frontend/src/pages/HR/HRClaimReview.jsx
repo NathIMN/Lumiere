@@ -539,7 +539,7 @@ export const HRClaimReview = () => {
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 lg:space-y-8 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 min-h-screen max-w-full overflow-x-hidden">
+    <div className="p-2 space-y-6 lg:space-y-8 dark:from-gray-900 dark:to-gray-800 min-h-screen  ">
       {/* Notification */}
       {notification && (
         <Notification
