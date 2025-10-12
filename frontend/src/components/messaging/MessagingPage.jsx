@@ -32,7 +32,9 @@ import {
   Sparkles,
   RefreshCw,
   Edit3,
-  MoreHorizontal
+  MoreHorizontal,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import messagingApiService from '../../services/messaging-api';
 import geminiApiService from '../../services/gemini-api';
@@ -84,6 +86,12 @@ const MessagingPage = ({ userRole, config = {} }) => {
   const messagesEndRef = useRef(null);
   const messageInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const recognitionRef = useRef(null);
+  
+  // Voice input state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isVoiceSupported, setIsVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
 
   // Role-based configuration
   const getRoleConfig = useCallback(() => {
@@ -161,6 +169,129 @@ const MessagingPage = ({ userRole, config = {} }) => {
   }, [userRole, config]);
 
   const roleConfig = getRoleConfig();
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    // Check if browser supports Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      setIsVoiceSupported(true);
+      
+      // Create recognition instance
+      const recognition = new SpeechRecognition();
+      
+      // Configure recognition
+      recognition.continuous = false; // Stop after one result
+      recognition.interimResults = false; // Only get final results to avoid duplicates
+      recognition.lang = 'en-US'; // Default language (you can make this configurable)
+      recognition.maxAlternatives = 1;
+      
+      // Handle results
+      recognition.onresult = (event) => {
+        // Only process the final result
+        const lastResult = event.results[event.results.length - 1];
+        
+        if (lastResult.isFinal) {
+          const transcript = lastResult[0].transcript;
+          
+          // Update message input - only append if there's existing content
+          if (transcript) {
+            setMessageInput(prev => {
+              if (prev && prev.trim()) {
+                return prev + ' ' + transcript.trim();
+              }
+              return transcript.trim();
+            });
+          }
+        }
+      };
+      
+      // Handle errors
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+        
+        let errorMessage = 'Voice input error';
+        switch (event.error) {
+          case 'no-speech':
+            errorMessage = 'No speech detected. Please try again.';
+            break;
+          case 'audio-capture':
+            errorMessage = 'Microphone not found or permission denied.';
+            break;
+          case 'not-allowed':
+            errorMessage = 'Microphone permission denied.';
+            break;
+          case 'network':
+            errorMessage = 'Network error. Please check your connection.';
+            break;
+          default:
+            errorMessage = `Error: ${event.error}`;
+        }
+        
+        setVoiceError(errorMessage);
+        
+        // Clear error after 5 seconds
+        setTimeout(() => setVoiceError(null), 5000);
+      };
+      
+      // Handle end of recognition
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+      
+      // Handle start of recognition
+      recognition.onstart = () => {
+        setVoiceError(null);
+        setIsRecording(true);
+      };
+      
+      recognitionRef.current = recognition;
+    } else {
+      setIsVoiceSupported(false);
+      console.warn('Speech Recognition not supported in this browser');
+    }
+    
+    // Cleanup
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          // Ignore errors on cleanup
+        }
+      }
+    };
+  }, []);
+
+  // Toggle voice input
+  const toggleVoiceInput = () => {
+    if (!recognitionRef.current) {
+      setVoiceError('Speech recognition not available in this browser');
+      setTimeout(() => setVoiceError(null), 3000);
+      return;
+    }
+    
+    if (isRecording) {
+      // Stop recording
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+        setIsRecording(false);
+      }
+    } else {
+      // Start recording
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Error starting recognition:', error);
+        setVoiceError('Could not start voice input. Please try again.');
+        setTimeout(() => setVoiceError(null), 3000);
+      }
+    }
+  };
 
   // Initialize user and load data
   useEffect(() => {
@@ -394,7 +525,9 @@ const MessagingPage = ({ userRole, config = {} }) => {
     } finally {
       setFormalizeLoading(false);
     }
-  };  // Edit message function
+  };
+
+  // Edit message function
   const editMessage = async (messageId, newContent) => {
     if (!newContent.trim()) {
       setEditingMessageId(null);
@@ -629,7 +762,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
   return (
     <div className="flex h-full bg-white rounded-xl shadow-xl overflow-hidden border-2 border-red-900/10">
       {/* Sidebar with enhanced styling */}
-      <div className="w-1/3 border-r-2 border-red-900/10 flex flex-col bg-gradient-to-b from-white to-gray-50">
+      <div className="w-1/3 border-r-2 border-red-900/10 flex flex-col bg-gradient-to-b from-white to-gray-50 min-w-0 overflow-hidden" style={{ maxWidth: '400px' }}>
         {/* Header matching sidebar design */}
         <div className="p-6 border-b-2 border-red-900/10 bg-white">
           <div className="flex items-center justify-between mb-4">
@@ -721,7 +854,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
         </div>
 
         {/* Enhanced Content */}
-        <div className="flex-1 overflow-y-auto px-4 py-2">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-2" style={{ maxWidth: '100%' }}>
           {activeView === 'conversations' ? (
             /* Enhanced Conversations List */
             <div className="space-y-3">
@@ -755,29 +888,30 @@ const MessagingPage = ({ userRole, config = {} }) => {
                           });
                         }
                       }}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
+                      className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-w-0 overflow-hidden ${
                         activeConversation?._id === conversation._id
                           ? 'bg-rose-50 dark:bg-rose-900/20 border-r-2 border-rose-700'
                           : ''
                       }`}
+                      style={{ maxWidth: '100%' }}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3 min-w-0 overflow-hidden">
                         <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900 rounded-full flex items-center justify-center">
                           <span className="text-sm font-medium text-rose-700 dark:text-rose-400">
                             {messagingUtils.formatUserName(conversation.otherParticipant).charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 overflow-hidden" style={{ maxWidth: '280px' }}>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate" style={{ maxWidth: '200px' }}>
                               {messagingUtils.formatUserName(conversation.otherParticipant)}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
                               {messagingUtils.formatTime(conversation.lastMessage?.createdAt || conversation.updatedAt)}
                             </p>
                           </div>
                           <div className="flex items-center justify-between">
-                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate" style={{ maxWidth: '200px' }}>
                               {conversation.lastMessage?.content || 'No messages yet'}
                             </p>
                             {conversation.unreadCount > 0 && (
@@ -798,7 +932,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
             </div>
           ) : (
             /* Contacts List */
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 min-w-0 overflow-hidden" style={{ maxWidth: '100%' }}>
               {contactsLoading ? (
                 <div className="p-6 text-center">
                   <Loader2 className="w-6 h-6 animate-spin mx-auto text-red-900" />
@@ -813,27 +947,28 @@ const MessagingPage = ({ userRole, config = {} }) => {
                   <div
                     key={contact._id}
                     onClick={() => startConversation(contact)}
-                    className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-w-0 overflow-hidden"
+                    style={{ maxWidth: '100%' }}
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                    <div className="flex items-center space-x-3 min-w-0 overflow-hidden">
+                      <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                           {messagingUtils.formatUserName(contact).charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden" style={{ maxWidth: '280px' }}>
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate" style={{ maxWidth: '200px' }}>
                             {messagingUtils.formatUserName(contact)}
                           </p>
-                          <span className="text-xs">
+                          <span className="text-xs flex-shrink-0">
                             {messagingUtils.getRoleIcon(contact.role)}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate" style={{ maxWidth: '250px' }}>
                           {messagingUtils.getRoleDisplayName(contact.role)}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate" style={{ maxWidth: '250px' }}>
                           {contact.email}
                         </p>
                       </div>
@@ -847,7 +982,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {activeConversation && activeConversation.otherParticipant ? (
           <>
             {/* Chat Header */}
@@ -887,7 +1022,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-800">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 bg-gray-50 dark:bg-gray-800">
               {messageLoading ? (
                 <div className="flex justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-red-900" />
@@ -905,25 +1040,26 @@ const MessagingPage = ({ userRole, config = {} }) => {
                   const showAvatar = index === 0 || messages[index - 1].sender._id !== message.sender._id;
                   
                   return (
-                    <div key={message._id || message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4`}>
-                      <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-xs lg:max-w-md`}>
+                    <div key={message._id || message.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'} mb-4 w-full min-w-0 relative`} style={{ maxWidth: '100%' }}>
+                      <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 min-w-0`} style={{ maxWidth: '400px' }}>
                         {showAvatar && !isOwn && (
-                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                          <div className="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                               {messagingUtils.formatUserName(message.sender).charAt(0).toUpperCase()}
                             </span>
                           </div>
                         )}
-                        <div className="relative group">
+                        <div className="relative group min-w-0" style={{ maxWidth: '350px' }}>
                           <div
-                            className={`px-4 py-2 rounded-lg ${
+                            className={`px-4 py-2 rounded-lg word-break break-all overflow-wrap-anywhere ${
                               isOwn
                                 ? 'bg-red-900 text-white'
                                 : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
                             }`}
+                            style={{ maxWidth: '320px' }}
                           >
                             {editingMessageId === message._id ? (
-                              <div className="space-y-2">
+                              <div className="space-y-2 min-w-0" style={{ maxWidth: '300px' }}>
                                 <input
                                   type="text"
                                   value={editMessageContent}
@@ -935,7 +1071,8 @@ const MessagingPage = ({ userRole, config = {} }) => {
                                       cancelEditing();
                                     }
                                   }}
-                                  className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-900"
+                                  className="w-full bg-transparent border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm focus:outline-none focus:border-red-900 overflow-hidden"
+                                  style={{ maxWidth: '280px' }}
                                   autoFocus
                                 />
                                 <div className="flex space-x-2 justify-end">
@@ -955,7 +1092,16 @@ const MessagingPage = ({ userRole, config = {} }) => {
                               </div>
                             ) : (
                               <>
-                                <p className="text-sm">
+                                <p 
+                                  className="text-sm break-all overflow-wrap-anywhere whitespace-pre-wrap word-break hyphens-auto overflow-hidden" 
+                                  style={{ 
+                                    wordBreak: 'break-all', 
+                                    overflowWrap: 'anywhere', 
+                                    wordWrap: 'break-word',
+                                    maxWidth: '300px',
+                                    overflow: 'hidden'
+                                  }}
+                                >
                                   {message.content}
                                   {message.edited && (
                                     <span className="ml-1 text-xs opacity-60">(edited)</span>
@@ -982,27 +1128,27 @@ const MessagingPage = ({ userRole, config = {} }) => {
                               </>
                             )}
                           </div>
-                          
-                          {/* Message Options Dropdown */}
-                          {isOwn && showMessageOptions === message._id && (
-                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-50">
-                              <button
-                                onClick={() => startEditingMessage(message)}
-                                className="w-full px-3 py-1 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                <span>Edit</span>
-                              </button>
-                              <button
-                                onClick={() => deleteMessage(message._id)}
-                                className="w-full px-3 py-1 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 flex items-center space-x-2"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          )}
                         </div>
+                        
+                        {/* Message Options Dropdown - moved outside message container */}
+                        {isOwn && showMessageOptions === message._id && (
+                          <div className={`absolute ${isOwn ? 'right-0' : 'left-0'} top-0 mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-1 z-50 min-w-[120px]`} style={{ minWidth: '120px' }}>
+                            <button
+                              onClick={() => startEditingMessage(message)}
+                              className="w-full px-3 py-1 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => deleteMessage(message._id)}
+                              className="w-full px-3 py-1 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 flex items-center space-x-2"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1032,6 +1178,26 @@ const MessagingPage = ({ userRole, config = {} }) => {
 
             {/* Message Input */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+              {/* Voice Error Message */}
+              {voiceError && (
+                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" />
+                  <span className="text-sm text-red-600 dark:text-red-400">{voiceError}</span>
+                </div>
+              )}
+              
+              {/* Recording Indicator */}
+              {isRecording && (
+                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                    <span className="text-sm text-red-600 dark:text-red-400 font-medium">
+                      Listening... Speak now
+                    </span>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center space-x-2">
                 <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                   <Paperclip className="w-5 h-5" />
@@ -1051,13 +1217,34 @@ const MessagingPage = ({ userRole, config = {} }) => {
                         sendMessage();
                       }
                     }}
-                    placeholder="Type a message..."
+                    placeholder="Type a message or use voice input..."
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-900 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
                 </div>
                 <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">
                   <Smile className="w-5 h-5" />
                 </button>
+                
+                {/* Voice Input Button */}
+                {isVoiceSupported && (
+                  <button
+                    onClick={toggleVoiceInput}
+                    disabled={!activeConversation}
+                    className={`p-2 rounded-lg transition-all duration-200 ${
+                      isRecording 
+                        ? 'text-red-600 bg-red-50 dark:bg-red-900/20 animate-pulse' 
+                        : 'text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    title={isRecording ? 'Stop recording' : 'Start voice input'}
+                  >
+                    {isRecording ? (
+                      <MicOff className="w-5 h-5" />
+                    ) : (
+                      <Mic className="w-5 h-5" />
+                    )}
+                  </button>
+                )}
+                
                 <button
                   onClick={formalizeMessage}
                   disabled={!messageInput.trim() || formalizeLoading}
@@ -1078,6 +1265,14 @@ const MessagingPage = ({ userRole, config = {} }) => {
                   <Send className="w-5 h-5" />
                 </button>
               </div>
+              
+              {/* Browser Support Info */}
+              {!isVoiceSupported && (
+                <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center space-x-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Voice input not supported in this browser. Try Chrome or Edge.</span>
+                </div>
+              )}
             </div>
           </>
         ) : (
