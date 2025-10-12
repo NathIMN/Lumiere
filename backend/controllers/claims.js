@@ -413,6 +413,7 @@ const getAllClaims = asyncWrapper(async (req, res) => {
     claimType,
     startDate,
     endDate,
+    search,
     page = 1,
     limit = 100,
     sortBy = "createdAt",
@@ -431,6 +432,15 @@ const getAllClaims = asyncWrapper(async (req, res) => {
     query.createdAt = {};
     if (startDate) query.createdAt.$gte = new Date(startDate);
     if (endDate) query.createdAt.$lte = new Date(endDate);
+  }
+
+  // Search functionality
+  if (search) {
+    query.$or = [
+      { claimId: { $regex: search, $options: "i" } },
+      { claimType: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } }
+    ];
   }
 
   // Role-based filtering

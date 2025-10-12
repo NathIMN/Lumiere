@@ -9,7 +9,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign,
+  Coins,
   Activity,
   Calendar,
   RefreshCw
@@ -266,11 +266,11 @@ export const AdminOverview = () => {
         />
         <StatCard 
           title="Total Premium" 
-          value={`$${dashboardData.policies.totalPremium.toLocaleString()}`}
-          icon={DollarSign}
+          value={`LKR ${dashboardData.policies.totalPremium.toLocaleString()}`}
+          icon={Coins}
           change={{ type: 'increase', value: 15 }}
         />
-      </div>
+      </div><br />
 
       {/* Detailed Breakdowns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -326,7 +326,7 @@ export const AdminOverview = () => {
             <div className="flex justify-between items-center">
               <span className="text-gray-600 dark:text-gray-400">Total Amount</span>
               <span className="font-semibold text-gray-900 dark:text-white">
-                ${dashboardData.claims.totalAmount.toLocaleString()}
+                LKR {dashboardData.claims.totalAmount.toLocaleString()}
               </span>
             </div>
           </div>

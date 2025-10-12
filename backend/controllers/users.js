@@ -243,12 +243,39 @@ const resetPassword = asyncWrapper(async (req, res, next) => {
 
 // Get all users (admin/hr only)
 const getAllUsers = asyncWrapper(async (req, res) => {
-  const { role, status, department } = req.query;
+  const { role, status, department, search } = req.query;
   let query = {};
 
   if (role) query.role = role;
   if (status) query.status = status;
   if (department) query["employment.department"] = department;
+  
+  // Enhanced search functionality
+  if (search) {
+    const searchTerm = search.trim();
+    
+    // Escape special regex characters in search term for safety
+    const escapedTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    const searchConditions = [];
+
+    // Name matching: search term should match the start of first name or last name (case insensitive)
+    // Note: firstName and lastName are nested under profile
+    searchConditions.push(
+      { "profile.firstName": { $regex: `^${escapedTerm}`, $options: "i" } },
+      { "profile.lastName": { $regex: `^${escapedTerm}`, $options: "i" } }
+    );
+
+    // Email matching: 
+    // 1. Username part: match if email starts with search term
+    searchConditions.push({ email: { $regex: `^${escapedTerm}`, $options: "i" } });
+    
+    // 2. Domain part: match if domain part starts with search term
+    // Pattern: any characters, then @, then our search term at start of domain
+    searchConditions.push({ email: { $regex: `^[^@]+@${escapedTerm}`, $options: "i" } });
+
+    query.$or = searchConditions;
+  }
 
   const users = await User.find(query);
   

@@ -37,6 +37,7 @@ export const AdminInsuranceAgents = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    confirmPassword: "",
     profile: {
       firstName: "",
       lastName: "",
@@ -76,6 +77,291 @@ export const AdminInsuranceAgents = () => {
     }
   };
 
+  // Real-time validation functions
+  const handleNicChange = (e) => {
+    const value = e.target.value;
+    let filtered = "";
+
+    // Handle old format (9 digits + V)
+    if (value.length <= 10) {
+      filtered = value
+        .replace(/[^0-9vV]/g, "")
+        .replace(/([0-9]{9})[vV].*/, "$1V")
+        .substring(0, 10);
+    }
+    // Handle new format (12 digits)
+    else {
+      filtered = value.replace(/[^0-9]/g, "").substring(0, 12);
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, nic: filtered },
+    }));
+
+    // Real-time validation
+    const isValid = validateField("profile.nic", filtered, { ...formData, profile: { ...formData.profile, nic: filtered } });
+    if (!isValid && filtered.length > 0) {
+      setErrors((prev) => ({
+        ...prev,
+        "profile.nic": "Invalid NIC format",
+      }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors["profile.nic"];
+        return newErrors;
+      });
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, "").substring(0, 10);
+    setFormData((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, phoneNumber: value },
+    }));
+
+    // Real-time validation
+    const isValid = validateField("profile.phoneNumber", value, { ...formData, profile: { ...formData.profile, phoneNumber: value } });
+    if (!isValid && value.length > 0) {
+      setErrors((prev) => ({
+        ...prev,
+        "profile.phoneNumber": "Phone number must be 10 digits",
+      }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors["profile.phoneNumber"];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAgentIdChange = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, "");
+    setFormData((prev) => ({
+      ...prev,
+      insuranceProvider: { ...prev.insuranceProvider, agentId: value },
+    }));
+
+    // Real-time validation
+    const isValid = validateField("insuranceProvider.agentId", value, { ...formData, insuranceProvider: { ...formData.insuranceProvider, agentId: value } });
+    if (!isValid && value.length > 0) {
+      setErrors((prev) => ({
+        ...prev,
+        "insuranceProvider.agentId": "Agent ID must be digits only",
+      }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors["insuranceProvider.agentId"];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleLicenseChange = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, "");
+    setFormData((prev) => ({
+      ...prev,
+      insuranceProvider: { ...prev.insuranceProvider, licenseNumber: value },
+    }));
+
+    // Real-time validation
+    const isValid = validateField("insuranceProvider.licenseNumber", value, { ...formData, insuranceProvider: { ...formData.insuranceProvider, licenseNumber: value } });
+    if (!isValid && value.length > 0) {
+      setErrors((prev) => ({
+        ...prev,
+        "insuranceProvider.licenseNumber": "License number must be digits only",
+      }));
+    } else {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors["insuranceProvider.licenseNumber"];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleKeyPress = (e, type) => {
+    if (type === 'name') {
+      // Allow only letters and spaces
+      if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+    } else if (type === 'digits') {
+      // Allow only digits
+      if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  // Real-time validation functions
+  const validateField = (name, value, formData) => {
+    switch (name) {
+      case "email":
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      case "password":
+        return value.length >= 8;
+      case "confirmPassword":
+        return value === formData.password;
+      case "profile.firstName":
+      case "profile.lastName":
+        return value.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(value);
+      case "profile.nic":
+        // Old format: 9 digits + V or New format: 12 digits
+        return /^(\d{9}[vV]|\d{12})$/.test(value);
+      case "profile.phoneNumber":
+        return /^\d{10}$/.test(value);
+      case "profile.address":
+        return value.trim().length >= 10;
+      case "profile.dateOfBirth":
+        if (!value) return false;
+        const birthDate = new Date(value);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
+        return actualAge >= 18 && actualAge <= 55;
+      case "insuranceProvider.companyName":
+        return value.trim().length >= 2;
+      case "insuranceProvider.agentId":
+        return /^\d+$/.test(value) && value.length >= 3;
+      case "insuranceProvider.licenseNumber":
+        return /^\d+$/.test(value) && value.length >= 5;
+      case "insuranceProvider.contactEmail":
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      case "insuranceProvider.contactPhone":
+        return /^\d{10}$/.test(value);
+      default:
+        return true;
+    }
+  };
+
+  // Get real-time validation feedback for a field
+  const getFieldFeedback = (name, value, formData) => {
+    if (!value || value.trim() === "") return null;
+
+    switch (name) {
+      case "email":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid email format" };
+        } else {
+          return { type: "error", message: "Invalid email format" };
+        }
+
+      case "password":
+        if (value.length >= 12) {
+          return { type: "success", message: "✓ Strong password" };
+        } else if (value.length >= 8) {
+          return { type: "warning", message: "⚠ Good password (consider 12+ characters)" };
+        } else {
+          return { type: "error", message: "Password must be at least 8 characters" };
+        }
+
+      case "confirmPassword":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Passwords match" };
+        } else {
+          return { type: "error", message: "Passwords do not match" };
+        }
+
+      case "profile.firstName":
+      case "profile.lastName":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid name" };
+        } else {
+          return { type: "error", message: "Name must be at least 2 characters, letters only" };
+        }
+
+      case "profile.nic":
+        if (validateField(name, value, formData)) {
+          const isOldFormat = /^\d{9}[vV]$/.test(value);
+          return { 
+            type: "success", 
+            message: `✓ Valid NIC (${isOldFormat ? 'Old format' : 'New format'})` 
+          };
+        } else {
+          return { type: "error", message: "Invalid NIC (use 123456789V or 199812345678)" };
+        }
+
+      case "profile.phoneNumber":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid phone number" };
+        } else {
+          return { type: "error", message: "Phone number must be 10 digits" };
+        }
+
+      case "profile.address":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid address" };
+        } else {
+          return { type: "error", message: "Address must be at least 10 characters" };
+        }
+
+      case "profile.dateOfBirth":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid age (18-55 years)" };
+        } else {
+          return { type: "error", message: "Age must be between 18 and 55 years" };
+        }
+
+      case "insuranceProvider.companyName":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid company name" };
+        } else {
+          return { type: "error", message: "Company name must be at least 2 characters" };
+        }
+
+      case "insuranceProvider.agentId":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid agent ID" };
+        } else {
+          return { type: "error", message: "Agent ID must be digits only (min 3 digits)" };
+        }
+
+      case "insuranceProvider.licenseNumber":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid license number" };
+        } else {
+          return { type: "error", message: "License number must be digits only (min 5 digits)" };
+        }
+
+      case "insuranceProvider.contactEmail":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid email format" };
+        } else {
+          return { type: "error", message: "Invalid email format" };
+        }
+
+      case "insuranceProvider.contactPhone":
+        if (validateField(name, value, formData)) {
+          return { type: "success", message: "✓ Valid phone number" };
+        } else {
+          return { type: "error", message: "Phone number must be 10 digits" };
+        }
+
+      default:
+        return null;
+    }
+  };
+
+  // Calculate date restrictions for 18-55 years
+  const getDateRestrictions = () => {
+    const today = new Date();
+    const minDate = new Date(today.getFullYear() - 55, today.getMonth(), today.getDate());
+    const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+    
+    return {
+      min: minDate.toISOString().split('T')[0],
+      max: maxDate.toISOString().split('T')[0]
+    };
+  };
+
+  const dateRestrictions = getDateRestrictions();
+
   // Filter insurance agents based on search and status
   const filteredAgents = insuranceAgents.filter((agent) => {
     const matchesSearch =
@@ -100,27 +386,53 @@ export const AdminInsuranceAgents = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
+  // Handle form input changes with validation
+  const handleInputChange = (e, validationType = null) => {
     const { name, value } = e.target;
+    
+    // Update form data
+    let updatedFormData;
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
-      setFormData((prev) => ({
-        ...prev,
+      updatedFormData = {
+        ...formData,
         [parent]: {
-          ...prev[parent],
+          ...formData[parent],
           [child]: value,
         },
+      };
+      setFormData(updatedFormData);
+    } else {
+      updatedFormData = {
+        ...formData,
+        [name]: value,
+      };
+      setFormData(updatedFormData);
+    }
+
+    // Real-time validation
+    const isValid = validateField(name, value, updatedFormData);
+    
+    if (value.trim() === "") {
+      // Clear errors when field is empty
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    } else if (!isValid) {
+      // Set error if invalid
+      setErrors((prev) => ({
+        ...prev,
+        [name]: getFieldFeedback(name, value, updatedFormData)?.message || "Invalid input",
       }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+      // Clear error if valid
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
@@ -132,6 +444,10 @@ export const AdminInsuranceAgents = () => {
     if (!formData.email) newErrors.email = "Email is required";
     if (!isEdit && !formData.password)
       newErrors.password = "Password is required";
+    if (!isEdit && !formData.confirmPassword)
+      newErrors.confirmPassword = "Please confirm your password";
+    if (!isEdit && formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match";
     if (!formData.profile.firstName)
       newErrors["profile.firstName"] = "First name is required";
     if (!formData.profile.lastName)
@@ -294,6 +610,7 @@ export const AdminInsuranceAgents = () => {
     setFormData({
       email: "",
       password: "",
+      confirmPassword: "",
       profile: {
         firstName: "",
         lastName: "",
@@ -727,12 +1044,21 @@ export const AdminInsuranceAgents = () => {
                       type="email"
                       name="email"
                       value={formData.email}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors.email && (
+                    {!getFieldFeedback('email', formData.email, formData) && errors.email && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors.email}
+                      </p>
+                    )}
+                    {getFieldFeedback('email', formData.email, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('email', formData.email, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('email', formData.email, formData).message}
                       </p>
                     )}
                   </div>
@@ -744,12 +1070,49 @@ export const AdminInsuranceAgents = () => {
                       type="password"
                       name="password"
                       value={formData.password}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors.password && (
+                    {!getFieldFeedback('password', formData.password, formData) && errors.password && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors.password}
+                      </p>
+                    )}
+                    {getFieldFeedback('password', formData.password, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('password', formData.password, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('password', formData.password, formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-amber-600'
+                      }`}>
+                        {getFieldFeedback('password', formData.password, formData).message}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Confirm Password *
+                    </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleAgentIdChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                    {!getFieldFeedback('confirmPassword', formData.confirmPassword, formData) && errors.confirmPassword && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.confirmPassword}
+                      </p>
+                    )}
+                    {getFieldFeedback('confirmPassword', formData.confirmPassword, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('confirmPassword', formData.confirmPassword, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('confirmPassword', formData.confirmPassword, formData).message}
                       </p>
                     )}
                   </div>
@@ -761,12 +1124,23 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="profile.firstName"
                       value={formData.profile.firstName}
-                      onChange={handleInputChange}
+                      onChange={(e) => handleInputChange(e, 'name')}
+                      onKeyDown={(e) => handleKeyPress(e, 'name')}
+                      placeholder="Enter first name"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors["profile.firstName"] && (
+                    {!getFieldFeedback('profile.firstName', formData.profile.firstName, formData) && errors["profile.firstName"] && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors["profile.firstName"]}
+                      </p>
+                    )}
+                    {getFieldFeedback('profile.firstName', formData.profile.firstName, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('profile.firstName', formData.profile.firstName, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('profile.firstName', formData.profile.firstName, formData).message}
                       </p>
                     )}
                   </div>
@@ -778,12 +1152,23 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="profile.lastName"
                       value={formData.profile.lastName}
-                      onChange={handleInputChange}
+                      onChange={(e) => handleInputChange(e, 'name')}
+                      onKeyDown={(e) => handleKeyPress(e, 'name')}
+                      placeholder="Enter last name"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors["profile.lastName"] && (
+                    {!getFieldFeedback('profile.lastName', formData.profile.lastName, formData) && errors["profile.lastName"] && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors["profile.lastName"]}
+                      </p>
+                    )}
+                    {getFieldFeedback('profile.lastName', formData.profile.lastName, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('profile.lastName', formData.profile.lastName, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('profile.lastName', formData.profile.lastName, formData).message}
                       </p>
                     )}
                   </div>
@@ -795,12 +1180,25 @@ export const AdminInsuranceAgents = () => {
                       type="date"
                       name="profile.dateOfBirth"
                       value={formData.profile.dateOfBirth}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
+                      min={dateRestrictions.min}
+                      max={dateRestrictions.max}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors["profile.dateOfBirth"] && (
+                    {!getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData) && errors["profile.dateOfBirth"] && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors["profile.dateOfBirth"]}
+                      </p>
+                    )}
+                    {getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData).type === 'error'
+                          ? 'text-red-600'
+                          : 'text-amber-600'
+                      }`}>
+                        {getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData).message}
                       </p>
                     )}
                   </div>
@@ -812,13 +1210,22 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="profile.nic"
                       value={formData.profile.nic}
-                      onChange={handleInputChange}
-                      placeholder="123456789V or 123456789012"
+                      onChange={handleNicChange}
+                      placeholder="Enter NIC (e.g., 123456789V or 199812345678)"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors["profile.nic"] && (
+                    {!getFieldFeedback('profile.nic', formData.profile.nic, formData) && errors["profile.nic"] && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors["profile.nic"]}
+                      </p>
+                    )}
+                    {getFieldFeedback('profile.nic', formData.profile.nic, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('profile.nic', formData.profile.nic, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('profile.nic', formData.profile.nic, formData).message}
                       </p>
                     )}
                   </div>
@@ -830,13 +1237,22 @@ export const AdminInsuranceAgents = () => {
                       type="tel"
                       name="profile.phoneNumber"
                       value={formData.profile.phoneNumber}
-                      onChange={handleInputChange}
-                      placeholder="077XXXXXXX"
+                      onChange={handlePhoneChange}
+                      placeholder="Enter phone number (10 digits)"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
-                    {errors["profile.phoneNumber"] && (
+                    {!getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData) && errors["profile.phoneNumber"] && (
                       <p className="text-red-500 text-xs mt-1">
                         {errors["profile.phoneNumber"]}
+                      </p>
+                    )}
+                    {getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData) && (
+                      <p className={`text-xs mt-1 ${
+                        getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData).type === 'success' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData).message}
                       </p>
                     )}
                   </div>
@@ -848,7 +1264,7 @@ export const AdminInsuranceAgents = () => {
                   <textarea
                     name="profile.address"
                     value={formData.profile.address}
-                    onChange={handleInputChange}
+                    onChange={handleAgentIdChange}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
@@ -874,7 +1290,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="insuranceProvider.companyName"
                       value={formData.insuranceProvider.companyName}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.companyName"] && (
@@ -891,7 +1307,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="insuranceProvider.agentId"
                       value={formData.insuranceProvider.agentId}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.agentId"] && (
@@ -908,7 +1324,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="insuranceProvider.licenseNumber"
                       value={formData.insuranceProvider.licenseNumber}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.licenseNumber"] && (
@@ -925,7 +1341,7 @@ export const AdminInsuranceAgents = () => {
                       type="email"
                       name="insuranceProvider.contactEmail"
                       value={formData.insuranceProvider.contactEmail}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.contactEmail"] && (
@@ -942,7 +1358,7 @@ export const AdminInsuranceAgents = () => {
                       type="tel"
                       name="insuranceProvider.contactPhone"
                       value={formData.insuranceProvider.contactPhone}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       placeholder="077XXXXXXX"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
@@ -1019,7 +1435,7 @@ export const AdminInsuranceAgents = () => {
                       type="email"
                       name="email"
                       value={formData.email}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors.email && (
@@ -1047,7 +1463,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="profile.firstName"
                       value={formData.profile.firstName}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["profile.firstName"] && (
@@ -1064,7 +1480,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="profile.lastName"
                       value={formData.profile.lastName}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["profile.lastName"] && (
@@ -1081,7 +1497,7 @@ export const AdminInsuranceAgents = () => {
                       type="date"
                       name="profile.dateOfBirth"
                       value={formData.profile.dateOfBirth}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["profile.dateOfBirth"] && (
@@ -1098,7 +1514,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="profile.nic"
                       value={formData.profile.nic}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       placeholder="123456789V or 123456789012"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
@@ -1116,7 +1532,7 @@ export const AdminInsuranceAgents = () => {
                       type="tel"
                       name="profile.phoneNumber"
                       value={formData.profile.phoneNumber}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       placeholder="077XXXXXXX"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
@@ -1134,7 +1550,7 @@ export const AdminInsuranceAgents = () => {
                   <textarea
                     name="profile.address"
                     value={formData.profile.address}
-                    onChange={handleInputChange}
+                    onChange={handleAgentIdChange}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
@@ -1160,7 +1576,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="insuranceProvider.companyName"
                       value={formData.insuranceProvider.companyName}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.companyName"] && (
@@ -1177,7 +1593,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="insuranceProvider.agentId"
                       value={formData.insuranceProvider.agentId}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.agentId"] && (
@@ -1194,7 +1610,7 @@ export const AdminInsuranceAgents = () => {
                       type="text"
                       name="insuranceProvider.licenseNumber"
                       value={formData.insuranceProvider.licenseNumber}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.licenseNumber"] && (
@@ -1211,7 +1627,7 @@ export const AdminInsuranceAgents = () => {
                       type="email"
                       name="insuranceProvider.contactEmail"
                       value={formData.insuranceProvider.contactEmail}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                     {errors["insuranceProvider.contactEmail"] && (
@@ -1228,7 +1644,7 @@ export const AdminInsuranceAgents = () => {
                       type="tel"
                       name="insuranceProvider.contactPhone"
                       value={formData.insuranceProvider.contactPhone}
-                      onChange={handleInputChange}
+                      onChange={handleAgentIdChange}
                       placeholder="077XXXXXXX"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />

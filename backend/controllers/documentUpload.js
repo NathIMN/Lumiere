@@ -9,7 +9,7 @@ const uploadDocument = asyncWrapper(async (req, res, next) => {
     return next(createCustomError('No file provided', 400));
   }
 
-  const { type, docType, userId, refId, uploadedBy, uploadedByRole, description } = req.body;
+  const { type, docType, userId, refId, uploadedBy, uploadedByRole, description, isConfidential } = req.body;
 
   // Validate required fields
   if (!type || !docType || !uploadedBy || !uploadedByRole) {
@@ -40,7 +40,8 @@ const uploadDocument = asyncWrapper(async (req, res, next) => {
       uploadedByRole,
       metadata: {
         description: description || '',
-        tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : []
+        tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
+        isConfidential: isConfidential === 'true' || isConfidential === true
       }
     };
 
@@ -62,7 +63,7 @@ const uploadMultipleDocuments = asyncWrapper(async (req, res, next) => {
     return next(createCustomError('No files provided', 400));
   }
 
-  const { type, docType, userId, refId, uploadedBy, uploadedByRole, description } = req.body;
+  const { type, docType, userId, refId, uploadedBy, uploadedByRole, description, isConfidential } = req.body;
 
   // Validate required fields
   if (!type || !docType || !uploadedBy || !uploadedByRole) {
@@ -93,7 +94,8 @@ const uploadMultipleDocuments = asyncWrapper(async (req, res, next) => {
         uploadedByRole,
         metadata: {
           description: description || '',
-          tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : []
+          tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
+          isConfidential: isConfidential === 'true' || isConfidential === true
         }
       };
 

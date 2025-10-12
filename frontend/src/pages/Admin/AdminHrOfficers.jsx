@@ -34,6 +34,7 @@ export const AdminHrOfficers = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    confirmPassword: "",
     profile: {
       firstName: "",
       lastName: "",
@@ -66,6 +67,290 @@ export const AdminHrOfficers = () => {
     }
   };
 
+  // Real-time validation functions
+  const handleNicChange = (e) => {
+    let value = e.target.value.toUpperCase();
+    
+    // Remove any invalid characters
+    value = value.replace(/[^0-9V]/g, '');
+    
+    if (value.includes('V')) {
+      const vIndex = value.indexOf('V');
+      if (vIndex === 9 && value.length <= 10) {
+        value = value.substring(0, 10);
+      } else if (vIndex < 9) {
+        value = value.replace('V', '');
+      } else {
+        value = value.substring(0, 9) + 'V';
+      }
+    } else {
+      value = value.substring(0, 12);
+    }
+    
+    // Create synthetic event
+    const syntheticEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        name: 'profile.nic',
+        value: value
+      }
+    };
+    
+    handleInputChange(syntheticEvent);
+  };
+
+  const handlePhoneChange = (e) => {
+    let value = e.target.value;
+    
+    // Remove any non-numeric characters
+    value = value.replace(/[^0-9]/g, '');
+    
+    // Limit to exactly 10 digits
+    value = value.substring(0, 10);
+    
+    // Create synthetic event
+    const syntheticEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        name: 'profile.phoneNumber',
+        value: value
+      }
+    };
+    
+    handleInputChange(syntheticEvent);
+  };
+
+  const handleKeyPress = (e, type) => {
+    const isControlKey = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key);
+    
+    // Always allow control keys
+    if (isControlKey) {
+      return;
+    }
+
+    if (type === 'name') {
+      // Allow letters and space only
+      if (!/[a-zA-Z\s]/.test(e.key)) {
+        e.preventDefault();
+      }
+    }
+  };
+
+  // Real-time validation functions
+  const validateField = (name, value, formData) => {
+    const errors = {};
+    
+    switch (name) {
+      case 'email':
+        if (!value) {
+          errors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          errors.email = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'password':
+        if (!value) {
+          errors.password = 'Password is required';
+        } else if (value.length < 8) {
+          errors.password = 'Password must be at least 8 characters';
+        }
+        break;
+        
+      case 'confirmPassword':
+        if (!value) {
+          errors.confirmPassword = 'Please confirm your password';
+        } else if (formData.password !== value) {
+          errors.confirmPassword = 'Passwords do not match';
+        }
+        break;
+        
+      case 'profile.firstName':
+        if (!value) {
+          errors['profile.firstName'] = 'First name is required';
+        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+          errors['profile.firstName'] = 'First name should contain only letters';
+        }
+        break;
+        
+      case 'profile.lastName':
+        if (!value) {
+          errors['profile.lastName'] = 'Last name is required';
+        } else if (!/^[a-zA-Z\s]+$/.test(value)) {
+          errors['profile.lastName'] = 'Last name should contain only letters';
+        }
+        break;
+        
+      case 'profile.dateOfBirth':
+        if (!value) {
+          errors['profile.dateOfBirth'] = 'Date of birth is required';
+        } else {
+          const birthDate = new Date(value);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          
+          if (age < 18) {
+            errors['profile.dateOfBirth'] = 'Employee must be at least 18 years old';
+          } else if (age > 55) {
+            errors['profile.dateOfBirth'] = 'Employee must be no older than 55 years';
+          }
+        }
+        break;
+        
+      case 'profile.nic':
+        if (!value) {
+          errors['profile.nic'] = 'NIC is required';
+        } else {
+          const nic = value.toUpperCase();
+          if (nic.includes('V')) {
+            if (!/^\d{9}V$/.test(nic)) {
+              errors['profile.nic'] = 'Invalid old NIC format. Must be 9 digits followed by V';
+            }
+          } else {
+            if (!/^\d{12}$/.test(nic)) {
+              errors['profile.nic'] = 'Invalid new NIC format. Must be exactly 12 digits';
+            }
+          }
+        }
+        break;
+        
+      case 'profile.phoneNumber':
+        if (!value) {
+          errors['profile.phoneNumber'] = 'Phone number is required';
+        } else if (!/^\d{10}$/.test(value)) {
+          errors['profile.phoneNumber'] = 'Phone number must be exactly 10 digits';
+        }
+        break;
+        
+      case 'profile.address':
+        if (!value) {
+          errors['profile.address'] = 'Address is required';
+        }
+        break;
+    }
+    
+    return errors;
+  };
+
+  // Get real-time validation feedback for a field
+  const getFieldFeedback = (name, value, formData) => {
+    if (!value) return null;
+    
+    switch (name) {
+      case 'email':
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+          return { type: 'success', message: '✓ Valid email address' };
+        } else {
+          return { type: 'error', message: 'Invalid email format' };
+        }
+        
+      case 'password':
+        if (value.length >= 8) {
+          return { type: 'success', message: '✓ Password meets requirements' };
+        } else {
+          return { type: 'error', message: `Password too short: ${value.length}/8 characters` };
+        }
+        
+      case 'profile.firstName':
+      case 'profile.lastName':
+        if (/^[a-zA-Z\s]+$/.test(value)) {
+          return { type: 'success', message: '✓ Valid name format' };
+        } else {
+          return { type: 'error', message: 'Only letters and spaces allowed' };
+        }
+        
+      case 'profile.address':
+        if (value.length >= 10) {
+          return { type: 'success', message: '✓ Address looks complete' };
+        } else {
+          return { type: 'warning', message: `Address: ${value.length} characters (recommended: 10+)` };
+        }
+        
+      case 'profile.nic':
+        const nic = value.toUpperCase();
+        if (nic.includes('V')) {
+          // Old NIC format validation
+          if (nic.length === 10 && /^\d{9}V$/.test(nic)) {
+            return { type: 'success', message: '✓ Valid old NIC format (9 digits + V)' };
+          } else if (nic.length < 10) {
+            return { type: 'warning', message: `Old NIC format: ${nic.length}/10 characters (9 digits + V)` };
+          } else {
+            return { type: 'error', message: 'Invalid old NIC format. Must be 9 digits + V' };
+          }
+        } else {
+          // New NIC format validation
+          if (nic.length === 12 && /^\d{12}$/.test(nic)) {
+            return { type: 'success', message: '✓ Valid new NIC format (12 digits)' };
+          } else if (nic.length < 12) {
+            return { type: 'warning', message: `New NIC format: ${nic.length}/12 digits` };
+          } else {
+            return { type: 'error', message: 'Invalid new NIC format. Must be exactly 12 digits' };
+          }
+        }
+        
+      case 'profile.phoneNumber':
+        if (value.length === 10 && /^\d{10}$/.test(value)) {
+          return { type: 'success', message: '✓ Valid phone number' };
+        } else if (value.length < 10) {
+          return { type: 'warning', message: `Phone number: ${value.length}/10 digits` };
+        } else {
+          return { type: 'error', message: 'Phone number must be exactly 10 digits' };
+        }
+        
+      case 'confirmPassword':
+        if (formData.password && value === formData.password) {
+          return { type: 'success', message: '✓ Passwords match' };
+        } else if (formData.password && value) {
+          return { type: 'error', message: 'Passwords do not match' };
+        }
+        break;
+        
+      case 'profile.dateOfBirth':
+        if (value) {
+          const birthDate = new Date(value);
+          const today = new Date();
+          let age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+          
+          if (age >= 18 && age <= 55) {
+            return { type: 'success', message: `✓ Valid age: ${age} years` };
+          } else if (age < 18) {
+            return { type: 'error', message: `Too young: ${age} years (minimum 18)` };
+          } else {
+            return { type: 'error', message: `Too old: ${age} years (maximum 55)` };
+          }
+        }
+        break;
+    }
+    
+    return null;
+  };
+
+  // Calculate date restrictions for 18-55 years
+  const getDateRestrictions = () => {
+    const today = new Date();
+    const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+    const minDate = new Date(today.getFullYear() - 55, today.getMonth(), today.getDate());
+    
+    return {
+      min: minDate.toISOString().split('T')[0],
+      max: maxDate.toISOString().split('T')[0]
+    };
+  };
+
+  const dateRestrictions = getDateRestrictions();
+
   // Filter HR officers based on search and status
   const filteredOfficers = hrOfficers.filter((officer) => {
     const matchesSearch =
@@ -84,68 +369,166 @@ export const AdminHrOfficers = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Handle form input changes
-  const handleInputChange = (e) => {
+  // Handle form input changes with validation
+  const handleInputChange = (e, validationType = null) => {
     const { name, value } = e.target;
+    let processedValue = value;
+
+    // Apply validation based on type
+    if (validationType === 'name') {
+      const nameRegex = /^[a-zA-Z\s]*$/;
+      if (!nameRegex.test(value)) {
+        return; // Don't update if invalid
+      }
+    }
+
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
       setFormData((prev) => ({
         ...prev,
         [parent]: {
           ...prev[parent],
-          [child]: value,
+          [child]: processedValue,
         },
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]: value,
+        [name]: processedValue,
       }));
     }
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    
+    // Get updated formData for validation
+    const updatedFormData = { ...formData };
+    if (name.includes(".")) {
+      const [parent, child] = name.split(".");
+      updatedFormData[parent] = { ...updatedFormData[parent], [child]: processedValue };
+    } else {
+      updatedFormData[name] = processedValue;
+    }
+    
+    // Perform real-time validation
+    const fieldErrors = validateField(name, processedValue, updatedFormData);
+    
+    // Update errors state
+    setErrors((prev) => ({
+      ...prev,
+      ...fieldErrors,
+      // Clear error if field is now valid
+      ...(Object.keys(fieldErrors).length === 0 && prev[name] ? { [name]: '' } : {})
+    }));
+
+    // Special handling for confirm password validation
+    if (name === 'confirmPassword' && errors.confirmPassword) {
+      setErrors(prev => ({
+        ...prev,
+        confirmPassword: ''
+      }));
+    }
+    
+    // Clear confirm password error when password changes
+    if (name === 'password' && errors.confirmPassword) {
+      setErrors(prev => ({
+        ...prev,
+        confirmPassword: ''
+      }));
     }
   };
 
-  // Validate form data
+  // Validate form data with comprehensive validation
   const validateForm = (isEdit = false) => {
     const newErrors = {};
 
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!isEdit && !formData.password)
-      newErrors.password = "Password is required";
-    if (!formData.profile.firstName)
-      newErrors["profile.firstName"] = "First name is required";
-    if (!formData.profile.lastName)
-      newErrors["profile.lastName"] = "Last name is required";
-    if (!formData.profile.dateOfBirth)
-      newErrors["profile.dateOfBirth"] = "Date of birth is required";
-    if (!formData.profile.nic) newErrors["profile.nic"] = "NIC is required";
-    if (!formData.profile.phoneNumber)
-      newErrors["profile.phoneNumber"] = "Phone number is required";
-    if (!formData.profile.address)
-      newErrors["profile.address"] = "Address is required";
-
     // Email validation
-    if (
-      formData.email &&
-      !/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/.test(formData.email)
-    ) {
-      newErrors.email = "Please enter a valid email";
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
     }
 
     // Password validation (only for create)
-    if (!isEdit && formData.password && formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters";
+    if (!isEdit) {
+      if (!formData.password) {
+        newErrors.password = "Password is required";
+      } else if (formData.password.length < 8) {
+        newErrors.password = "Password must be at least 8 characters";
+      }
+
+      // Confirm password validation
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = "Please confirm your password";
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
+    }
+
+    // First name validation
+    if (!formData.profile.firstName) {
+      newErrors["profile.firstName"] = "First name is required";
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.profile.firstName)) {
+      newErrors["profile.firstName"] = "First name should contain only letters";
+    }
+
+    // Last name validation
+    if (!formData.profile.lastName) {
+      newErrors["profile.lastName"] = "Last name is required";
+    } else if (!/^[a-zA-Z\s]+$/.test(formData.profile.lastName)) {
+      newErrors["profile.lastName"] = "Last name should contain only letters";
+    }
+
+    // Date of birth validation with age requirement
+    if (!formData.profile.dateOfBirth) {
+      newErrors["profile.dateOfBirth"] = "Date of birth is required";
+    } else {
+      const birthDate = new Date(formData.profile.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      // Adjust age if birthday hasn't occurred this year
+      const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) 
+        ? age - 1 
+        : age;
+
+      if (actualAge < 18) {
+        newErrors["profile.dateOfBirth"] = "HR Officer must be at least 18 years old";
+      }
+
+      if (birthDate > today) {
+        newErrors["profile.dateOfBirth"] = "Date of birth cannot be in the future";
+      }
     }
 
     // NIC validation
-    if (
-      formData.profile.nic &&
-      !/^([0-9]{9}[vVxX]|[0-9]{12})$/.test(formData.profile.nic)
-    ) {
-      newErrors["profile.nic"] = "Please enter a valid NIC number";
+    if (!formData.profile.nic) {
+      newErrors["profile.nic"] = "NIC is required";
+    } else {
+      const nic = formData.profile.nic.toUpperCase();
+      if (nic.includes('V')) {
+        // Old NIC format validation (9 digits + V)
+        if (!/^\d{9}V$/.test(nic)) {
+          newErrors["profile.nic"] = "Invalid old NIC format. Must be 9 digits followed by V";
+        }
+      } else {
+        // New NIC format validation (12 digits)
+        if (!/^\d{12}$/.test(nic)) {
+          newErrors["profile.nic"] = "Invalid new NIC format. Must be exactly 12 digits";
+        }
+      }
+    }
+
+    // Phone number validation
+    if (!formData.profile.phoneNumber) {
+      newErrors["profile.phoneNumber"] = "Phone number is required";
+    } else if (!/^\d{10}$/.test(formData.profile.phoneNumber)) {
+      newErrors["profile.phoneNumber"] = "Phone number must be exactly 10 digits";
+    }
+
+    // Address validation
+    if (!formData.profile.address) {
+      newErrors["profile.address"] = "Address is required";
+    } else if (formData.profile.address.trim().length < 10) {
+      newErrors["profile.address"] = "Address must be at least 10 characters";
     }
 
     setErrors(newErrors);
@@ -299,6 +682,7 @@ export const AdminHrOfficers = () => {
     setFormData({
       email: "",
       password: "",
+      confirmPassword: "",
       profile: {
         firstName: "",
         lastName: "",
@@ -660,6 +1044,7 @@ export const AdminHrOfficers = () => {
               </button>
             </div>
             <form onSubmit={handleCreate} className="p-6 space-y-4">
+              {/* CREATE MODAL FORM */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -670,10 +1055,24 @@ export const AdminHrOfficers = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter email"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors.email 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  )}
+                  {getFieldFeedback('email', formData.email, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('email', formData.email, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('email', formData.email, formData).message}
+                    </p>
                   )}
                 </div>
                 <div>
@@ -685,11 +1084,56 @@ export const AdminHrOfficers = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter password"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors.password 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors.password && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors.password}
+                    </p>
+                  )}
+                  {getFieldFeedback('password', formData.password, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('password', formData.password, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('password', formData.password, formData).message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Confirm Password *
+                  </label>
+                  <input
+                    type="password"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    placeholder="Confirm password"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors.confirmPassword 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
+                  />
+                  {errors.confirmPassword && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.confirmPassword}
+                    </p>
+                  )}
+                  {getFieldFeedback('confirmPassword', formData.confirmPassword, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('confirmPassword', formData.confirmPassword, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('confirmPassword', formData.confirmPassword, formData).message}
                     </p>
                   )}
                 </div>
@@ -701,12 +1145,27 @@ export const AdminHrOfficers = () => {
                     type="text"
                     name="profile.firstName"
                     value={formData.profile.firstName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={(e) => handleInputChange(e, 'name')}
+                    onKeyDown={(e) => handleKeyPress(e, 'name')}
+                    placeholder="Enter first name"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.firstName"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.firstName"] && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors["profile.firstName"]}
+                    </p>
+                  )}
+                  {getFieldFeedback('profile.firstName', formData.profile.firstName, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('profile.firstName', formData.profile.firstName, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('profile.firstName', formData.profile.firstName, formData).message}
                     </p>
                   )}
                 </div>
@@ -718,12 +1177,27 @@ export const AdminHrOfficers = () => {
                     type="text"
                     name="profile.lastName"
                     value={formData.profile.lastName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={(e) => handleInputChange(e, 'name')}
+                    onKeyDown={(e) => handleKeyPress(e, 'name')}
+                    placeholder="Enter last name"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.lastName"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.lastName"] && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors["profile.lastName"]}
+                    </p>
+                  )}
+                  {getFieldFeedback('profile.lastName', formData.profile.lastName, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('profile.lastName', formData.profile.lastName, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('profile.lastName', formData.profile.lastName, formData).message}
                     </p>
                   )}
                 </div>
@@ -736,11 +1210,28 @@ export const AdminHrOfficers = () => {
                     name="profile.dateOfBirth"
                     value={formData.profile.dateOfBirth}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    min={dateRestrictions.min}
+                    max={dateRestrictions.max}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.dateOfBirth"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.dateOfBirth"] && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors["profile.dateOfBirth"]}
+                    </p>
+                  )}
+                  {getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData).type === 'error'
+                        ? 'text-red-600'
+                        : 'text-amber-600'
+                    }`}>
+                      {getFieldFeedback('profile.dateOfBirth', formData.profile.dateOfBirth, formData).message}
                     </p>
                   )}
                 </div>
@@ -752,13 +1243,26 @@ export const AdminHrOfficers = () => {
                     type="text"
                     name="profile.nic"
                     value={formData.profile.nic}
-                    onChange={handleInputChange}
-                    placeholder="123456789V or 123456789012"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={handleNicChange}
+                    placeholder="Enter NIC (e.g., 123456789V or 199812345678)"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.nic"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.nic"] && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors["profile.nic"]}
+                    </p>
+                  )}
+                  {getFieldFeedback('profile.nic', formData.profile.nic, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('profile.nic', formData.profile.nic, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('profile.nic', formData.profile.nic, formData).message}
                     </p>
                   )}
                 </div>
@@ -770,13 +1274,26 @@ export const AdminHrOfficers = () => {
                     type="tel"
                     name="profile.phoneNumber"
                     value={formData.profile.phoneNumber}
-                    onChange={handleInputChange}
-                    placeholder="077XXXXXXX"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={handlePhoneChange}
+                    placeholder="Enter phone number (10 digits)"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.phoneNumber"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.phoneNumber"] && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors["profile.phoneNumber"]}
+                    </p>
+                  )}
+                  {getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData) && (
+                    <p className={`text-xs mt-1 ${
+                      getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData).type === 'success' 
+                        ? 'text-green-600' 
+                        : 'text-red-600'
+                    }`}>
+                      {getFieldFeedback('profile.phoneNumber', formData.profile.phoneNumber, formData).message}
                     </p>
                   )}
                 </div>
@@ -790,11 +1307,25 @@ export const AdminHrOfficers = () => {
                   value={formData.profile.address}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter address"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    errors["profile.address"] 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                  }`}
                 />
                 {errors["profile.address"] && (
                   <p className="text-red-500 text-xs mt-1">
                     {errors["profile.address"]}
+                  </p>
+                )}
+                {getFieldFeedback('profile.address', formData.profile.address, formData) && (
+                  <p className={`text-xs mt-1 ${
+                    getFieldFeedback('profile.address', formData.profile.address, formData).type === 'success' 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {getFieldFeedback('profile.address', formData.profile.address, formData).message}
                   </p>
                 )}
               </div>
@@ -848,6 +1379,7 @@ export const AdminHrOfficers = () => {
               </button>
             </div>
             <form onSubmit={handleUpdate} className="p-6 space-y-4">
+              {/* EDIT MODAL FORM */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -858,7 +1390,12 @@ export const AdminHrOfficers = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter email"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors.email 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors.email && (
                     <p className="text-red-500 text-xs mt-1">{errors.email}</p>
@@ -883,8 +1420,14 @@ export const AdminHrOfficers = () => {
                     type="text"
                     name="profile.firstName"
                     value={formData.profile.firstName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={(e) => handleInputChange(e, 'name')}
+                    onKeyDown={(e) => handleKeyPress(e, 'name')}
+                    placeholder="Enter first name"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.firstName"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.firstName"] && (
                     <p className="text-red-500 text-xs mt-1">
@@ -900,8 +1443,14 @@ export const AdminHrOfficers = () => {
                     type="text"
                     name="profile.lastName"
                     value={formData.profile.lastName}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={(e) => handleInputChange(e, 'name')}
+                    onKeyDown={(e) => handleKeyPress(e, 'name')}
+                    placeholder="Enter last name"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.lastName"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.lastName"] && (
                     <p className="text-red-500 text-xs mt-1">
@@ -918,7 +1467,13 @@ export const AdminHrOfficers = () => {
                     name="profile.dateOfBirth"
                     value={formData.profile.dateOfBirth}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    min={dateRestrictions.min}
+                    max={dateRestrictions.max}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.dateOfBirth"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.dateOfBirth"] && (
                     <p className="text-red-500 text-xs mt-1">
@@ -934,9 +1489,13 @@ export const AdminHrOfficers = () => {
                     type="text"
                     name="profile.nic"
                     value={formData.profile.nic}
-                    onChange={handleInputChange}
-                    placeholder="123456789V or 123456789012"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={handleNicChange}
+                    placeholder="Enter NIC (e.g., 123456789V or 199812345678)"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.nic"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.nic"] && (
                     <p className="text-red-500 text-xs mt-1">
@@ -952,9 +1511,13 @@ export const AdminHrOfficers = () => {
                     type="tel"
                     name="profile.phoneNumber"
                     value={formData.profile.phoneNumber}
-                    onChange={handleInputChange}
-                    placeholder="077XXXXXXX"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    onChange={handlePhoneChange}
+                    placeholder="Enter phone number (10 digits)"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                      errors["profile.phoneNumber"] 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                    }`}
                   />
                   {errors["profile.phoneNumber"] && (
                     <p className="text-red-500 text-xs mt-1">
@@ -972,7 +1535,12 @@ export const AdminHrOfficers = () => {
                   value={formData.profile.address}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  placeholder="Enter address"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:border-transparent dark:bg-gray-700 dark:text-white ${
+                    errors["profile.address"] 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                  }`}
                 />
                 {errors["profile.address"] && (
                   <p className="text-red-500 text-xs mt-1">
