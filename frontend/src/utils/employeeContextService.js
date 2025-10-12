@@ -88,19 +88,21 @@ class EmployeeContextService {
     }
   }
 
-    // Fetch employee policies
-    async getEmployeePolicies() {
-        try {
-            const data = await this.fetchWithAuth('/policies/my-policies');
-            if (data && data.success) {
-                return data.policies || [];
-            }
-            return [];
-        } catch (error) {
-            console.error('Failed to fetch employee policies:', error);
-            return [];
-        }
-    }  // Fetch employee's notifications
+  // Fetch employee policies
+  async getEmployeePolicies() {
+    try {
+      const data = await this.fetchWithAuth('/policies/my-policies');
+      if (data && data.success) {
+        return data.policies || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to fetch employee policies:', error);
+      return [];
+    }
+  }
+
+  // Fetch employee's notifications
   async getEmployeeNotifications() {
     try {
       const response = await this.fetchWithAuth('/notifications?limit=20&status=unread');
@@ -273,10 +275,10 @@ class EmployeeContextService {
       active: policies.filter(p => p.status === 'active').map(policy => ({
         policyId: policy.policyId,
         type: policy.policyType,
-        category: policy.policyCategory || 'group', // Default to group if not specified
+        category: policy.policyCategory || 'group',
         startDate: policy.validity?.startDate,
         endDate: policy.validity?.endDate,
-        expiryDate: policy.validity?.endDate, // Alias for consistency
+        expiryDate: policy.validity?.endDate,
         premium: policy.premium?.amount || policy.premium,
         frequency: policy.premium?.frequency,
         coverageAmount: policy.coverage?.coverageAmount,
@@ -345,6 +347,39 @@ class EmployeeContextService {
         unreadCount: conv.unreadCount
       }))
     };
+  }
+
+  // Helper method to format currency for natural speech
+  formatCurrencyForSpeech(amount) {
+    if (!amount) return null;
+    
+    // Handle object amounts (like {requested: 50000})
+    if (typeof amount === 'object') {
+      return amount;
+    }
+    
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) return amount;
+    
+    // Format for speech-friendly output
+    if (numAmount >= 100000) {
+      const lakhs = Math.floor(numAmount / 100000);
+      const remainder = numAmount % 100000;
+      if (remainder === 0) {
+        return `${lakhs} lakh${lakhs > 1 ? 's' : ''} rupees`;
+      } else {
+        const thousands = Math.floor(remainder / 1000);
+        if (thousands > 0) {
+          return `${lakhs} lakh${lakhs > 1 ? 's' : ''} ${thousands} thousand rupees`;
+        }
+        return `${lakhs} lakh${lakhs > 1 ? 's' : ''} rupees`;
+      }
+    } else if (numAmount >= 1000) {
+      const thousands = Math.floor(numAmount / 1000);
+      return `${thousands} thousand rupees`;
+    }
+    
+    return `${numAmount} rupees`;
   }
 
   // Generate context string for Lumi's system prompt
@@ -424,12 +459,13 @@ class EmployeeContextService {
           
           // Amount information
           if (claim.amount) {
-            const amount = typeof claim.amount === 'object' ? JSON.stringify(claim.amount) : claim.amount;
-            contextString += `    - Amount requested: $${amount}\n`;
+            const friendlyAmount = this.formatCurrencyForSpeech(claim.amount);
+            contextString += `    - Amount requested: ${friendlyAmount}\n`;
           }
           
           if (claim.approvedAmount && claim.approvedAmount > 0) {
-            contextString += `    - Amount approved: $${claim.approvedAmount}\n`;
+            const friendlyApproved = this.formatCurrencyForSpeech(claim.approvedAmount);
+            contextString += `    - Amount approved: ${friendlyApproved}\n`;
           }
           
           // Policy information
@@ -532,13 +568,14 @@ class EmployeeContextService {
           
           // Coverage amount
           if (policy.coverageAmount) {
-            contextString += `    - Coverage: $${typeof policy.coverageAmount === 'object' ? JSON.stringify(policy.coverageAmount) : policy.coverageAmount.toLocaleString()}\n`;
+            const friendlyCoverage = this.formatCurrencyForSpeech(policy.coverageAmount);
+            contextString += `    - Coverage: ${friendlyCoverage}\n`;
           }
           
           // Premium information
           if (policy.premium) {
-            const premiumAmount = typeof policy.premium === 'object' ? JSON.stringify(policy.premium) : policy.premium;
-            contextString += `    - Premium: $${premiumAmount}`;
+            const friendlyPremium = this.formatCurrencyForSpeech(policy.premium);
+            contextString += `    - Premium: ${friendlyPremium}`;
             if (policy.frequency) {
               contextString += ` ${policy.frequency}`;
             }
@@ -547,7 +584,8 @@ class EmployeeContextService {
           
           // Deductible
           if (policy.deductible) {
-            contextString += `    - Deductible: $${typeof policy.deductible === 'object' ? JSON.stringify(policy.deductible) : policy.deductible.toLocaleString()}\n`;
+            const friendlyDeductible = this.formatCurrencyForSpeech(policy.deductible);
+            contextString += `    - Deductible: ${friendlyDeductible}\n`;
           }
           
           // Validity dates
@@ -581,7 +619,8 @@ class EmployeeContextService {
           if (policy.coverageDetails && policy.coverageDetails.length > 0) {
             contextString += `    - Coverage breakdown:\n`;
             policy.coverageDetails.forEach(detail => {
-              contextString += `      • ${detail.description}: $${detail.limit?.toLocaleString() || 'N/A'}\n`;
+              const friendlyLimit = detail.limit ? this.formatCurrencyForSpeech(detail.limit) : 'N/A';
+              contextString += `      • ${detail.description}: ${friendlyLimit}\n`;
             });
           }
           
@@ -592,7 +631,8 @@ class EmployeeContextService {
           
           // Claimed amount
           if (policy.claimedToDate > 0) {
-            contextString += `    - Amount claimed to date: $${policy.claimedToDate.toLocaleString()}\n`;
+            const friendlyClaimed = this.formatCurrencyForSpeech(policy.claimedToDate);
+            contextString += `    - Amount claimed to date: ${friendlyClaimed}\n`;
           }
           
           // Insurance agent
@@ -650,6 +690,8 @@ class EmployeeContextService {
     }
 
     contextString += `\n\nIMPORTANT INSTRUCTIONS FOR LUMI:\n`;
+    contextString += `- CURRENCY: All amounts are in Sri Lankan Rupees (LKR). Always say "rupees" or "LKR", NEVER "dollars" or "$"\n`;
+    contextString += `- Use lakhs naturally when appropriate (e.g., "two lakhs rupees" for 200,000)\n`;
     contextString += `- Never pronounce technical IDs like "VC000005" or "LG0001"\n`;
     contextString += `- Instead refer to claims and policies naturally: "your auto insurance claim number 5" or "your group life insurance policy"\n`;
     contextString += `- Use friendly language: "vehicle claim" becomes "auto insurance claim", "life claim" becomes "life insurance claim"\n`;
@@ -660,6 +702,7 @@ class EmployeeContextService {
     contextString += `- For questionnaire completion, guide users on what they need to do\n`;
     contextString += `- Reference specific coverage types, amounts, and policy details when relevant\n`;
     contextString += `- Provide personalized, relevant assistance based on this employee's specific claims and policies\n`;
+    contextString += `- Speak in friendly, conversational Sri Lankan English when appropriate\n`;
 
     return contextString;
   }

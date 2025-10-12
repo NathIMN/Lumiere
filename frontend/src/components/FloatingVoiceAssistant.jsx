@@ -189,7 +189,7 @@ const FloatingVoiceAssistant = () => {
       console.log("Starting VAPI call...");
       setIsLoading(true);
       
-      let systemContext = 'You are Lumi, the Lumiere Insurance voice assistant. Lumiere is a digital-first insurance company with A+ rating, offering life and auto coverage. You assist with claims (submit, track, process), policies (view, manage, renew), account settings (password, profile, 2FA), dashboard navigation, and support contact. Provide helpful, specific information about Lumiere\'s systems, features, and procedures. Keep responses concise but informative and friendly.\n\nIMPORTANT: Never pronounce technical IDs like "VC000005" or "LG0001". Instead, speak naturally: "your auto insurance claim number 5" or "your group life insurance policy". Use friendly language and be conversational.';
+      let systemContext = 'You are Lumi, the Lumiere Insurance voice assistant. Lumiere is a digital-first insurance company with A+ rating, offering life and auto coverage in Sri Lanka. You assist with claims (submit, track, process), policies (view, manage, renew), account settings (password, profile, 2FA), dashboard navigation, and support contact. Provide helpful, specific information about Lumiere\'s systems, features, and procedures. Keep responses concise but informative and friendly.\n\nIMPORTANT PRONUNCIATION RULES:\n1. Never pronounce technical IDs like "VC000005" or "LG0001". Instead, speak naturally: "your auto insurance claim number 5" or "your group life insurance policy".\n2. CURRENCY: All amounts are in Sri Lankan Rupees (LKR). When stating amounts:\n   - For amounts like 50000, say "fifty thousand rupees" (NOT "dollar" or "Rs")\n   - For amounts like 150000, say "one hundred and fifty thousand rupees" or "one lakh fifty thousand rupees"\n   - For amounts like 1000000, say "one million rupees" or "ten lakhs rupees"\n   - Use lakhs naturally (1 lakh = 100,000 rupees) when appropriate for Sri Lankan context\n   - Never say "dollars", "USD", or "$" - always "rupees" or "LKR"\n3. Use friendly, conversational Sri Lankan English when appropriate.';
       
       if (employeeContext) {
         const contextString = contextService.current.generateContextString(employeeContext);
@@ -203,13 +203,13 @@ const FloatingVoiceAssistant = () => {
       const config = {
         model: {
           provider: 'openai',
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini', // Better model for natural speech
           messages: [{
             role: 'system',
             content: systemContext
           }],
           temperature: 0.7,
-          maxTokens: 200
+          maxTokens: 250
         },
         voice: {
           provider: 'playht',
@@ -341,7 +341,7 @@ const FloatingVoiceAssistant = () => {
     }
     
     if (lowerQuery.includes('premium') || lowerQuery.includes('payment') || lowerQuery.includes('billing')) {
-      return "For premium payments: You can view and pay premiums in the 'Billing' section. We accept automatic payments, credit/debit cards, and bank transfers. Set up auto-pay to never miss a payment and potentially get a discount!";
+      return "For premium payments: You can view and pay premiums in the 'Billing' section. We accept automatic payments, credit/debit cards, and bank transfers. Set up auto-pay to never miss a payment and potentially get a discount! All amounts are in Sri Lankan Rupees.";
     }
     
     if (lowerQuery.includes('document') || lowerQuery.includes('upload') || lowerQuery.includes('proof')) {
