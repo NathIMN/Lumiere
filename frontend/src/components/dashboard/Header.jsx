@@ -39,9 +39,9 @@ export const Header = ({ onToggleTheme, isDark, isCollapsed, scrolled }) => {
       `}
     >
       {/* Left: breadcrumbs + big title */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         {/* Breadcrumbs (small text) */}
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           {breadcrumbs || "Dashboard"}
         </p>
 

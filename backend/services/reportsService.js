@@ -133,21 +133,30 @@ class ReportsService {
     handlebars.registerHelper('eq', (a, b) => a === b);
     handlebars.registerHelper('gt', (a, b) => a > b);
     handlebars.registerHelper('lt', (a, b) => a < b);
+    handlebars.registerHelper('and', function() {
+      return Array.prototype.slice.call(arguments, 0, -1).every(Boolean);
+    });
+    handlebars.registerHelper('isEmployeeReport', function(filters) {
+      //console.log('Filters in isEmployeeReport helper:', filters);
+      return filters && filters.role === 'employee';
+    });
   }
 
   /**
    * Load company logo as base64
    */
-  async loadLogo() {
-    try {
-      const logoPath = path.join(__dirname, '../public/LumiereLogo.svg');
-      const logoContent = await fs.readFile(logoPath);
-      return logoContent.toString('base64');
-    } catch (error) {
-      console.warn('Logo file not found, proceeding without logo');
-      return '';
-    }
+async loadLogo() {
+  try {
+    const logoPath = path.join(__dirname, '../public/lum2.png');
+    const logoContent = await fs.readFile(logoPath);
+    const base64Image = logoContent.toString('base64');
+    // Return with correct MIME type for PNG
+    return `data:image/png;base64,${base64Image}`;
+  } catch (error) {
+    console.warn('Logo file not found, proceeding without logo');
+    return '';
   }
+}
 
   /**
    * Load and compile Handlebars template
@@ -240,16 +249,25 @@ class ReportsService {
         };
       }
 
+      console.log('Query:', JSON.stringify(query, null, 2));
+
       const users = await User.find(query)
         .select('-password')
         .sort({ createdAt: -1 })
         .lean();
 
-            // Generate summary statistics
+      console.log('Total users found:', users.length);
+      console.log('Sample user:', users[0] ? {
+        department: users[0].employment?.department,
+        status: users[0].status
+      } : 'No users');
+
+      // Generate summary statistics for ALL statuses
       const totalUsers = users.length;
       const activeUsers = users.filter(user => user.status === 'active').length;
-
-      const inactiveUsers = totalUsers - activeUsers;
+      const inactiveUsers = users.filter(user => user.status === 'inactive').length;
+      const suspendedUsers = users.filter(user => user.status === 'suspended').length;
+      const terminatedUsers = users.filter(user => user.status === 'terminated').length;
 
       // Group by role
       const usersByRole = users.reduce((acc, user) => {
@@ -257,25 +275,53 @@ class ReportsService {
         return acc;
       }, {});
 
-      // Group by department
+      // ✅ FIXED: Group by department with proper status tracking
       const usersByDepartment = users.reduce((acc, user) => {
+        // Get the department name (or 'Unassigned' if missing)
         const dept = user.employment?.department || 'Unassigned';
+        
+        // Initialize department object if it doesn't exist
         if (!acc[dept]) {
-          acc[dept] = { active: 0, inactive: 0, total: 0 };
+          acc[dept] = { 
+            active: 0, 
+            inactive: 0, 
+            suspended: 0, 
+            terminated: 0, 
+            total: 0 
+          };
         }
-        acc[dept][user.status === 'active' ? 'active' : 'inactive']++;
+        
+        // Get user's status (default to 'inactive' if missing)
+        const status = user.status || 'inactive';
+        
+        // Increment the appropriate status counter
+        if (status === 'active') {
+          acc[dept].active++;
+        } else if (status === 'inactive') {
+          acc[dept].inactive++;
+        } else if (status === 'suspended') {
+          acc[dept].suspended++;
+        } else if (status === 'terminated') {
+          acc[dept].terminated++;
+        }
+        
+        // Always increment total
         acc[dept].total++;
+        
         return acc;
       }, {});
 
+      console.log('Users by department:', JSON.stringify(usersByDepartment, null, 2));
+
       return {
         users: users.map(user => ({
-          employeeId: user.employeeId || user._id.toString().slice(-6).toUpperCase(),
+          userId: user.userId || user._id.toString().slice(-6).toUpperCase(),
           fullName: `${user.profile?.firstName || 'N/A'} ${user.profile?.lastName || 'N/A'}`,
           email: user.email || 'N/A',
           role: (user.role || 'user').replace('_', ' ').toUpperCase(),
           department: user.employment?.department || 'Unassigned',
-          hireDate: user.createdAt,
+          designation: user.employment?.designation || 'N/A',
+          hireDate: user.employment?.joinDate || user.createdAt,
           status: user.status || 'unknown',
           lastLogin: user.lastLogin || null
         })),
@@ -283,6 +329,8 @@ class ReportsService {
           totalUsers,
           activeUsers,
           inactiveUsers,
+          suspendedUsers,
+          terminatedUsers,
           activePercentage: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : 0
         },
         usersByRole: Object.entries(usersByRole).map(([role, count]) => ({
@@ -290,11 +338,16 @@ class ReportsService {
           count,
           percentage: totalUsers > 0 ? ((count / totalUsers) * 100).toFixed(1) : 0
         })),
+        // ✅ FIXED: Return proper department data with all status counts
         usersByDepartment: Object.entries(usersByDepartment).map(([department, data]) => ({
           department,
           activeCount: data.active,
           inactiveCount: data.inactive,
-          totalCount: data.total
+          suspendedCount: data.suspended,
+          terminatedCount: data.terminated,
+          totalCount: data.total,
+          // Calculate percentage of total users in this department
+          percentage: totalUsers > 0 ? ((data.total / totalUsers) * 100).toFixed(1) : '0.0'
         }))
       };
     } catch (error) {
@@ -326,6 +379,7 @@ class ReportsService {
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
         theme: this.getReportTheme('users'),
+        filters: filters, // ✅ ADD THIS LINE - Pass filters to template
         summary: [
           { label: 'Total Users', value: reportData.summary.totalUsers },
           { label: 'Active Users', value: reportData.summary.activeUsers },
@@ -366,6 +420,7 @@ class ReportsService {
       }
 
       if (filters.dateFrom && filters.dateTo) {
+         console.log('Date filters:', filters.dateFrom, filters.dateTo);
         query.createdAt = {
           $gte: filters.dateFrom,
           $lte: filters.dateTo
@@ -683,7 +738,7 @@ class ReportsService {
 
       // Get the specific policy with all its beneficiaries
       const policy = await Policy.findById(filters.policyId)
-        .populate('beneficiaries', 'profile.firstName profile.lastName email profile.phoneNumber profile.address profile.dateOfBirth profile.gender employeeId')
+        .populate('beneficiaries', 'profile.firstName profile.lastName email phoneNumber address dateOfBirth gender employeeId')
         .populate('insuranceAgent', 'profile.firstName profile.lastName email')
         .lean();
 

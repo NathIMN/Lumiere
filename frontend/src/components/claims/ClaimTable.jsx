@@ -5,7 +5,7 @@ import {
   ArrowLeft, 
   ChevronUp, 
   ChevronDown,
-  DollarSign,
+  Coins,
   User,
   FileText,
   Clock,
@@ -46,7 +46,7 @@ export const ClaimTable = ({
 
   const getStatusText = (status) => {
     const statusMap = {
-      hr: 'Pending HR Review',
+      hr: 'Pending Review',
       insurer: 'With Insurer',
       approved: 'Approved',
       rejected: 'Rejected',
@@ -180,14 +180,14 @@ export const ClaimTable = ({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="mx-auto">
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         {/* Table Header */}
         <thead className="bg-gray-50 dark:bg-gray-700">
           <tr>
             <th
               onClick={() => onSort('claimId')}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
                 <span>Claim ID & Employee</span>
@@ -195,8 +195,17 @@ export const ClaimTable = ({
               </div>
             </th>
             <th
+              onClick={() => onSort('employeeId')}
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+            >
+              <div className="flex items-center space-x-1">
+                <span>Employee</span>
+                {getSortIcon('employeeId')}
+              </div>
+            </th>
+            <th
               onClick={() => onSort('claimType')}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
                 <span>Type</span>
@@ -205,7 +214,7 @@ export const ClaimTable = ({
             </th>
             <th
               onClick={() => onSort('claimAmount.requested')}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
                 <span>Amount</span>
@@ -214,7 +223,7 @@ export const ClaimTable = ({
             </th>
             <th
               onClick={() => onSort('claimStatus')}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
                 <span>Status</span>
@@ -223,14 +232,14 @@ export const ClaimTable = ({
             </th>
             <th
               onClick={() => onSort('submittedAt')}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
                 <span>Submitted</span>
                 {getSortIcon('submittedAt')}
               </div>
             </th>
-            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
               Actions
             </th>
           </tr>
@@ -250,14 +259,9 @@ export const ClaimTable = ({
                   urgencyIndicator?.level === 'medium' ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''
                 }`}
               >
-                {/* Claim ID & Employee Name */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                        <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                      </div>
-                    </div>
+                {/* Claim ID with urgency indicator */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="flex items-center space-x-2">
                     <div>
                       <div className="flex items-center space-x-2">
                         <div className="text-sm font-bold text-gray-900 dark:text-white">
@@ -282,8 +286,32 @@ export const ClaimTable = ({
                   </div>
                 </td>
 
+                {/* Employee */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0 h-8 w-8">
+                      <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                        <User className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                      </div>
+                    </div>
+                    <div className="ml-3">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {claim.employeeId?.firstName} {claim.employeeId?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {claim.employeeId?.email}
+                      </div>
+                      {claim.employeeId?.department && (
+                        <div className="text-xs text-gray-400 dark:text-gray-500">
+                          {claim.employeeId.department}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+
                 {/* Type */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900 dark:text-white">
                     {claim.claimType === 'life' ? 'Life Insurance' : 'Vehicle Insurance'}
                   </div>
@@ -298,7 +326,7 @@ export const ClaimTable = ({
                 </td>
 
                 {/* Amount */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">
                     {formatCurrency(claim.claimAmount?.requested)}
                   </div>
@@ -316,7 +344,7 @@ export const ClaimTable = ({
                 </td>
 
                 {/* Status */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(claim.claimStatus)}`}>
                     {getStatusIcon(claim.claimStatus)}
                     <span className="ml-1">{getStatusText(claim.claimStatus)}</span>
@@ -330,7 +358,7 @@ export const ClaimTable = ({
                 </td>
 
                 {/* Submitted Date */}
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900 dark:text-white">
                     {formatDate(claim.submittedAt)}
                   </div>
@@ -345,7 +373,7 @@ export const ClaimTable = ({
                 </td>
 
                 {/* Actions */}
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end space-x-2">
                     {/* View Button */}
                     <button
@@ -410,8 +438,8 @@ export const ClaimTable = ({
         </tbody>
       </table>
 
-      {/* Summary Footer */}
-      <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
+      {/* Summary Footer - Updated to include Rejected count */}
+      <div className="bg-gray-50 dark:bg-gray-700 px-4 py-4 border-t border-gray-200 dark:border-gray-600">
         <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-2">

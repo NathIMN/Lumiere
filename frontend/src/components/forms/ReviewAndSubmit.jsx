@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Upload, AlertCircle, FileText, X, DollarSign, Shield, Eye } from 'lucide-react';
+import { Check, Upload, AlertCircle, FileText, X, Coins, Shield, Eye } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import InsuranceApiService from '../../services/insurance-api';
 
@@ -251,7 +251,7 @@ const MIN_AMOUNT = 0;
                <div className="space-y-4">
                   <div className="flex items-center gap-3 mb-4">
                      <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                        <DollarSign className="w-5 h-5 text-green-600" />
+                        <Coins className="w-5 h-5 text-green-600" />
                      </div>
                      <h3 className="text-lg font-semibold text-gray-900">Claim Amount</h3>
                   </div>

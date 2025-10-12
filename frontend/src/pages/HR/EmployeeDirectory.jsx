@@ -8,9 +8,12 @@ import {
    Eye,
    X,
    Edit,
-   Users
+   Users,
+   Download,
+   Coins
 } from 'lucide-react';
 import userApiService from '../../services/user-api';
+import reportsApiService from '../../services/reports-api';
 
 export const EmployeeDirectory = () => {
    const [allEmployees, setAllEmployees] = useState([]);
@@ -18,6 +21,7 @@ export const EmployeeDirectory = () => {
    const [error, setError] = useState(null);
    const [selectedEmployee, setSelectedEmployee] = useState(null);
    const [editingEmployee, setEditingEmployee] = useState(null);
+   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
    // Filter states
    const [filters, setFilters] = useState({
@@ -50,39 +54,35 @@ export const EmployeeDirectory = () => {
       if (!allEmployees.length) return [];
 
       return allEmployees.filter((employee) => {
-         // User ID search (exact match)
-         if (filters.userId && employee.userId !== filters.userId.trim()) {
-            return false;
+         // ✅ User ID search - match any substring
+         if (filters.userId) {
+            const searchTerm = filters.userId.trim().toUpperCase();
+            const employeeId = (employee.userId || '').toUpperCase();
+            
+            // Check if userId contains the search term as a substring
+            if (!employeeId.includes(searchTerm)) {
+               return false;
+            }
          }
 
-         // Name search with first and last name logic
+         // ✅ Name search - match words that start with search term
          if (filters.name) {
             const searchTerm = filters.name.trim().toLowerCase();
             const fullName = employee.fullName.toLowerCase();
             
-            // Split search term by spaces
-            const searchParts = searchTerm.split(/\s+/);
+            // Split full name into words
+            const nameWords = fullName.split(/\s+/);
             
-            if (searchParts.length === 1) {
-               // Single word: match if full name starts with this word
-               if (!fullName.startsWith(searchParts[0])) {
-                  return false;
-               }
-            } else if (searchParts.length >= 2) {
-               // Multiple words: match first name starts with first part AND last name starts with second part
-               const nameParts = fullName.split(/\s+/);
-               
-               if (nameParts.length < 2) {
-                  return false;
-               }
-               
-               const firstName = nameParts[0];
-               const lastName = nameParts[nameParts.length - 1];
-               
-               // Check if first name starts with first search part AND last name starts with second search part
-               if (!firstName.startsWith(searchParts[0]) || !lastName.startsWith(searchParts[1])) {
-                  return false;
-               }
+            // Split search term into words
+            const searchWords = searchTerm.split(/\s+/);
+            
+            // Check if every search word matches at least one name word (starting with)
+            const allSearchWordsMatch = searchWords.every(searchWord => 
+              nameWords.some(nameWord => nameWord.startsWith(searchWord))
+            );
+            
+            if (!allSearchWordsMatch) {
+               return false;
             }
          }
 
@@ -108,6 +108,35 @@ export const EmployeeDirectory = () => {
       // Refresh the employee list after successful update
       fetchAllEmployees();
       setEditingEmployee(null);
+   };
+
+   // Generate Employee Report
+   const handleGenerateReport = async () => {
+      setIsGeneratingReport(true);
+      
+      try {
+         // Use filters if any are set, otherwise get all employees
+         const reportFilters = {
+            role: 'employee'
+         };
+
+         const blob = await reportsApiService.generateUsersReport(reportFilters);
+
+         const url = window.URL.createObjectURL(blob);
+         const link = document.createElement('a');
+         link.href = url;
+         link.download = `employee_directory_${new Date().toISOString().split('T')[0]}.pdf`;
+         document.body.appendChild(link);
+         link.click();
+         link.remove();
+         window.URL.revokeObjectURL(url);
+
+      } catch (error) {
+         console.error('Report generation failed:', error);
+         setError(`Failed to generate employee report: ${error.message}`);
+      } finally {
+         setIsGeneratingReport(false);
+      }
    };
 
    const getStatusBadge = (status) => {
@@ -150,13 +179,14 @@ export const EmployeeDirectory = () => {
       });
    };
 
-   const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-US', {
-         style: 'currency',
-         currency: 'LKR',
-         minimumFractionDigits: 0
-      }).format(amount);
-   };
+const formatCurrency = (amount) => {
+   if (!amount && amount !== 0) return "Rs. 0.00";
+   return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR',
+      minimumFractionDigits: 2
+   }).format(amount).replace('LKR', 'Rs.');
+};
 
    const EmployeeEditModal = ({ employee, onClose, onUpdate }) => {
       const [activeTab, setActiveTab] = useState('promote');
@@ -618,7 +648,7 @@ export const EmployeeDirectory = () => {
                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                      <input
                         type="text"
-                        placeholder="Search by Employee ID (exact match)"
+                        placeholder="Search by Employee ID"
                         value={filters.userId}
                         onChange={(e) => handleFilterChange('userId', e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -652,6 +682,23 @@ export const EmployeeDirectory = () => {
                      >
                         <RefreshCw className="h-4 w-4" />
                         <span>Refresh</span>
+                     </button>
+                     <button
+                        onClick={handleGenerateReport}
+                        disabled={isGeneratingReport}
+                        className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                        {isGeneratingReport ? (
+                           <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              <span>Generating...</span>
+                           </>
+                        ) : (
+                           <>
+                              <Download className="h-4 w-4" />
+                              <span>Download Report</span>
+                           </>
+                        )}
                      </button>
                   </div>
                   <div className="flex items-center space-x-2 text-sm text-gray-500">

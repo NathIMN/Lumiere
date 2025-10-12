@@ -4,7 +4,7 @@ import reportsApiService from '../../services/reports-api';
 import { policyService } from '../../services/policyService';
 import {
   Search, Filter, Eye, Clock, AlertTriangle, CheckCircle, XCircle, FileText, User, Building2,
-  Calendar, DollarSign, ChevronRight, RefreshCw, MoreHorizontal, ArrowRight, ArrowLeft, Star,
+  Calendar, Coins, ChevronRight, RefreshCw, MoreHorizontal, ArrowRight, ArrowLeft, Star,
   Flag, Download, Upload, MessageSquare, Send, Edit3, Zap, TrendingUp, Activity, Users, PieChart,
   AlertCircle, Info, Target, BarChart3, ThumbsUp, ThumbsDown, RotateCcw, Bookmark, BookmarkCheck,
   Settings, Plus, Minus, Save, X, Check, Grid3X3, List, Maximize2, Minimize2, SortAsc, SortDesc,
@@ -29,7 +29,7 @@ const ReportsDropdown = ({ filters, onGenerateReport }) => {
       id: 'financial', 
       label: 'Financial Report', 
       description: 'Generate financial summary report',
-      icon: 'DollarSign' 
+      icon: 'Coins' 
     },
   ];
 
@@ -502,7 +502,7 @@ const ClaimsReview = () => {
             
             if (summary && approvedAmount > summary.totalRemaining) {
               showToast(
-                `Approval amount ($${approvedAmount.toLocaleString()}) exceeds remaining coverage ($${summary.totalRemaining.toLocaleString()}). Employee has already claimed $${summary.totalClaimed.toLocaleString()} of their $${summary.totalLimit.toLocaleString()} limit.`,
+                `Approval amount (Rs.${approvedAmount.toLocaleString()}) exceeds remaining coverage (Rs.${summary.totalRemaining.toLocaleString()}). Employee has already claimed Rs.${summary.totalClaimed.toLocaleString()} of their Rs.${summary.totalLimit.toLocaleString()} limit.`,
                 'error'
               );
               return;
@@ -516,7 +516,7 @@ const ClaimsReview = () => {
               
               if (relevantCoverage && approvedAmount > relevantCoverage.remainingAmount) {
                 showToast(
-                  `Approval amount ($${approvedAmount.toLocaleString()}) exceeds remaining ${selectedClaim.claimOption.replace('_', ' ')} coverage ($${relevantCoverage.remainingAmount.toLocaleString()}).`,
+                  `Approval amount (Rs.${approvedAmount.toLocaleString()}) exceeds remaining ${selectedClaim.claimOption.replace('_', ' ')} coverage (Rs.${relevantCoverage.remainingAmount.toLocaleString()}).`,
                   'error'
                 );
                 return;
@@ -552,7 +552,7 @@ const ClaimsReview = () => {
       if (hasOverage) {
         let errorMessage = 'Coverage limits exceeded:\n';
         overageDetails.forEach(detail => {
-          errorMessage += `• ${detail.type.replace('_', ' ')}: Requested $${detail.requested.toLocaleString()}, but only $${detail.remaining.toLocaleString()} remaining (Overage: $${detail.overage.toLocaleString()})\n`;
+          errorMessage += `• ${detail.type.replace('_', ' ')}: Requested Rs.${detail.requested.toLocaleString()}, but only Rs.${detail.remaining.toLocaleString()} remaining (Overage: Rs.${detail.overage.toLocaleString()})\n`;
         });
         showToast(errorMessage, 'error');
         return;
@@ -1381,13 +1381,13 @@ const paginatedClaims = useMemo(() => {
         </div>
         
         {/* Overall Coverage Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-2 gap-6 mb-4">
           <div className="text-center">
-            <div className="text-lg font-bold text-gray-900">${summary.totalLimit.toLocaleString()}</div>
+            <div className="text-lg font-bold text-gray-900">Rs.{summary.totalLimit.toLocaleString()}</div>
             <div className="text-xs text-gray-500 font-medium">Total Limit</div>
           </div>
           <div className="text-center">
-            <div className="text-lg font-bold text-red-600">${summary.totalClaimed.toLocaleString()}</div>
+            <div className="text-lg font-bold text-red-600">Rs.{summary.totalClaimed.toLocaleString()}</div>
             <div className="text-xs text-gray-500 font-medium">Already Claimed</div>
           </div>
           {/* <div className="text-center">
@@ -1517,7 +1517,7 @@ const paginatedClaims = useMemo(() => {
             <div className="text-right">
               <div className="text-xs text-gray-500 font-medium mb-1">HR FORWARDED AMOUNT</div>
               <div className="text-4xl font-bold text-emerald-600 mb-1">
-                ${getClaimAmount(claim).toLocaleString()}
+                Rs. {getClaimAmount(claim).toLocaleString()}
               </div>
               <div className="flex items-center justify-end text-sm text-gray-500">
                 <Calendar className="w-4 h-4 mr-1" />
@@ -1617,9 +1617,9 @@ const paginatedClaims = useMemo(() => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
-                      <DollarSign className="w-4 h-4" />
+                      <Coins className="w-4 h-4" />
                       <span className="text-sm font-semibold">
-                        Amount: ${(claim.hrForwardingDetails.forwardedAmount || getClaimAmount(claim)).toLocaleString()}
+                        Amount: Rs. {(claim.hrForwardingDetails.forwardedAmount || getClaimAmount(claim)).toLocaleString()}
                       </span>
                     </div>
                     {claim.hrForwardingDetails.hrNotes && (
@@ -2394,7 +2394,7 @@ const paginatedClaims = useMemo(() => {
 
                         <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-200">
                           <h3 className="text-xl font-semibold text-emerald-800 mb-4 flex items-center gap-2">
-                            <DollarSign className="w-5 h-5" />
+                            <Coins className="w-5 h-5" />
                             Claim Information
                           </h3>
                           <div className="space-y-3">

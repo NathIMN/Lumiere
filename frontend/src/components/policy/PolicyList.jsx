@@ -12,7 +12,7 @@ import {
   Shield,
   Users,
   Calendar,
-  DollarSign,
+  Coins,
   AlertCircle,
   CheckCircle,
   Clock,

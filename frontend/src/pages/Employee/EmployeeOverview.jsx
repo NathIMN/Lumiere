@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { FileText, Clock, CheckCircle, AlertCircle, DollarSign, Calendar, Hospital, Activity } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, Coins, Calendar, Hospital, Activity } from 'lucide-react';
 
 export const EmployeeOverview = () => {
   // Sample data based on your API structure
@@ -51,11 +50,11 @@ export const EmployeeOverview = () => {
   ];
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-LK', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'LKR',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount).replace('LKR', 'Rs.');
   };
 
   const formatDate = (dateString) => {
@@ -114,7 +113,7 @@ export const EmployeeOverview = () => {
               <p className="text-3xl font-bold text-green-600">{formatCurrency(totalRequested)}</p>
             </div>
             <div className="p-3 bg-green-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
+              <Coins className="h-6 w-6 text-green-600" />
             </div>
           </div>
         </div>

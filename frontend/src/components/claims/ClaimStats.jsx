@@ -38,33 +38,30 @@ export const ClaimStats = ({ stats }) => {
       value: hrPendingCount,
       icon: Clock,
       color: 'text-amber-600',
-      bgColor: 'bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-800/20',
-      borderColor: 'border-amber-200 dark:border-amber-700',
+      bgColor: 'bg-amber-50 dark:bg-amber-900/10',
+      iconBg: 'bg-amber-100 dark:bg-amber-900/30',
       description: 'Awaiting HR action',
       priority: hrPendingCount > 0 ? 'high' : 'normal',
-      glowColor: 'shadow-amber-200/50'
     },
     {
       title: 'With Insurer',
       value: insurerCount,
       icon: Send,
       color: 'text-blue-600',
-      bgColor: 'bg-gradient-to-br from-blue-50 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-800/20',
-      borderColor: 'border-blue-200 dark:border-blue-700',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/10',
+      iconBg: 'bg-blue-100 dark:bg-blue-900/30',
       description: 'Processing with insurer',
       priority: 'normal',
-      glowColor: 'shadow-blue-200/50'
     },
     {
       title: 'Returned to Employee',
       value: employeeCount,
       icon: ArrowLeft,
       color: 'text-orange-600',
-      bgColor: 'bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-800/20',
-      borderColor: 'border-orange-200 dark:border-orange-700',
+      bgColor: 'bg-orange-50 dark:bg-orange-900/10',
+      iconBg: 'bg-orange-100 dark:bg-orange-900/30',
       description: 'Needs employee action',
       priority: employeeCount > 0 ? 'high' : 'normal',
-      glowColor: 'shadow-orange-200/50'
     }
   ];
 
@@ -74,63 +71,54 @@ export const ClaimStats = ({ stats }) => {
       value: stats.totalClaims || 0,
       icon: FileText,
       color: 'text-indigo-600',
-      bgColor: 'bg-gradient-to-br from-indigo-50 to-purple-100 dark:from-indigo-900/20 dark:to-purple-800/20',
-      borderColor: 'border-indigo-200 dark:border-indigo-700',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/10',
+      iconBg: 'bg-indigo-100 dark:bg-indigo-900/30',
       description: 'All claims in system',
-      glowColor: 'shadow-indigo-200/50'
     },
     {
       title: 'Total Value',
       value: formatLKR(totalAmount),
       icon: Coins,
       color: 'text-green-600',
-      bgColor: 'bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20',
-      borderColor: 'border-green-200 dark:border-green-700',
+      bgColor: 'bg-green-50 dark:bg-green-900/10',
+      iconBg: 'bg-green-100 dark:bg-green-900/30',
       description: 'Total requested amount',
-      glowColor: 'shadow-green-200/50'
     }
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Primary Status Cards */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-          <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full mr-3"></div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
           HR Claim Status Overview
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
                 key={index}
-                className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-800/50 hover:scale-105 transform cursor-pointer hover:border-opacity-70`}
+                className={`${stat.bgColor} rounded-lg p-4 transition-all duration-200 hover:shadow-md border border-gray-200 dark:border-gray-700`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl bg-white/50 dark:bg-gray-800/50 shadow-sm ring-1 ring-white/20`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                  {stat.priority === 'high' && stat.value > 0 && (
-                    <div className="flex items-center space-x-1">
-                      <AlertTriangle className="h-4 w-4 text-amber-500 animate-pulse" />
-                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
-                        Action Required
-                      </span>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`p-2 rounded-lg ${stat.iconBg}`}>
+                        <Icon className={`h-5 w-5 ${stat.color}`} />
+                      </div>
+                      {stat.priority === 'high' && stat.value > 0 && (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      )}
                     </div>
-                  )}
-                </div>
-                
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    {stat.title}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {stat.description}
-                  </p>
+                    
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
@@ -140,34 +128,30 @@ export const ClaimStats = ({ stats }) => {
 
       {/* Financial Summary Cards */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-          <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-emerald-600 rounded-full mr-3"></div>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
           Financial Summary
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {summaryCards.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <div
                 key={index}
-                className={`${stat.bgColor} ${stat.borderColor} border-2 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-800/50 hover:-translate-y-1 transform`}
+                className={`${stat.bgColor} rounded-lg p-4 transition-all duration-200 hover:shadow-md border border-gray-200 dark:border-gray-700`}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl bg-white/60 dark:bg-gray-800/60 shadow-sm`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className={`p-2 rounded-lg ${stat.iconBg} inline-flex mb-3`}>
+                      <Icon className={`h-5 w-5 ${stat.color}`} />
+                    </div>
+                    
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      {stat.title}
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {stat.value}
+                    </p>
                   </div>
-                </div>
-                
-                <div>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                    {stat.title}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {stat.description}
-                  </p>
                 </div>
               </div>
             );

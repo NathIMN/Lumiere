@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import insuranceApiService from '../../services/insurance-api';
 import {
-  BarChart3, TrendingUp, Clock, Users, DollarSign, AlertTriangle, CheckCircle,
+  BarChart3, TrendingUp, Clock, Users, Coins, AlertTriangle, CheckCircle,
   XCircle, Target, Activity, Zap, Brain, Bell, Search, Filter, Eye,
   MessageSquare, ThumbsUp, ThumbsDown, Star, Award, Calendar, Globe,
   Smartphone, Shield, Settings, RefreshCw, Download, Upload, Mic,

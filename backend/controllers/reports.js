@@ -14,7 +14,7 @@ const generateUsersReport = asyncHandler(async (req, res) => {
     dateFrom, 
     dateTo, 
     department, 
-    status = 'active',
+    status, // ✅ Remove the default value
     format = 'pdf' 
   } = req.query;
 
@@ -27,9 +27,14 @@ const generateUsersReport = asyncHandler(async (req, res) => {
     role,
     dateFrom: dateFrom ? new Date(dateFrom) : null,
     dateTo: dateTo ? new Date(dateTo) : null,
-    department,
-    status
+    department
+    // ✅ Only add status if it's explicitly provided
   };
+
+  // ✅ Only add status to filters if it's explicitly provided
+  if (status) {
+    filters.status = status;
+  }
 
   const reportData = await reportsService.generateUsersReport(filters);
   

@@ -4,7 +4,7 @@ import {
   Eye, 
   Users, 
   Calendar, 
-  DollarSign, 
+  Coins, 
   Shield,
   Car,
   Heart,

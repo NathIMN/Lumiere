@@ -10,7 +10,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign,
+  Coins,
   Activity,
   Calendar,
   RefreshCw,
@@ -382,7 +382,7 @@ export const HROverview = () => {
   }
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="pb-6 px-6 min-h-screen">
       {notification && <Notification message={notification.message} type={notification.type} onClose={() => setNotification(null)} />}
 
       {/* Header */}
@@ -395,13 +395,7 @@ export const HROverview = () => {
             </p>
           </div>
           <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowReports(!showReports)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <FileBarChart className="h-4 w-4" />
-              <span>Reports</span>
-            </button>
+            
             <button
               onClick={loadDashboardData}
               disabled={refreshing}
@@ -449,7 +443,7 @@ export const HROverview = () => {
           title="Total Coverage" 
           value={formatCurrencyShort(dashboardData.policies.totalCoverage)}
           subtitle={formatCurrency(dashboardData.policies.totalCoverage)}
-          icon={DollarSign}
+          icon={Coins}
           color="green"
         />
         <StatCard 

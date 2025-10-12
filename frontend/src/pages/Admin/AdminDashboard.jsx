@@ -44,7 +44,7 @@ const color = "#800020";
   };
 
   return (
-    <div className="employee-dashboard flex bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 h-screen">
+    <div className="employee-dashboard flex employee-dashboard flex bg-gray-50 dark:bg-neutral-800 h-screen">
       {/* Sidebar */}
       <SideBar
         links={adminLinks}
@@ -65,7 +65,7 @@ const color = "#800020";
 
         {/* Scrollable Content */}
         <main
-          className={`flex-1 overflow-y-auto pt-25 transition-all duration-300 pr-4 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800
+          className={`flex-1 overflow-y-auto pt-25 transition-all duration-300 pr-4 
          ${isCollapsed ? "ml-32" : "ml-75"}`}
           onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 10)}
         >
