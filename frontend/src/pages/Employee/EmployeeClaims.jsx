@@ -152,9 +152,29 @@ export const EmployeeClaims = () => {
    const filteredClaims = claims.filter(claim => {
       const displayStatus = getDisplayStatus(claim.claimStatus);
       const matchesFilter = activeFilter === 'all' || displayStatus === activeFilter;
-      const matchesSearch = claim.claimId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         claim.claimType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         (claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || '').toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // If no search term, just apply filter
+      if (!searchTerm.trim()) {
+        return matchesFilter;
+      }
+      
+      const searchLower = searchTerm.trim().toLowerCase();
+      
+      // ✅ Claim ID - substring match (case insensitive)
+      const claimId = (claim.claimId || '').toLowerCase();
+      const claimIdMatch = claimId.includes(searchLower);
+      
+      // ✅ Claim Type - starts with match
+      const claimType = (claim.claimType || '').toLowerCase();
+      const typeMatch = claimType.startsWith(searchLower);
+      
+      // ✅ Claim Option - starts with match
+      const claimOption = (claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || '').toLowerCase();
+      const optionMatch = claimOption.startsWith(searchLower);
+      
+      // Return true if matches filter AND any of the search fields match
+      const matchesSearch = claimIdMatch || typeMatch || optionMatch;
+      
       return matchesFilter && matchesSearch;
    });
 

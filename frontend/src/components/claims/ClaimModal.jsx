@@ -2,9 +2,9 @@
 import React, { useState } from "react";
 import documentApiService from "../../services/document-api";
 import {
-  X, User, FileText, DollarSign, Calendar, Shield, ArrowRight, ArrowLeft,
+  X, User, FileText, Coins, Calendar, Shield, ArrowRight, ArrowLeft,
   CheckCircle, XCircle, Clock, Download, ChevronDown, ChevronUp, MessageSquare,
-  AlertCircle, Info, Eye, History, Package, Coins, Send,
+  AlertCircle, Info, Eye, History, Package, Send,
 } from "lucide-react";
 
 export const ClaimModal = ({
@@ -264,7 +264,7 @@ console.log("here : ",claim)
   ];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-5xl w-full max-h-[95vh] overflow-hidden flex flex-col">
         
         {/* Header */}
@@ -339,7 +339,7 @@ console.log("here : ",claim)
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <Coins className="h-5 w-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Requested Amount</p>
                         <p className="font-medium text-gray-900 dark:text-white">{formatCurrency(claim.claimAmount?.requested)}</p>

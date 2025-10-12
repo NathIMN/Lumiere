@@ -9,7 +9,7 @@ import {
   Users,
   Shield,
   TrendingUp,
-  DollarSign,
+  Coins,
   RefreshCw,
   Search,
   ChevronDown,
@@ -77,7 +77,7 @@ const AdminReports = () => {
       id: 'financial',
       name: 'Financial Report',
       description: 'Financial performance and revenue analysis',
-      icon: DollarSign,
+      icon: Coins,
       category: 'Financial Analysis',
       access: ['admin'],
       filters: ['period', 'dateRange']

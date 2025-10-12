@@ -25,6 +25,7 @@ import {
   FileBarChart,
   CheckCircle2,
   Clock,
+  Download
 } from "lucide-react";
 
 import insuranceApiService from "../../services/insurance-api";
@@ -157,6 +158,7 @@ const PolicyStats = ({ stats, loading, policies }) => {
 
   const calculatedStats = calculateStatsFromPolicies();
 
+  // Use stats from API if available, otherwise fall back to calculated stats
   const totalPolicies =
     stats?.totalCount || stats?.totalPolicies || calculatedStats.totalCount;
   const activePolicies =
@@ -165,9 +167,11 @@ const PolicyStats = ({ stats, loading, policies }) => {
     calculatedStats.activeCount;
   const lifePolicies =
     stats?.byType?.find((s) => s._id === "life")?.count ||
+    stats?.typeStats?.find((s) => s._id === "life")?.count ||
     calculatedStats.lifeCount;
   const vehiclePolicies =
     stats?.byType?.find((s) => s._id === "vehicle")?.count ||
+    stats?.typeStats?.find((s) => s._id === "vehicle")?.count ||
     calculatedStats.vehicleCount;
 
   const statCards = [
@@ -238,7 +242,321 @@ const PolicyStats = ({ stats, loading, policies }) => {
   );
 };
 
-// PolicyFilters Component
+// Reports Panel Component
+const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
+  const [reportLoading, setReportLoading] = useState(null);
+  const [selectedPolicy, setSelectedPolicy] = useState("");
+  const [dateRange, setDateRange] = useState({
+    startDate: "",
+    endDate: "",
+  });
+
+  // Debug log to check if policies are being passed
+  console.log('ReportsPanel - Policies received:', policies);
+
+  // Debug: Log policies data
+  console.log('ReportsPanel - Policies data:', policies);
+  console.log('ReportsPanel - Policies length:', policies?.length || 0);
+
+  const reportTypes = [
+    {
+      id: "policies",
+      title: "Policies Report",
+      description:
+        "Comprehensive report of all policies with details, coverage, premiums, beneficiaries, and status information",
+      icon: Shield,
+      color: "blue",
+      needsDateFilter: true,
+      needsPolicySelector: false,
+    },
+    {
+      id: "policy-users",
+      title: "Policy Beneficiaries Report",
+      description:
+        "Report listing all beneficiaries for a specific policy",
+      icon: Users,
+      color: "green",
+      needsDateFilter: false,
+      needsPolicySelector: true,
+    },
+  ];
+
+  const handleGenerateReport = async (reportType) => {
+    try {
+      setReportLoading(reportType);
+      let blob;
+
+      if (reportType === "policies") {
+        // ✅ FIXED: Map startDate/endDate to dateFrom/dateTo for backend
+        const reportFilters = {
+          ...(filters.policyType && { policyType: filters.policyType }),
+          ...(filters.policyCategory && { policyCategory: filters.policyCategory }),
+          ...(filters.status && { status: filters.status }),
+          // ✅ Map to backend expected field names
+          ...(dateRange.startDate && { dateFrom: dateRange.startDate }),
+          ...(dateRange.endDate && { dateTo: dateRange.endDate }),
+        };
+
+        console.log('Generating policies report with filters:', reportFilters);
+
+        // Generate policies report
+        blob = await reportsApiService.generatePoliciesReport(reportFilters);
+      } else if (reportType === "policy-users") {
+        if (!selectedPolicy) {
+          showNotification("Please select a policy for the Policy Beneficiaries report", "error");
+          return;
+        }
+
+        console.log('Generating policy users report for policy:', selectedPolicy);
+
+        // Generate policy users report
+        blob = await reportsApiService.generatePolicyUsersReport(selectedPolicy);
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${reportType}-report-${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      showNotification(
+        `${
+          reportType.charAt(0).toUpperCase() + reportType.slice(1)
+        } report generated successfully`
+      );
+    } catch (error) {
+      console.error(`Error generating ${reportType} report:`, error);
+      showNotification(
+        `Failed to generate ${reportType} report: ${error.message}`,
+        "error"
+      );
+    } finally {
+      setReportLoading(null);
+    }
+  };
+
+   const getColorClasses = (color) => {
+    const colors = {
+      blue: {
+        bg: "bg-blue-50 dark:bg-blue-900/20",
+        border: "border-blue-200 dark:border-blue-800",
+        icon: "text-blue-600 dark:text-blue-400",
+        button: "bg-blue-600 hover:bg-blue-700 text-white",
+      },
+      green: {
+        bg: "bg-green-50 dark:bg-green-900/20",
+        border: "border-green-200 dark:border-green-800",
+        icon: "text-green-600 dark:text-green-400",
+        button: "bg-green-600 hover:bg-green-700 text-white",
+      },
+    };
+    return colors[color] || colors.blue;
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <FileBarChart className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Generate Reports
+          </h3>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
+            <X className="h-5 w-5 text-gray-500" />
+          </button>
+        )}
+      </div>
+
+      {/* Report Types Grid with Inline Filters */}
+      <div className="grid grid-cols-1 gap-6">
+        {reportTypes.map((report) => {
+          const IconComponent = report.icon;
+          const colors = getColorClasses(report.color);
+          const isLoading = reportLoading === report.id;
+
+          return (
+            <div
+              key={report.id}
+              className={`${colors.bg} border ${colors.border} rounded-lg p-6 transition-all hover:shadow-md`}
+            >
+              <div className="space-y-4">
+                {/* Report Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`p-3 rounded-lg ${colors.bg
+                        .replace("50", "100")
+                        .replace("900/20", "800/30")}`}
+                    >
+                      <IconComponent className={`h-8 w-8 ${colors.icon}`} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-semibold text-gray-900 dark:text-white">
+                        {report.title}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {report.description}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {report.needsDateFilter && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                            Date Filter Available
+                          </span>
+                        )}
+                        {report.needsPolicySelector && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            Requires Policy Selection
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Conditional Filters for Each Report Type */}
+                {report.needsDateFilter && (
+                  <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Date Range (Optional)
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={dateRange.startDate}
+                          max={new Date().toISOString().split("T")[0]} 
+                          onChange={(e) =>
+                            setDateRange((prev) => ({
+                              ...prev,
+                              startDate: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={dateRange.endDate}
+                          max={new Date().toISOString().split("T")[0]} 
+                          onChange={(e) =>
+                            setDateRange((prev) => ({ ...prev, endDate: e.target.value }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      Filter policies by creation date within the specified range.
+                    </p>
+                  </div>
+                )}
+
+                {report.needsPolicySelector && (
+                  <div className="bg-white dark:bg-gray-700 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Select Policy <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedPolicy}
+                        onChange={(e) => setSelectedPolicy(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      >
+                        <option value="">Choose a policy...</option>
+                        {policies && Array.isArray(policies) && policies.length > 0 ? (
+                          policies.map((policy) => (
+                            <option key={policy._id || policy.id} value={policy._id || policy.id}>
+                              {policy.policyId} - {policy.policyType} ({policy.status})
+                              {policy.employees && ` - ${policy.employees.length} users`}
+                            </option>
+                          ))
+                        ) : (
+                          <option value="" disabled>No policies available</option>
+                        )}
+                      </select>
+                      
+                      {/* Policy Information */}
+                      <div className="mt-2 text-sm">
+                        {!policies || !Array.isArray(policies) ? (
+                          <p className="text-red-600 dark:text-red-400">
+                            ⚠️ No policies found. Please ensure policies are loaded and you have the necessary permissions.
+                          </p>
+                        ) : policies.length === 0 ? (
+                          <p className="text-amber-600 dark:text-amber-400">
+                            📋 No policies available. Create policies first to generate user reports.
+                          </p>
+                        ) : (
+                          <p className="text-green-600 dark:text-green-400">
+                            ✅ {policies.length} policies available for selection.
+                          </p>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        Select a policy to generate a detailed report of all beneficiaries associated with that policy.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Generate Button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => handleGenerateReport(report.id)}
+                    disabled={isLoading || (report.needsPolicySelector && !selectedPolicy)}
+                    className={`flex items-center justify-center gap-2 px-6 py-3 ${colors.button} rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4" />
+                        Generate Report
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <p className="text-xs text-gray-600 dark:text-gray-400">
+          <strong>Note:</strong> Policies Report includes all policies with optional date filtering. 
+          Policy Beneficiaries Report generates a detailed list of all beneficiaries for a specific policy.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Enhanced PolicyFilters Component
 const PolicyFilters = ({ filters, updateFilter, clearFilters, onClose }) => {
   const policyTypeOptions = [
     { value: "", label: "All Policy Types" },
@@ -264,28 +582,34 @@ const PolicyFilters = ({ filters, updateFilter, clearFilters, onClose }) => {
   const hasActiveFilters = Object.values(filters).some((value) => value !== "");
 
   return (
-    <div className="bg-white border rounded-lg p-6 mb-6">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Policy Filters</h3>
+          <Filter className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Policy Filters
+          </h3>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+          >
             <X className="h-5 w-5 text-gray-500" />
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        {/* Policy Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Policy Type
           </label>
           <select
             value={filters.policyType || ""}
             onChange={(e) => updateFilter("policyType", e.target.value)}
-            className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             {policyTypeOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -295,14 +619,15 @@ const PolicyFilters = ({ filters, updateFilter, clearFilters, onClose }) => {
           </select>
         </div>
 
+        {/* Policy Category */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Policy Category
           </label>
           <select
             value={filters.policyCategory || ""}
             onChange={(e) => updateFilter("policyCategory", e.target.value)}
-            className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-green-500"
           >
             {policyCategoryOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -312,14 +637,15 @@ const PolicyFilters = ({ filters, updateFilter, clearFilters, onClose }) => {
           </select>
         </div>
 
+        {/* Status */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Status
           </label>
           <select
             value={filters.status || ""}
             onChange={(e) => updateFilter("status", e.target.value)}
-            className="w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-gray-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-gray-500 focus:border-gray-500"
           >
             {policyStatusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -329,11 +655,12 @@ const PolicyFilters = ({ filters, updateFilter, clearFilters, onClose }) => {
           </select>
         </div>
 
+        {/* Clear Filters */}
         <div className="flex items-end">
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="w-full px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 rounded-lg border border-red-200"
+              className="w-full px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 transition-colors"
             >
               Clear Filters
             </button>
@@ -352,6 +679,7 @@ const InteractivePolicyActions = ({
   onRemoveBeneficiary,
 }) => {
   const [showTooltip, setShowTooltip] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const actions = [
     {
@@ -580,6 +908,7 @@ const PolicyTable = ({
 export const HRPolicyUser = () => {
   const [viewMode, setViewMode] = useState("table");
   const [showFilters, setShowFilters] = useState(true);
+  const [showReports, setShowReports] = useState(false);
   const [policies, setPolicies] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(false);
@@ -992,15 +1321,31 @@ export const HRPolicyUser = () => {
             </div>
           </div>
 
+            {/* Controls */}
           <div className="flex items-center gap-3">
+            {/* Reports Button */}
+            <button
+              onClick={() => setShowReports(!showReports)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                showReports
+                  ? "bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
+              }`}
+            >
+              <FileBarChart className="h-4 w-4" />
+              Reports
+            </button>
+
+            {/* Filter Toggle */}
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
                 showFilters
-                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                  ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
               }`}
             >
+          
               <Filter className="h-4 w-4" />
               Filters
               <ChevronDown
@@ -1036,6 +1381,18 @@ export const HRPolicyUser = () => {
             </div>
           </div>
         </div>
+
+         {/* Reports Panel */}
+        {showReports && (
+          <div className="mt-4">
+            <ReportsPanel
+              filters={filters}
+              policies={policies}
+              onClose={() => setShowReports(false)}
+              showNotification={showNotification}
+            />
+          </div>
+        )}
 
         {showFilters && (
           <div className="mt-4">

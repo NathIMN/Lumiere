@@ -19,10 +19,6 @@
                 <td>{{claim.claimOption}}</td>
             </tr>
             <tr>
-                <td><strong>Incident Date</strong></td>
-                <td>{{formatDate claim.incidentDate}}</td>
-            </tr>
-            <tr>
                 <td><strong>Submission Date</strong></td>
                 <td>{{formatDate claim.submissionDate}}</td>
             </tr>
@@ -32,12 +28,12 @@
             </tr>
             <tr>
                 <td><strong>Requested Amount</strong></td>
-                <td>${{formatCurrency claim.requestedAmount}}</td>
+                <td>Rs. {{formatCurrency claim.requestedAmount}}</td>
             </tr>
             {{#if claim.approvedAmount}}
             <tr>
                 <td><strong>Approved Amount</strong></td>
-                <td>${{formatCurrency claim.approvedAmount}}</td>
+                <td>Rs. {{formatCurrency claim.approvedAmount}}</td>
             </tr>
             {{/if}}
         </tbody>

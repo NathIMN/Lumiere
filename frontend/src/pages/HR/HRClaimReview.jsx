@@ -9,7 +9,7 @@ import {
   ArrowRight,
   AlertCircle,
   FileText,
-  BarChart3,
+  Download,
   History,
   Send,
   ArrowLeft
@@ -82,103 +82,6 @@ const Notification = ({ message, type = 'success', onClose }) => {
   );
 };
 
-// Reports Dropdown Component
-const ReportsDropdown = ({ filters, onGenerateReport }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const reportTypes = [
-    { 
-      id: 'claims', 
-      label: 'Claims Report', 
-      description: 'Generate detailed claims report with current filters',
-      icon: FileText 
-    },
-    { 
-      id: 'financial', 
-      label: 'Financial Report', 
-      description: 'Generate financial summary report',
-      icon: 'DollarSign' 
-    },
-  ];
-
-  const handleGenerateReport = async (reportType) => {
-    setIsGenerating(true);
-    setIsOpen(false);
-    
-    try {
-      await onGenerateReport(reportType);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={isGenerating}
-        className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:from-blue-700 dark:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isGenerating ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span>Generating...</span>
-          </>
-        ) : (
-          <>
-            <BarChart3 className="h-4 w-4" />
-            <span>Reports</span>
-          </>
-        )}
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 lg:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-10 max-w-[calc(100vw-2rem)]">
-          <div className="p-3 lg:p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-base lg:text-lg font-semibold text-gray-900 dark:text-white">Generate Reports</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Export data with current filters applied</p>
-          </div>
-          
-          <div className="p-2">
-            {reportTypes.map((report) => {
-              const Icon = report.icon;
-              return (
-                <button
-                  key={report.id}
-                  onClick={() => handleGenerateReport(report.id)}
-                  className="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <div className="flex items-start space-x-3">
-                    <FileText className="h-5 w-5 text-gray-400 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{report.label}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{report.description}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="p-3 lg:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-b-xl">
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Reports will be downloaded as PDF files with current filter settings applied.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-5" 
-          onClick={() => setIsOpen(false)}
-        ></div>
-      )}
-    </div>
-  );
-};
-
 export const HRClaimReview = () => {
   const navigate = useNavigate();
   
@@ -189,6 +92,7 @@ export const HRClaimReview = () => {
   const [claimsRequiringAction, setClaimsRequiringAction] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   
   // Notification state
   const [notification, setNotification] = useState(null);
@@ -254,40 +158,30 @@ export const HRClaimReview = () => {
 
     let filteredClaims = [...allClaims];
 
-    // Filter by Claim ID (exact match)
+    // ✅ Filter by Claim ID (substring match - case insensitive)
     if (filters.claimId && filters.claimId.trim()) {
-      filteredClaims = filteredClaims.filter(claim => 
-        claim.claimId === filters.claimId.trim()
-      );
+      const searchTerm = filters.claimId.trim().toUpperCase();
+      filteredClaims = filteredClaims.filter(claim => {
+        const claimId = (claim.claimId || '').toUpperCase();
+        return claimId.includes(searchTerm);
+      });
     }
 
-    // Filter by Employee Name (first name starts with, then space + last name starts with)
+    // ✅ Filter by Employee Name (word start match)
     if (filters.employeeName && filters.employeeName.trim()) {
       const searchTerm = filters.employeeName.trim().toLowerCase();
-      const searchParts = searchTerm.split(/\s+/);
+      const searchWords = searchTerm.split(/\s+/);
       
       filteredClaims = filteredClaims.filter(claim => {
         if (!claim.employeeId || !claim.employeeId.fullName) return false;
         
         const fullName = claim.employeeId.fullName.toLowerCase();
+        const nameWords = fullName.split(/\s+/);
         
-        if (searchParts.length === 1) {
-          // Single word: match if full name starts with this word
-          return fullName.startsWith(searchParts[0]);
-        } else if (searchParts.length >= 2) {
-          // Multiple words: match first name starts with first part AND last name starts with second part
-          const nameParts = fullName.split(/\s+/);
-          
-          if (nameParts.length < 2) return false;
-          
-          const firstName = nameParts[0];
-          const lastName = nameParts[nameParts.length - 1];
-          
-          // Check if first name starts with first search part AND last name starts with second search part
-          return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
-        }
-        
-        return false;
+        // Check if every search word matches at least one name word (starting with)
+        return searchWords.every(searchWord => 
+          nameWords.some(nameWord => nameWord.startsWith(searchWord))
+        );
       });
     }
 
@@ -391,40 +285,30 @@ export const HRClaimReview = () => {
       // Apply initial frontend filtering
       let filteredClaims = claimsData;
 
-      // Filter by Claim ID (exact match)
+      // ✅ Filter by Claim ID (substring match - case insensitive)
       if (filters.claimId && filters.claimId.trim()) {
-        filteredClaims = filteredClaims.filter(claim => 
-          claim.claimId === filters.claimId.trim()
-        );
+        const searchTerm = filters.claimId.trim().toUpperCase();
+        filteredClaims = filteredClaims.filter(claim => {
+          const claimId = (claim.claimId || '').toUpperCase();
+          return claimId.includes(searchTerm);
+        });
       }
 
-      // Filter by Employee Name (first name starts with, then space + last name starts with)
+      // ✅ Filter by Employee Name (word start match)
       if (filters.employeeName && filters.employeeName.trim()) {
         const searchTerm = filters.employeeName.trim().toLowerCase();
-        const searchParts = searchTerm.split(/\s+/);
+        const searchWords = searchTerm.split(/\s+/);
         
         filteredClaims = filteredClaims.filter(claim => {
           if (!claim.employeeId || !claim.employeeId.fullName) return false;
           
           const fullName = claim.employeeId.fullName.toLowerCase();
+          const nameWords = fullName.split(/\s+/);
           
-          if (searchParts.length === 1) {
-            // Single word: match if full name starts with this word
-            return fullName.startsWith(searchParts[0]);
-          } else if (searchParts.length >= 2) {
-            // Multiple words: match first name starts with first part AND last name starts with second part
-            const nameParts = fullName.split(/\s+/);
-            
-            if (nameParts.length < 2) return false;
-            
-            const firstName = nameParts[0];
-            const lastName = nameParts[nameParts.length - 1];
-            
-            // Check if first name starts with first search part AND last name starts with second search part
-            return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
-          }
-          
-          return false;
+          // Check if every search word matches at least one name word (starting with)
+          return searchWords.every(searchWord => 
+            nameWords.some(nameWord => nameWord.startsWith(searchWord))
+          );
         });
       }
       
@@ -578,54 +462,42 @@ export const HRClaimReview = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
   };
 
-  // Report generation handler
-  const handleGenerateReport = async (reportType) => {
+  // Simplified report generation - directly download claims report
+  const handleGenerateClaimsReport = async () => {
+    setIsGeneratingReport(true);
+    
     try {
-      let blob;
       const reportFilters = {
         ...filters,
         ...(filters.startDate && { startDate: filters.startDate }),
         ...(filters.endDate && { endDate: filters.endDate }),
+        hrOnly: true
       };
 
-      // For claims report from HR page, only include HR status claims
-      if (reportType === 'claims') {
-        reportFilters.hrOnly = true;
-      }
-
+      // Remove empty filters
       Object.keys(reportFilters).forEach(key => {
-        if (!reportFilters[key]) {
+        if (!reportFilters[key] && reportFilters[key] !== false) {
           delete reportFilters[key];
         }
       });
 
-      switch (reportType) {
-        case 'claims':
-          blob = await reportsApiService.generateClaimsReport(reportFilters);
-          break;
-        case 'financial':
-          blob = await reportsApiService.generateFinancialReport(reportFilters);
-          break;
-        case 'activity':
-          blob = await reportsApiService.generateActivityReport(reportFilters);
-          break;
-        default:
-          throw new Error('Invalid report type');
-      }
+      const blob = await reportsApiService.generateClaimsReport(reportFilters);
 
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${reportType}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `claims_report_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      showNotification(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generated successfully`, 'success');
+      showNotification('Claims report generated successfully', 'success');
     } catch (error) {
       console.error('Report generation failed:', error);
-      showNotification(`Failed to generate ${reportType} report: ${error.message}`, 'error');
+      showNotification(`Failed to generate claims report: ${error.message}`, 'error');
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -638,7 +510,7 @@ export const HRClaimReview = () => {
   }
 
   return (
-    <div className="p-4 lg:p-6 space-y-6 lg:space-y-8 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 min-h-screen max-w-full overflow-x-hidden">
+    <div className="p-2 space-y-6 lg:space-y-8 dark:from-gray-900 dark:to-gray-800 min-h-screen ">
       {/* Notification */}
       {notification && (
         <Notification
@@ -663,10 +535,24 @@ export const HRClaimReview = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:space-x-4 flex-shrink-0">
-          <ReportsDropdown 
-            filters={filters}
-            onGenerateReport={handleGenerateReport}
-          />
+          {/* Direct Claims Report Button */}
+          <button
+            onClick={handleGenerateClaimsReport}
+            disabled={isGeneratingReport}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 dark:from-blue-700 dark:to-blue-800 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingReport ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Generating Report...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                <span>Download Report</span>
+              </>
+            )}
+          </button>
           
           {claimsRequiringAction.length > 0 && (
             <div className="bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 px-4 py-2 lg:px-6 lg:py-3 rounded-xl border border-amber-200 dark:border-amber-700 shadow-sm max-w-full">
@@ -766,7 +652,7 @@ export const HRClaimReview = () => {
       />
 
       {/* Claims Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
         <ClaimTable
           claims={claims}
           loading={loading}

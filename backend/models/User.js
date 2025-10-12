@@ -113,13 +113,13 @@ const UserSchema = new mongoose.Schema(
         type: Date,
         required: function () {
           return this.role === "employee";
-        },
-        validate: {
-          validator: function (v) {
-            return !v || v <= new Date();
-          },
-          message: "Join date cannot be in the future",
-        },
+        }
+      //   validate: {
+      //     validator: function (v) {
+      //       return !v || v <= new Date();
+      //     },
+      //     message: "Join date cannot be in the future",
+      //   },
       },
       salary: {
         type: Number,
