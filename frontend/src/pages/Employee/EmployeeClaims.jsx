@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import InsuranceApiService from "../../services/insurance-api";
 import DocumentApiService from "../../services/document-api";
 import reportsApiService from '../../services/reports-api';
+import LoadingScreen from './LoadingScreen';
 
 export const EmployeeClaims = () => {
    const { user } = useAuth(); // Get user from auth context
@@ -83,11 +84,19 @@ export const EmployeeClaims = () => {
       }
    };
 
+   const getCategoryBackground = (claimType) => {
+      switch (claimType) {
+         case 'life': return 'bg-red-50/50 dark:bg-red-950/10';
+         case 'vehicle': return 'bg-blue-50/50 dark:bg-blue-950/10';
+         default: return 'bg-white dark:bg-neutral-900';
+      }
+   };
+
    const getCategoryIcon = (claimType) => {
       switch (claimType) {
-         case 'life': return <User className="text-pink-500 dark:text-pink-400" size={20} />;
-         case 'vehicle': return <Car className="text-blue-500 dark:text-blue-400" size={20} />;
-         default: return <FileText className="text-gray-500 dark:text-gray-400" size={20} />;
+         case 'life': return <User className="text-red-700 dark:text-red-400" size={30} />;
+         case 'vehicle': return <Car className="text-blue-700 dark:text-blue-400" size={30} />;
+         default: return <FileText className="text-gray-700 dark:text-gray-400" size={30} />;
       }
    };
 
@@ -411,7 +420,7 @@ export const EmployeeClaims = () => {
             status: statusFilter,
             claimType: undefined // Could add filter for claim type
          };
-         
+
          // Remove undefined values
          Object.keys(filters).forEach(key => {
             if (filters[key] === undefined) {
@@ -476,8 +485,8 @@ export const EmployeeClaims = () => {
                         <button
                            onClick={() => handleUploadTypeChange('questionnaire')}
                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadType === 'questionnaire'
-                                 ? 'bg-purple-600 text-white'
-                                 : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
                               }`}
                         >
                            Answer Questions ({questionnaireFileQuestions.length})
@@ -485,8 +494,8 @@ export const EmployeeClaims = () => {
                         <button
                            onClick={() => handleUploadTypeChange('general')}
                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadType === 'general'
-                                 ? 'bg-purple-600 text-white'
-                                 : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
                               }`}
                         >
                            General Documents
@@ -633,8 +642,8 @@ export const EmployeeClaims = () => {
                                     <strong>{question.sectionTitle}:</strong> {question.questionText}
                                  </span>
                                  <span className={`px-2 py-1 rounded-full ${question.isAnswered
-                                       ? 'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-300'
-                                       : 'bg-gray-100 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400'
+                                    ? 'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-300'
+                                    : 'bg-gray-100 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400'
                                     }`}>
                                     {question.isAnswered ? 'Answered' : 'Pending'}
                                  </span>
@@ -725,13 +734,8 @@ export const EmployeeClaims = () => {
 
    if (loading) {
       return (
-         <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
-            <div className="max-w-7xl mx-auto">
-               <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
-                  <p className="mt-4 text-gray-600 dark:text-neutral-300">Loading your claims...</p>
-               </div>
-            </div>
+         <div className="min-h-screen dark:bg-neutral-800 p-6">
+            {loading && <LoadingScreen />}
          </div>
       );
    }
@@ -768,7 +772,7 @@ export const EmployeeClaims = () => {
                      <h1 className="text-4xl font-light text-gray-900 dark:text-white mb-2">Claims Portal</h1>
                      <p className="text-gray-600 dark:text-neutral-400">Manage your submissions and track progress</p>
                   </div>
-                  <button onClick={() => (navigate("/employee/claims/form"))} className="bg-[#ff7a66] hover:bg-[#ff6b57] dark:bg-[#ff7a66] dark:hover:bg-[#ff6b57] px-6 py-3 rounded-full text-white font-medium flex items-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl">
+                  <button onClick={() => (navigate("/employee/claims/form"))} className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-full hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105">
                      <Plus size={20} />
                      New Claim
                   </button>
@@ -811,7 +815,7 @@ export const EmployeeClaims = () => {
                         placeholder="Search claims by ID, type, or option..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-transparent shadow-sm"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent shadow-sm"
                      />
                   </div>
                   <div className="flex gap-2">
@@ -820,8 +824,8 @@ export const EmployeeClaims = () => {
                            key={filter}
                            onClick={() => setActiveFilter(filter)}
                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeFilter === filter
-                                 ? 'bg-[#ff7a66] text-white shadow-md'
-                                 : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
+                              ? 'bg-red-900 text-white shadow-md'
+                              : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
                               }`}
                         >
                            {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -838,7 +842,7 @@ export const EmployeeClaims = () => {
                   return (
                      <div
                         key={claim._id}
-                        className={`bg-white dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] border-l-4 shadow-sm ${getCategoryColor(claim.claimType)} group`}
+                        className={`border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] shadow-sm ${getCategoryBackground(claim.claimType)}`}
                         style={{ animationDelay: `${index * 100}ms` }}
                      >
                         <div className="p-6">
@@ -953,7 +957,7 @@ export const EmployeeClaims = () => {
                         <div className="px-6 pb-4">
                            <div className="w-full bg-gray-200 dark:bg-neutral-700 rounded-full h-1">
                               <div
-                                 className="bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400 h-1 rounded-full transition-all duration-1000"
+                                 className="bg-gradient-to-r from-red-700 to-red-900 dark:from-purple-400 dark:to-blue-400 h-1 rounded-full transition-all duration-1000"
                                  style={{
                                     width: claim.claimStatus === 'draft' ? '10%' :
                                        claim.claimStatus === 'employee' ? '27%' :
@@ -1006,7 +1010,7 @@ export const EmployeeClaims = () => {
                   <Download size={16} />
                   Refresh Claims
                </button>
-               <button 
+               <button
                   onClick={generateClaimsSummaryReport}
                   className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-neutral-900 hover:bg-green-200 dark:hover:bg-neutral-700 rounded-full text-green-700 dark:text-green-300 transition-colors duration-200"
                >
