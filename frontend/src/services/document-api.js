@@ -703,6 +703,47 @@ class DocumentApiService {
 
     return this.uploadRequest(`/claims/${claimId}/documents/upload/multiple`, formData);
   }
+
+  // ==================== ENTITY SEARCH METHODS ====================
+
+  /**
+   * Search users for document linking
+   * @param {string} searchTerm - Search term
+   * @returns {Promise<Object>} Search results
+   */
+  async searchUsers(searchTerm) {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return { success: true, users: [] };
+    }
+
+    return this.request(`/users?search=${encodeURIComponent(searchTerm.trim())}`);
+  }
+
+  /**
+   * Search policies for document linking
+   * @param {string} searchTerm - Search term
+   * @returns {Promise<Object>} Search results
+   */
+  async searchPolicies(searchTerm) {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return { success: true, policies: [] };
+    }
+
+    return this.request(`/policies?search=${encodeURIComponent(searchTerm.trim())}`);
+  }
+
+  /**
+   * Search claims for document linking
+   * @param {string} searchTerm - Search term
+   * @returns {Promise<Object>} Search results
+   */
+  async searchClaims(searchTerm) {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return { success: true, claims: [] };
+    }
+
+    return this.request(`/claims?search=${encodeURIComponent(searchTerm.trim())}`);
+  }
 }
 
 // Create and export singleton instance

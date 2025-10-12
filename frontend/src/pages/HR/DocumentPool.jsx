@@ -18,10 +18,12 @@ import {
   MoreVertical,
   BarChart3,
   Shield,
-  PieChart
+  PieChart,
+  Plus
 } from 'lucide-react';
 import documentApiService from '../../services/document-api';
 import reportsApiService from '../../services/reports-api';
+import AddDocumentModal from '../../components/AddDocumentModal';
 
 // Helper functions
 const formatFileSize = (bytes) => {
@@ -398,6 +400,7 @@ const DocumentPool = () => {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [stats, setStats] = useState({});
   
@@ -629,6 +632,14 @@ const DocumentPool = () => {
     }
   };
 
+  const handleDocumentAdded = (newDocument) => {
+    // Refresh the documents list to include the new document
+    loadDocuments();
+    
+    // Show success message
+    alert('Document uploaded successfully!');
+  };
+
   const handlePreview = (document) => {
     setSelectedDocument(document);
     setShowPreview(true);
@@ -661,6 +672,13 @@ const DocumentPool = () => {
             Document Pool
           </h1>
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg transform hover:scale-105"
+            >
+              <Plus className="h-4 w-4" />
+              Add Document
+            </button>
             <DocumentReportsDropdown 
               documents={documents}
               filters={filters}
@@ -885,6 +903,13 @@ const DocumentPool = () => {
           onSave={loadDocuments}
         />
       )}
+
+      {/* Add Document Modal */}
+      <AddDocumentModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={handleDocumentAdded}
+      />
     </div>
   );
 };
