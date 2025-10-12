@@ -90,106 +90,103 @@ export const Questionnaire = ({
       }
 
       // Date validation
-      // Date validation
-if (question.questionType === 'date' && value) {
-  const dateValue = new Date(value);
-  if (isNaN(dateValue.getTime())) {
-    return 'Please enter a valid date';
-  }
+      if (question.questionType === 'date' && value) {
+         const dateValue = new Date(value);
+         if (isNaN(dateValue.getTime())) {
+            return 'Please enter a valid date';
+         }
 
-  // Helper: parse relative dates like "1mAgo", "2yAgo", "10dAgo"
-  function getRelativeDate(str) {
-    const match = /^(\d+)([dmy])Ago$/i.exec(str);
-    if (!match) return null;
+         // Helper: parse relative dates like "1mAgo", "2yAgo", "10dAgo"
+         function getRelativeDate(str) {
+            const match = /^(\d+)([dmy])Ago$/i.exec(str);
+            if (!match) return null;
 
-    const amount = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
+            const amount = parseInt(match[1], 10);
+            const unit = match[2].toLowerCase();
 
-    const date = new Date();
-    if (unit === 'd') {
-      date.setDate(date.getDate() - amount);
-    } else if (unit === 'm') {
-      date.setMonth(date.getMonth() - amount);
-    } else if (unit === 'y') {
-      date.setFullYear(date.getFullYear() - amount);
-    }
-    return date;
-  }
+            const date = new Date();
+            if (unit === 'd') {
+               date.setDate(date.getDate() - amount);
+            } else if (unit === 'm') {
+               date.setMonth(date.getMonth() - amount);
+            } else if (unit === 'y') {
+               date.setFullYear(date.getFullYear() - amount);
+            }
+            return date;
+         }
 
-  // Handle max validation (can be "today", relative, or another field name)
-  if (validation.max) {
-    let maxDate;
+         // Handle max validation (can be "today", relative, or another field name)
+         if (validation.max) {
+            let maxDate;
 
-    if (validation.max === 'today') {
-      maxDate = new Date();
-      maxDate.setHours(23, 59, 59, 999); // End of today
-    } else {
-      // Relative string? e.g. "6mAgo"
-      const relativeDate = getRelativeDate(validation.max);
-      if (relativeDate) {
-        maxDate = relativeDate;
-      } else {
-        // Check if max refers to another field
-        const maxFieldValue = formData[validation.max];
-        if (maxFieldValue) {
-          maxDate = new Date(maxFieldValue);
-        } else {
-          // Direct date string
-          const parsed = new Date(validation.max);
-          if (!isNaN(parsed.getTime())) {
-            maxDate = parsed;
-          }
-        }
+            if (validation.max === 'today') {
+               maxDate = new Date();
+               maxDate.setHours(23, 59, 59, 999); // End of today
+            } else {
+               // Relative string? e.g. "6mAgo"
+               const relativeDate = getRelativeDate(validation.max);
+               if (relativeDate) {
+                  maxDate = relativeDate;
+               } else {
+                  // Check if max refers to another field
+                  const maxFieldValue = formData[validation.max];
+                  if (maxFieldValue) {
+                     maxDate = new Date(maxFieldValue);
+                  } else {
+                     // Direct date string
+                     const parsed = new Date(validation.max);
+                     if (!isNaN(parsed.getTime())) {
+                        maxDate = parsed;
+                     }
+                  }
+               }
+            }
+
+            if (maxDate && dateValue > maxDate) {
+               return (
+                  validation.message ||
+                  `Date cannot be after ${validation.max === 'today' ? 'today' : validation.max
+                  }`
+               );
+            }
+         }
+
+         // Handle min validation (can be "today", relative, another field, or date string)
+         if (validation.min) {
+            let minDate;
+
+            if (validation.min === 'today') {
+               minDate = new Date();
+               minDate.setHours(0, 0, 0, 0); // Start of today
+            } else {
+               // Relative string? e.g. "1yAgo"
+               const relativeDate = getRelativeDate(validation.min);
+               if (relativeDate) {
+                  minDate = relativeDate;
+               } else {
+                  // Check if min refers to another field
+                  const minFieldValue = formData[validation.min];
+                  if (minFieldValue) {
+                     minDate = new Date(minFieldValue);
+                  } else {
+                     // Try to parse as direct date string
+                     const parsed = new Date(validation.min);
+                     if (!isNaN(parsed.getTime())) {
+                        minDate = parsed;
+                     }
+                  }
+               }
+            }
+
+            if (minDate && dateValue < minDate) {
+               return (
+                  validation.message ||
+                  `Date must be after ${validation.min === 'today' ? 'today' : validation.min
+                  }`
+               );
+            }
+         }
       }
-    }
-
-    if (maxDate && dateValue > maxDate) {
-      return (
-        validation.message ||
-        `Date cannot be after ${
-          validation.max === 'today' ? 'today' : validation.max
-        }`
-      );
-    }
-  }
-
-  // Handle min validation (can be "today", relative, another field, or date string)
-  if (validation.min) {
-    let minDate;
-
-    if (validation.min === 'today') {
-      minDate = new Date();
-      minDate.setHours(0, 0, 0, 0); // Start of today
-    } else {
-      // Relative string? e.g. "1yAgo"
-      const relativeDate = getRelativeDate(validation.min);
-      if (relativeDate) {
-        minDate = relativeDate;
-      } else {
-        // Check if min refers to another field
-        const minFieldValue = formData[validation.min];
-        if (minFieldValue) {
-          minDate = new Date(minFieldValue);
-        } else {
-          // Try to parse as direct date string
-          const parsed = new Date(validation.min);
-          if (!isNaN(parsed.getTime())) {
-            minDate = parsed;
-          }
-        }
-      }
-    }
-
-    if (minDate && dateValue < minDate) {
-      return (
-        validation.message ||
-        `Date must be after ${
-          validation.min === 'today' ? 'today' : validation.min
-        }`
-      );
-    }
-  }
-}
 
 
       // File validation
@@ -357,7 +354,7 @@ if (question.questionType === 'date' && value) {
                if (validation.maxLength && value.length > validation.maxLength) {
                   processedValue = value.substring(0, validation.maxLength);
                }
-               
+
                // Apply pattern validation for real-time input restriction
                if (validation.pattern && value) {
                   const regex = new RegExp(validation.pattern);
@@ -826,16 +823,63 @@ if (question.questionType === 'date' && value) {
             const today = new Date().toISOString().split('T')[0];
             let minDate, maxDate;
             
+            // Helper function to parse relative dates like "1mAgo", "2yAgo", "10dAgo"
+            const getRelativeDateString = (str) => {
+               const match = /^(\d+)([dmy])Ago$/i.exec(str);
+               if (!match) return null;
+
+               const amount = parseInt(match[1], 10);
+               const unit = match[2].toLowerCase();
+
+               const date = new Date();
+               if (unit === 'd') {
+                  date.setDate(date.getDate() - amount);
+               } else if (unit === 'm') {
+                  date.setMonth(date.getMonth() - amount);
+               } else if (unit === 'y') {
+                  date.setFullYear(date.getFullYear() - amount);
+               }
+               return date.toISOString().split('T')[0];
+            };
+            
+            // Handle min validation
             if (validation.min === 'today') {
                minDate = today;
-            } else if (validation.min && formData[validation.min]) {
-               minDate = formatDateForInput(formData[validation.min]);
+            } else if (validation.min) {
+               // Check if it's a relative date
+               const relativeMin = getRelativeDateString(validation.min);
+               if (relativeMin) {
+                  minDate = relativeMin;
+               } else if (formData[validation.min]) {
+                  // Check if it refers to another field
+                  minDate = formatDateForInput(formData[validation.min]);
+               } else {
+                  // Try parsing as direct date
+                  const parsed = new Date(validation.min);
+                  if (!isNaN(parsed.getTime())) {
+                     minDate = parsed.toISOString().split('T')[0];
+                  }
+               }
             }
             
+            // Handle max validation
             if (validation.max === 'today') {
                maxDate = today;
-            } else if (validation.max && formData[validation.max]) {
-               maxDate = formatDateForInput(formData[validation.max]);
+            } else if (validation.max) {
+               // Check if it's a relative date
+               const relativeMax = getRelativeDateString(validation.max);
+               if (relativeMax) {
+                  maxDate = relativeMax;
+               } else if (formData[validation.max]) {
+                  // Check if it refers to another field
+                  maxDate = formatDateForInput(formData[validation.max]);
+               } else {
+                  // Try parsing as direct date
+                  const parsed = new Date(validation.max);
+                  if (!isNaN(parsed.getTime())) {
+                     maxDate = parsed.toISOString().split('T')[0];
+                  }
+               }
             }
 
             return (
@@ -930,8 +974,8 @@ if (question.questionType === 'date' && value) {
 
          case 'file':
             const maxSizeInMB = validation.max ? Math.round(validation.max / 1024 / 1024) : null;
-            const acceptedTypes = validation.pattern ? 
-               validation.pattern.replace(/\\/g, '').replace(/\.\(\|/g, '.').replace(/\)\$/, '') : 
+            const acceptedTypes = validation.pattern ?
+               validation.pattern.replace(/\\/g, '').replace(/\.\(\|/g, '.').replace(/\)\$/, '') :
                undefined;
 
             return (
@@ -1150,10 +1194,10 @@ if (question.questionType === 'date' && value) {
                                  {uploadingFiles ? 'Uploading...' : 'Saving...'}
                               </div>
                            ) : (
-                              Object.keys(validateCurrentSection()).length > 0 
+                              Object.keys(validateCurrentSection()).length > 0
                                  ? 'Fix Errors to Submit'
-                                 : canCompleteQuestionnaire() 
-                                    ? 'Complete Questionnaire' 
+                                 : canCompleteQuestionnaire()
+                                    ? 'Complete Questionnaire'
                                     : 'Complete All Questions First'
                            )}
                         </button>
@@ -1169,7 +1213,7 @@ if (question.questionType === 'date' && value) {
                                  {uploadingFiles ? 'Uploading Files...' : 'Saving...'}
                               </>
                            ) : (
-                              Object.keys(validateCurrentSection()).length > 0 
+                              Object.keys(validateCurrentSection()).length > 0
                                  ? 'Fix Errors to Continue'
                                  : 'Save & Next Section'
                            )}

@@ -40,7 +40,7 @@ export const EmployeeDashboard = () => {
 
 
    return (
-      <div className="employee-dashboard flex bg-gray-100 dark:bg-neutral-800 h-screen">
+      <div className="employee-dashboard flex bg-gray-50 dark:bg-neutral-800 h-screen">
 
          {/* Sidebar */}
          <SideBar links={employeeLinks} toggleSidebar={toggleSidebar} isCollapsed={isCollapsed} color={color}/>

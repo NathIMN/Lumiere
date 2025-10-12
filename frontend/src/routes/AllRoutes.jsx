@@ -158,7 +158,7 @@ export const AllRoutes = () => {
                   <Route path=":id" element={<ClaimDetails />} />
                </Route>
                <Route path="policies" element={<EmployeePolicy />} />
-               <Route path="messaging" element={<MessagingPage userRole="hr_officer" />} />
+               <Route path="messaging" element={<MessagingPage userRole="employee" />} />
                <Route path="test" element={<TestingStuff />} />
             </Route>
 
