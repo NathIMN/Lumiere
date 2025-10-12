@@ -330,7 +330,9 @@ class DocumentApiService {
     // Append metadata fields
     Object.keys(metadata).forEach(key => {
       if (metadata[key] !== undefined && metadata[key] !== null) {
-        formData.append(key, metadata[key]);
+        // Convert boolean values to strings for FormData
+        const value = typeof metadata[key] === 'boolean' ? metadata[key].toString() : metadata[key];
+        formData.append(key, value);
       }
     });
 
@@ -438,9 +440,23 @@ class DocumentApiService {
    */
   async getDocumentsByCategory(docType) {
     const validCategories = [
-      'nic', 'passport', 'invoice', 'medical_bill', 'police_report',
-      'photo', 'receipt', 'policy_document', 'claim_form', 
-      'supporting_document', 'other'
+      // General document types
+      'nic', 'passport', 'invoice', 'photo', 'receipt', 'policy_document', 
+      'claim_form', 'supporting_document', 'supporting', 'identification', 
+      'proof_of_policy', 'other',
+      
+      // Life insurance specific
+      'medical_bill', 'discharge_summary', 'prescription', 'lab_report', 
+      'channelling_receipt', 'doctor_report', 'pharmacy_receipt', 
+      'medical_report', 'death_certificate',
+      
+      // Vehicle insurance specific
+      'police_report', 'damage_assessment', 'repair_estimate', 'photos', 
+      'fir_copy', 'vehicle_registration', 'fire_department_report', 
+      'weather_report',
+      
+      // Questionnaire related
+      'questionnaire_answer'
     ];
     if (!validCategories.includes(docType)) {
       throw new Error(`Invalid category. Must be one of: ${validCategories.join(', ')}`);

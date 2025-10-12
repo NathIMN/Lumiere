@@ -46,16 +46,22 @@ const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
   ];
 
   const documentCategories = [
+    // General document types
     { value: 'nic', label: 'NIC' },
     { value: 'passport', label: 'Passport' },
     { value: 'invoice', label: 'Invoice' },
-    { value: 'medical_bill', label: 'Medical Bill' },
-    { value: 'police_report', label: 'Police Report' },
     { value: 'photo', label: 'Photo' },
     { value: 'receipt', label: 'Receipt' },
     { value: 'policy_document', label: 'Policy Document' },
     { value: 'claim_form', label: 'Claim Form' },
     { value: 'supporting_document', label: 'Supporting Document' },
+    { value: 'supporting', label: 'Supporting' },
+    { value: 'identification', label: 'Identification' },
+    { value: 'proof_of_policy', label: 'Proof of Policy' },
+    { value: 'other', label: 'Other' },
+    
+    // Life insurance specific
+    { value: 'medical_bill', label: 'Medical Bill' },
     { value: 'discharge_summary', label: 'Discharge Summary' },
     { value: 'prescription', label: 'Prescription' },
     { value: 'lab_report', label: 'Lab Report' },
@@ -64,6 +70,9 @@ const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
     { value: 'pharmacy_receipt', label: 'Pharmacy Receipt' },
     { value: 'medical_report', label: 'Medical Report' },
     { value: 'death_certificate', label: 'Death Certificate' },
+    
+    // Vehicle insurance specific
+    { value: 'police_report', label: 'Police Report' },
     { value: 'damage_assessment', label: 'Damage Assessment' },
     { value: 'repair_estimate', label: 'Repair Estimate' },
     { value: 'photos', label: 'Photos' },
@@ -71,8 +80,9 @@ const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
     { value: 'vehicle_registration', label: 'Vehicle Registration' },
     { value: 'fire_department_report', label: 'Fire Department Report' },
     { value: 'weather_report', label: 'Weather Report' },
-    { value: 'questionnaire_answer', label: 'Questionnaire Answer' },
-    { value: 'other', label: 'Other' }
+    
+    // Questionnaire related
+    { value: 'questionnaire_answer', label: 'Questionnaire Answer' }
   ];
 
   const roleTypes = [
@@ -375,10 +385,8 @@ const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
         metadata.userId = selectedEntity.userId || selectedEntity._id;
       }
 
-      // Set confidential flag
-      if (formData.isConfidential) {
-        metadata.isConfidential = true;
-      }
+      // Set confidential flag (always explicitly set the value)
+      metadata.isConfidential = formData.isConfidential;
 
       const response = await documentApiService.uploadDocument(selectedFile, metadata);
       

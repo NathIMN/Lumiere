@@ -266,6 +266,12 @@ const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArc
               Pending
             </span>
           )}
+          {document.metadata?.isConfidential && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400">
+              <Shield className="h-3 w-3 mr-1" />
+              Confidential
+            </span>
+          )}
         </div>
 
         <div className="absolute top-2 right-2">
@@ -423,17 +429,43 @@ const DocumentPool = () => {
   ];
 
   const documentCategories = [
+    // General document types
     { value: 'nic', label: 'NIC' },
     { value: 'passport', label: 'Passport' },
     { value: 'invoice', label: 'Invoice' },
-    { value: 'medical_bill', label: 'Medical Bill' },
-    { value: 'police_report', label: 'Police Report' },
     { value: 'photo', label: 'Photo' },
     { value: 'receipt', label: 'Receipt' },
     { value: 'policy_document', label: 'Policy Document' },
     { value: 'claim_form', label: 'Claim Form' },
     { value: 'supporting_document', label: 'Supporting Document' },
-    { value: 'other', label: 'Other' }
+    { value: 'supporting', label: 'Supporting' },
+    { value: 'identification', label: 'Identification' },
+    { value: 'proof_of_policy', label: 'Proof of Policy' },
+    { value: 'other', label: 'Other' },
+    
+    // Life insurance specific
+    { value: 'medical_bill', label: 'Medical Bill' },
+    { value: 'discharge_summary', label: 'Discharge Summary' },
+    { value: 'prescription', label: 'Prescription' },
+    { value: 'lab_report', label: 'Lab Report' },
+    { value: 'channelling_receipt', label: 'Channelling Receipt' },
+    { value: 'doctor_report', label: 'Doctor Report' },
+    { value: 'pharmacy_receipt', label: 'Pharmacy Receipt' },
+    { value: 'medical_report', label: 'Medical Report' },
+    { value: 'death_certificate', label: 'Death Certificate' },
+    
+    // Vehicle insurance specific
+    { value: 'police_report', label: 'Police Report' },
+    { value: 'damage_assessment', label: 'Damage Assessment' },
+    { value: 'repair_estimate', label: 'Repair Estimate' },
+    { value: 'photos', label: 'Photos' },
+    { value: 'fir_copy', label: 'FIR Copy' },
+    { value: 'vehicle_registration', label: 'Vehicle Registration' },
+    { value: 'fire_department_report', label: 'Fire Department Report' },
+    { value: 'weather_report', label: 'Weather Report' },
+    
+    // Questionnaire related
+    { value: 'questionnaire_answer', label: 'Questionnaire Answer' }
   ];
 
   const roleTypes = [
@@ -475,22 +507,53 @@ const DocumentPool = () => {
   const loadDocuments = async () => {
     try {
       setLoading(true);
+      
+      // Prepare backend query parameters (exclude search, handle it client-side)
+      const { search, ...backendFilters } = filters;
       const queryParams = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value !== '' && value !== null)
+        Object.entries(backendFilters).filter(([_, value]) => value !== '' && value !== null)
       );
       
       const response = await documentApi.getDocuments(queryParams);
       let filteredDocs = response.documents || [];
       
-      // Apply client-side search filter
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase();
-        filteredDocs = filteredDocs.filter(doc => 
-          doc.originalName.toLowerCase().includes(searchTerm) ||
-          doc.metadata?.description?.toLowerCase().includes(searchTerm) ||
-          doc.metadata?.tags?.some(tag => tag.toLowerCase().includes(searchTerm)) ||
-          doc.uploadedBy.toLowerCase().includes(searchTerm)
-        );
+      // Apply client-side search filter with word-start matching only if search term exists
+      if (search) {
+        const searchTerm = search.toLowerCase().trim();
+        if (searchTerm) {
+          filteredDocs = filteredDocs.filter(doc => {
+            // Helper function to check if search term matches the start of any word
+            const matchesWordStart = (text) => {
+              if (!text) return false;
+              const words = text.toLowerCase().split(/\s+/);
+              return words.some(word => word.startsWith(searchTerm));
+            };
+            
+            // Search in document name (word-start matching)
+            const matchesFileName = matchesWordStart(doc.originalName);
+            
+            // Search in description (word-start matching)
+            const matchesDescription = matchesWordStart(doc.metadata?.description);
+            
+            // Search in tags (word-start matching for each tag)
+            const matchesTags = doc.metadata?.tags?.some(tag => matchesWordStart(tag)) || false;
+            
+            // Search in uploader's first name and last name (word-start matching)
+            let matchesUploaderName = false;
+            if (usersCache.has(doc.uploadedBy)) {
+              const user = usersCache.get(doc.uploadedBy);
+              const userProfile = user.profile || {};
+              const firstName = (userProfile.firstName || '').toLowerCase();
+              const lastName = (userProfile.lastName || '').toLowerCase();
+              
+              matchesUploaderName = 
+                firstName.startsWith(searchTerm) ||
+                lastName.startsWith(searchTerm);
+            }
+            
+            return matchesFileName || matchesDescription || matchesTags || matchesUploaderName;
+          });
+        }
       }
       
       setDocuments(filteredDocs);
@@ -771,7 +834,7 @@ const DocumentPool = () => {
         {/* Filters Panel */}
         {showFilters && (
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Search */}
               <div className="lg:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -807,7 +870,7 @@ const DocumentPool = () => {
               </div>
 
               {/* Document Category */}
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Category
                 </label>
@@ -821,7 +884,7 @@ const DocumentPool = () => {
                     <option key={category.value} value={category.value}>{category.label}</option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               {/* Status */}
               <div>
@@ -835,7 +898,6 @@ const DocumentPool = () => {
                 >
                   <option value="active">Active</option>
                   <option value="archived">Archived</option>
-                  <option value="deleted">Deleted</option>
                 </select>
               </div>
 
@@ -1113,6 +1175,12 @@ const DocumentPreviewModal = ({ document, onClose, usersCache }) => {
                 {document.isVerified ? 'Yes' : 'No'}
               </p>
             </div>
+            <div>
+              <span className="font-medium text-gray-900 dark:text-white">Confidential:</span>
+              <p className="text-gray-600 dark:text-gray-400">
+                {document.metadata?.isConfidential ? 'Yes' : 'No'}
+              </p>
+            </div>
           </div>
           <div className="mt-3">
             <span className="font-medium text-gray-900 dark:text-white">Uploaded by:</span>{' '}
@@ -1149,8 +1217,6 @@ const DocumentPreviewModal = ({ document, onClose, usersCache }) => {
 // Document Edit Modal Component
 const DocumentEditModal = ({ document, onClose, onSave }) => {
   const [formData, setFormData] = useState({
-    type: document.type,
-    docType: document.docType,
     metadata: {
       description: document.metadata?.description || '',
       tags: document.metadata?.tags?.join(', ') || '',
@@ -1163,35 +1229,13 @@ const DocumentEditModal = ({ document, onClose, onSave }) => {
   
   const documentApi = documentApiService;
 
-  const documentTypes = [
-    { value: 'policy', label: 'Policy' },
-    { value: 'claim', label: 'Claim' },
-    { value: 'user', label: 'User' },
-    { value: 'general', label: 'General' }
-  ];
-
-  const documentCategories = [
-    { value: 'nic', label: 'NIC' },
-    { value: 'passport', label: 'Passport' },
-    { value: 'invoice', label: 'Invoice' },
-    { value: 'medical_bill', label: 'Medical Bill' },
-    { value: 'police_report', label: 'Police Report' },
-    { value: 'photo', label: 'Photo' },
-    { value: 'receipt', label: 'Receipt' },
-    { value: 'policy_document', label: 'Policy Document' },
-    { value: 'claim_form', label: 'Claim Form' },
-    { value: 'supporting_document', label: 'Supporting Document' },
-    { value: 'other', label: 'Other' }
-  ];
-
   const handleSave = async () => {
     try {
       setSaving(true);
       
       const updateData = {
-        type: formData.type,
-        docType: formData.docType,
         metadata: {
+          ...document.metadata, // Preserve existing metadata
           ...formData.metadata,
           tags: formData.metadata.tags 
             ? formData.metadata.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
@@ -1234,38 +1278,6 @@ const DocumentEditModal = ({ document, onClose, onSave }) => {
         
         <div className="p-4">
           <div className="space-y-4">
-            {/* Document Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Document Type
-              </label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {documentTypes.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Document Category */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Document Category
-              </label>
-              <select
-                value={formData.docType}
-                onChange={(e) => setFormData(prev => ({ ...prev, docType: e.target.value }))}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                {documentCategories.map(category => (
-                  <option key={category.value} value={category.value}>{category.label}</option>
-                ))}
-              </select>
-            </div>
-
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1297,22 +1309,6 @@ const DocumentEditModal = ({ document, onClose, onSave }) => {
                 }))}
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="tag1, tag2, tag3..."
-              />
-            </div>
-
-            {/* Expiry Date */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Expiry Date (optional)
-              </label>
-              <input
-                type="date"
-                value={formData.metadata.expiryDate}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  metadata: { ...prev.metadata, expiryDate: e.target.value }
-                }))}
-                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
