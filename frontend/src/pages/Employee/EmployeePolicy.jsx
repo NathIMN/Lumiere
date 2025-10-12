@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import InsuranceApiService from "../../services/insurance-api";
 import reportsApiService from '../../services/reports-api';
+import LoadingScreen from './LoadingScreen';
 import {
-   Shield, Car, Heart, Calendar, DollarSign, FileText, Users,
-   AlertCircle, Plus, Eye, Download, Loader2, RefreshCw, CheckCircle, Receipt
+   Shield, Car, User, Calendar, DollarSign, FileText, Users,
+   AlertCircle, Plus, Eye, Download, Loader2, RefreshCw, CheckCircle, Receipt,
+   Coins
 } from 'lucide-react';
 
 export const EmployeePolicy = () => {
@@ -39,8 +41,14 @@ export const EmployeePolicy = () => {
       return colors[status] || 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-700/50';
    };
 
-   const getPolicyIcon = (type) => {
-      return type === 'life' ? <Heart className="w-6 h-6 text-red-500 dark:text-red-400" /> : <Car className="w-6 h-6 text-blue-500 dark:text-blue-400" />;
+
+
+      const getPolicyIcon = (claimType) => {
+      switch (claimType) {
+         case 'life': return <User className="text-red-700 dark:text-red-400" size={30} />;
+         case 'vehicle': return <Car className="text-blue-700 dark:text-blue-400" size={30} />;
+         default: return <FileText className="text-gray-700 dark:text-gray-400" size={30} />;
+      }
    };
 
    const formatCurrency = (amount) => {
@@ -204,9 +212,9 @@ export const EmployeePolicy = () => {
                      >
                         <Eye className="w-4 h-4" />
                      </button>
-                     <button 
+                     <button
                         onClick={() => generatePolicyReport(policy.policyId)}
-                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors" 
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
                         title="Download Policy Report"
                      >
                         <Download className="w-4 h-4" />
@@ -310,11 +318,8 @@ export const EmployeePolicy = () => {
    // Loading state
    if (loading) {
       return (
-         <div className="p-6 bg-gray-50 dark:bg-neutral-800 min-h-screen flex items-center justify-center">
-            <div className="text-center">
-               <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
-               <p className="text-gray-600 dark:text-gray-300">Loading your policies...</p>
-            </div>
+         <div className="min-h-screen dark:bg-neutral-800 p-6">
+            {loading && <LoadingScreen />}
          </div>
       );
    }
@@ -340,13 +345,13 @@ export const EmployeePolicy = () => {
 
    return (
       <div className="px-6 min-h-screen">
-         
+
 
          {/* Summary Cards */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6">
                <div className="flex items-center relative z-10">
-                  <Shield className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                  <Shield className="w-8 h-8 text-red-900 dark:text-blue-400" />
                   <div className="ml-4">
                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Policies</p>
                      <p className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -358,7 +363,7 @@ export const EmployeePolicy = () => {
 
             <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6">
                <div className="flex items-center">
-                  <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  <Coins className="w-8 h-8 text-red-900 dark:text-green-400" />
                   <div className="ml-4">
                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Coverage</p>
                      <p className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -370,7 +375,7 @@ export const EmployeePolicy = () => {
 
             <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6">
                <div className="flex items-center">
-                  <Calendar className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  <Calendar className="w-8 h-8 text-red-900 dark:text-purple-400" />
                   <div className="ml-4">
                      <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Premium</p>
                      <p className="text-2xl font-semibold text-gray-900 dark:text-white">
