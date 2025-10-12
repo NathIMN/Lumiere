@@ -1,4 +1,5 @@
-import React from 'react';
+/* eslint-disable no-unused-vars */
+import React, { useEffect } from 'react';
 import { Building } from 'lucide-react';
 
 const employmentTypes = [
@@ -8,16 +9,50 @@ const employmentTypes = [
   { value: 'executive', label: 'Executive' }
 ];
 
-const handleKeyPress = (e, type) => {
-  if (type === 'name') {
-    // Allow letters, space, backspace, delete, tab, escape, enter, arrow keys
-    if (!/[a-zA-Z\s]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-    }
-  }
-};
+const departments = [
+  { value: '', label: 'Select Department' },
+  { value: 'Human Resources', label: 'Human Resources' },
+  { value: 'Finance', label: 'Finance' },
+  { value: 'Information Technology', label: 'Information Technology' },
+  { value: 'Operations', label: 'Operations' },
+  { value: 'Sales', label: 'Sales' },
+  { value: 'Marketing', label: 'Marketing' },
+  { value: 'Customer Service', label: 'Customer Service' },
+  { value: 'Legal', label: 'Legal' },
+  { value: 'Administration', label: 'Administration' }
+];
+
+const designations = [
+  { value: '', label: 'Select Designation' },
+  { value: 'Manager', label: 'Manager' },
+  { value: 'Assistant Manager', label: 'Assistant Manager' },
+  { value: 'Senior Executive', label: 'Senior Executive' },
+  { value: 'Executive', label: 'Executive' },
+  { value: 'Officer', label: 'Officer' },
+  { value: 'Assistant Officer', label: 'Assistant Officer' },
+  { value: 'Supervisor', label: 'Supervisor' },
+  { value: 'Team Leader', label: 'Team Leader' },
+  { value: 'Coordinator', label: 'Coordinator' },
+  { value: 'Specialist', label: 'Specialist' },
+  { value: 'Analyst', label: 'Analyst' },
+  { value: 'Associate', label: 'Associate' }
+];
 
 const EmploymentDetails = ({ formData, errors, onChange }) => {
+  // Auto-generate join date on component mount (only if not already set)
+  useEffect(() => {
+    if (!formData.joinDate) {
+      const today = new Date().toISOString().split('T')[0];
+      const syntheticEvent = {
+        target: {
+          name: 'joinDate',
+          value: today
+        }
+      };
+      onChange(syntheticEvent, 'employment');
+    }
+  }, []); // Run only once on mount
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -28,29 +63,31 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Department *</label>
-          <input
-            type="text"
+          <select
             name="department"
             value={formData.department}
-            onChange={(e) => onChange(e, 'employment', 'name')}
-            onKeyDown={(e) => handleKeyPress(e, 'name')}
+            onChange={(e) => onChange(e, 'employment')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.department ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter department"
-          />
+          >
+            {departments.map(dept => (
+              <option key={dept.value} value={dept.value}>{dept.label}</option>
+            ))}
+          </select>
           {errors.department && <p className="text-red-500 text-sm mt-1">{errors.department}</p>}
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Designation *</label>
-          <input
-            type="text"
+          <select
             name="designation"
             value={formData.designation}
-            onChange={(e) => onChange(e, 'employment', 'name')}
-            onKeyDown={(e) => handleKeyPress(e, 'name')}
+            onChange={(e) => onChange(e, 'employment')}
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.designation ? 'border-red-500' : 'border-gray-300'}`}
-            placeholder="Enter designation"
-          />
+          >
+            {designations.map(desig => (
+              <option key={desig.value} value={desig.value}>{desig.label}</option>
+            ))}
+          </select>
           {errors.designation && <p className="text-red-500 text-sm mt-1">{errors.designation}</p>}
         </div>
 
@@ -71,15 +108,13 @@ const EmploymentDetails = ({ formData, errors, onChange }) => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Join Date *</label>
           <input
-            type="date"
+            type="text"
             name="joinDate"
-            value={formData.joinDate}
-            onChange={(e) => onChange(e, 'employment')}
-            max={new Date(Date.now()).toISOString().split('T')[0]} // Yesterday to avoid timezone issues
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.joinDate ? 'border-red-500' : 'border-gray-300'}`}
+            value={formData.joinDate || new Date().toISOString().split('T')[0]}
+            readOnly
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
           />
-          {errors.joinDate && <p className="text-red-500 text-sm mt-1">{errors.joinDate}</p>}
-          <p className="text-sm text-gray-500 mt-1">Join date cannot be in the future</p>
+          <p className="text-sm text-gray-500 mt-1">Join date is automatically set to today's date</p>
         </div>
 
         <div className="md:col-span-2">
