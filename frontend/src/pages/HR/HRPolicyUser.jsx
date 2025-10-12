@@ -495,6 +495,7 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
                         <input
                           type="date"
                           value={dateRange.startDate}
+                          max={new Date().toISOString().split("T")[0]}
                           onChange={(e) =>
                             setDateRange((prev) => ({
                               ...prev,
@@ -509,13 +510,14 @@ const ReportsPanel = ({ filters, onClose, showNotification, policies }) => {
                           End Date
                         </label>
                         <input
-                          type="date"
-                          value={dateRange.endDate}
-                          onChange={(e) =>
-                            setDateRange((prev) => ({ ...prev, endDate: e.target.value }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
+                           type="date"
+                           value={dateRange.endDate}
+                           max={new Date().toISOString().split("T")[0]}  // 👈 sets max to today
+                           onChange={(e) =>
+                              setDateRange((prev) => ({ ...prev, endDate: e.target.value }))
+                           }
+                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           />
                       </div>
                     </div>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">

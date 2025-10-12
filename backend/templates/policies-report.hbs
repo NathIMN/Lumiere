@@ -18,8 +18,8 @@
         <tr>
             <td>{{policyNumber}}</td>
             <td>{{policyType}}</td>
-            <td>{{beneficiariesCount}}</td>
-            <td>${{formatCurrency premiumAmount}}</td>
+            <td class="numeric">{{beneficiariesCount}}</td>
+            <td class="currency">Rs. {{formatCurrency premiumAmount}}</td>
             <td>{{formatDate startDate}}</td>
             <td>{{formatDate endDate}}</td>
             <td><span class="status {{status}}">{{status}}</span></td>
@@ -48,9 +48,9 @@
         {{#each policyStats}}
         <tr>
             <td>{{policyType}}</td>
-            <td>{{activePolicies}}</td>
-            <td>${{formatCurrency totalPremium}}</td>
-            <td>${{formatCurrency averagePremium}}</td>
+            <td class="numeric">{{activePolicies}}</td>
+            <td class="currency">Rs. {{formatCurrency totalPremium}}</td>
+            <td class="currency">Rs. {{formatCurrency averagePremium}}</td>
             <td>{{renewalRate}}%</td>
         </tr>
         {{/each}}

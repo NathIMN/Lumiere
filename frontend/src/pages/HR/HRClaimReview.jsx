@@ -539,7 +539,7 @@ export const HRClaimReview = () => {
   }
 
   return (
-    <div className="p-2 space-y-6 lg:space-y-8 dark:from-gray-900 dark:to-gray-800 min-h-screen  ">
+    <div className="p-2 space-y-6 lg:space-y-8 dark:from-gray-900 dark:to-gray-800 min-h-screen ">
       {/* Notification */}
       {notification && (
         <Notification
@@ -667,7 +667,7 @@ export const HRClaimReview = () => {
       />
 
       {/* Claims Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-w-full">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
         <ClaimTable
           claims={claims}
           loading={loading}
