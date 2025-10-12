@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Plus, Trash2 } from 'lucide-react';
+import { User, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 const relationships = [
   { value: 'spouse', label: 'Spouse' },
@@ -68,7 +68,106 @@ const getNicValidationMessage = (nic) => {
   }
 };
 
-const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
+// ✅ NEW: Calculate date range based on relationship
+const getDateRange = (relationship, employeeDob, dependents) => {
+  if (!employeeDob) {
+    return { min: '1970-01-01', max: '2025-12-31' };
+  }
+
+  const empDate = new Date(employeeDob);
+  
+  if (relationship === 'spouse') {
+    // Spouse: ±10 years from employee's birth date
+    const minDate = new Date(empDate);
+    minDate.setFullYear(empDate.getFullYear() - 10);
+    
+    const maxDate = new Date(empDate);
+    maxDate.setFullYear(empDate.getFullYear() + 10);
+    
+    return {
+      min: minDate.toISOString().split('T')[0],
+      max: maxDate.toISOString().split('T')[0]
+    };
+  } else if (relationship === 'child') {
+    // Child: Must be at least 18 years younger than employee
+    const empMinDate = new Date(empDate);
+    empMinDate.setFullYear(empDate.getFullYear() + 18);
+    
+    // Find spouse's DOB if exists
+    const spouse = dependents.find(dep => dep.relationship === 'spouse' && dep.dateOfBirth);
+    let spouseMinDate = null;
+    
+    if (spouse) {
+      const spouseDate = new Date(spouse.dateOfBirth);
+      spouseMinDate = new Date(spouseDate);
+      spouseMinDate.setFullYear(spouseDate.getFullYear() + 18);
+    }
+    
+    // Child must be 18 years younger than both employee and spouse (if exists)
+    const minDate = spouseMinDate && spouseMinDate > empMinDate ? spouseMinDate : empMinDate;
+    
+    return {
+      min: minDate.toISOString().split('T')[0],
+      max: new Date().toISOString().split('T')[0] // Up to today
+    };
+  }
+  
+  return { min: '1970-01-01', max: '2025-12-31' };
+};
+
+// ✅ NEW: Validate dependent's date of birth
+const validateDependentDob = (relationship, dependentDob, employeeDob, dependents) => {
+  if (!dependentDob || !employeeDob) return null;
+  
+  const depDate = new Date(dependentDob);
+  const empDate = new Date(employeeDob);
+  
+  if (relationship === 'spouse') {
+    const yearsDiff = Math.abs(depDate.getFullYear() - empDate.getFullYear());
+    
+    if (yearsDiff > 10) {
+      return {
+        type: 'error',
+        message: `⚠️ Spouse's age must be within 10 years of employee's age`
+      };
+    }
+    return {
+      type: 'success',
+      message: '✓ Valid spouse date of birth'
+    };
+  } else if (relationship === 'child') {
+    // Check against employee
+    const empYearsDiff = empDate.getFullYear() - depDate.getFullYear();
+    if (empYearsDiff < 18) {
+      return {
+        type: 'error',
+        message: `⚠️ Child must be at least 18 years younger than employee`
+      };
+    }
+    
+    // Check against spouse if exists
+    const spouse = dependents.find(dep => dep.relationship === 'spouse' && dep.dateOfBirth);
+    if (spouse) {
+      const spouseDate = new Date(spouse.dateOfBirth);
+      const spouseYearsDiff = spouseDate.getFullYear() - depDate.getFullYear();
+      if (spouseYearsDiff < 18) {
+        return {
+          type: 'error',
+          message: `⚠️ Child must be at least 18 years younger than both parents`
+        };
+      }
+    }
+    
+    return {
+      type: 'success',
+      message: '✓ Valid child date of birth'
+    };
+  }
+  
+  return null;
+};
+
+const Dependents = ({ dependents, onAdd, onRemove, onUpdate, employeeDateOfBirth }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -86,12 +185,29 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
         </button>
       </div>
 
+      {/* ✅ NEW: Warning if employee DOB is not set */}
+      {!employeeDateOfBirth && dependents.length > 0 && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            Please fill in the employee's date of birth in the Personal Information section first for proper dependent age validation.
+          </p>
+        </div>
+      )}
+
       {dependents.length === 0 ? (
         <p className="text-gray-500 text-center py-4">No dependents added yet</p>
       ) : (
         <div className="space-y-4">
           {dependents.map((dependent, index) => {
             const nicValidation = getNicValidationMessage(dependent.nic);
+            const dateRange = getDateRange(dependent.relationship, employeeDateOfBirth, dependents);
+            const dobValidation = validateDependentDob(
+              dependent.relationship, 
+              dependent.dateOfBirth, 
+              employeeDateOfBirth,
+              dependents
+            );
             
             return (
               <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -130,6 +246,12 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                         <option key={rel.value} value={rel.value}>{rel.label}</option>
                       ))}
                     </select>
+                    {/* ✅ NEW: Show relationship info */}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {dependent.relationship === 'spouse' 
+                        ? 'Must be within ±10 years of employee age'
+                        : 'Must be at least 18 years younger than parents'}
+                    </p>
                   </div>
 
                   <div>
@@ -139,10 +261,24 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate }) => {
                       value={dependent.dateOfBirth}
                       onChange={(e) => onUpdate(index, 'dateOfBirth', e.target.value)}
                       onKeyDown={(e) => handleKeyPress(e, 'date')}
-                      min="1970-01-01"
-                      max="2025-12-31"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      min={dateRange.min}
+                      max={dateRange.max}
+                      className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        dobValidation?.type === 'error' ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                      }`}
                     />
+                    {/* ✅ NEW: Show DOB validation message */}
+                    {dobValidation && (
+                      <div className="text-sm mt-1">
+                        <p className={`${
+                          dobValidation.type === 'success' 
+                            ? 'text-green-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {dobValidation.message}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div>

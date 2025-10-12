@@ -444,6 +444,7 @@ export const Registration = () => {
             onAdd={addDependent}
             onRemove={removeDependent}
             onUpdate={updateDependent}
+            employeeDateOfBirth={formData.profile?.dateOfBirth || ''} // ✅ ADD THIS LINE
           />
         );
       default:
