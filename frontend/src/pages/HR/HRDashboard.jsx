@@ -28,7 +28,7 @@ const hrLinks = [
   { path: "claims", label: "Claim Review", icon: MountainSnow },
   { path: "policies", label: "Policy Users", icon: UserRoundCheck },
   { path: "document", label: "Document Pool", icon: FolderOpen },
-   { path: "employee_directory", label: "Employees", icon: Users },
+   { path: "employee", label: "Employees", icon: Users },
 ];
 
 const color = "#800020";
