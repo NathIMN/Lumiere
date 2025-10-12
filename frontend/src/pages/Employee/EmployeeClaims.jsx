@@ -83,18 +83,18 @@ export const EmployeeClaims = () => {
    };
 
    const getCategoryBackground = (claimType) => {
-  switch (claimType) {
-    case 'life': return 'bg-red-50/50 dark:bg-red-950/10';
-    case 'vehicle': return 'bg-blue-50/50 dark:bg-blue-950/10';
-    default: return 'bg-white dark:bg-neutral-900';
-  }
-};
+      switch (claimType) {
+         case 'life': return 'bg-red-50/50 dark:bg-red-950/10';
+         case 'vehicle': return 'bg-blue-50/50 dark:bg-blue-950/10';
+         default: return 'bg-white dark:bg-neutral-900';
+      }
+   };
 
    const getCategoryIcon = (claimType) => {
       switch (claimType) {
          case 'life': return <User className="text-red-700 dark:text-red-400" size={30} />;
          case 'vehicle': return <Car className="text-blue-700 dark:text-blue-400" size={30} />;
-         default: return <FileText className="text-gray-700 dark:text-gray-400" size={20} />;
+         default: return <FileText className="text-gray-700 dark:text-gray-400" size={30} />;
       }
    };
 
@@ -418,7 +418,7 @@ export const EmployeeClaims = () => {
             status: statusFilter,
             claimType: undefined // Could add filter for claim type
          };
-         
+
          // Remove undefined values
          Object.keys(filters).forEach(key => {
             if (filters[key] === undefined) {
@@ -483,8 +483,8 @@ export const EmployeeClaims = () => {
                         <button
                            onClick={() => handleUploadTypeChange('questionnaire')}
                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadType === 'questionnaire'
-                                 ? 'bg-purple-600 text-white'
-                                 : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
                               }`}
                         >
                            Answer Questions ({questionnaireFileQuestions.length})
@@ -492,8 +492,8 @@ export const EmployeeClaims = () => {
                         <button
                            onClick={() => handleUploadTypeChange('general')}
                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${uploadType === 'general'
-                                 ? 'bg-purple-600 text-white'
-                                 : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 dark:bg-neutral-700 text-gray-700 dark:text-neutral-300 hover:bg-gray-300 dark:hover:bg-neutral-600'
                               }`}
                         >
                            General Documents
@@ -640,8 +640,8 @@ export const EmployeeClaims = () => {
                                     <strong>{question.sectionTitle}:</strong> {question.questionText}
                                  </span>
                                  <span className={`px-2 py-1 rounded-full ${question.isAnswered
-                                       ? 'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-300'
-                                       : 'bg-gray-100 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400'
+                                    ? 'bg-green-100 dark:bg-green-800/30 text-green-700 dark:text-green-300'
+                                    : 'bg-gray-100 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400'
                                     }`}>
                                     {question.isAnswered ? 'Answered' : 'Pending'}
                                  </span>
@@ -733,7 +733,7 @@ export const EmployeeClaims = () => {
    if (loading) {
       return (
          <div className="min-h-screen dark:bg-neutral-800 p-6">
-{loading && <LoadingScreen />}
+            {loading && <LoadingScreen />}
          </div>
       );
    }
@@ -822,8 +822,8 @@ export const EmployeeClaims = () => {
                            key={filter}
                            onClick={() => setActiveFilter(filter)}
                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeFilter === filter
-                                 ? 'bg-red-900 text-white shadow-md'
-                                 : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
+                              ? 'bg-red-900 text-white shadow-md'
+                              : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
                               }`}
                         >
                            {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -840,7 +840,7 @@ export const EmployeeClaims = () => {
                   return (
                      <div
                         key={claim._id}
-className={`border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] shadow-sm ${getCategoryBackground(claim.claimType)}`}
+                        className={`border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] shadow-sm ${getCategoryBackground(claim.claimType)}`}
                         style={{ animationDelay: `${index * 100}ms` }}
                      >
                         <div className="p-6">
@@ -1008,7 +1008,7 @@ className={`border border-gray-200 dark:border-neutral-700 rounded-2xl overflow-
                   <Download size={16} />
                   Refresh Claims
                </button>
-               <button 
+               <button
                   onClick={generateClaimsSummaryReport}
                   className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-neutral-900 hover:bg-green-200 dark:hover:bg-neutral-700 rounded-full text-green-700 dark:text-green-300 transition-colors duration-200"
                >
