@@ -12,8 +12,11 @@ import {
   CheckCircle
 } from 'lucide-react';
 import documentApiService from '../services/document-api';
+import { useAuth } from '../context/AuthContext';
 
 const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
+  const { user } = useAuth(); // Get user from auth context
+  
   const [formData, setFormData] = useState({
     type: '',
     docType: '',
@@ -321,6 +324,12 @@ const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
   const validateForm = () => {
     const newErrors = {};
     
+    if (!user) {
+      newErrors.authentication = 'You must be logged in to upload documents';
+      setErrors(newErrors);
+      return false;
+    }
+    
     if (!formData.type) newErrors.type = 'Document type is required';
     if (!formData.docType) newErrors.docType = 'Document category is required';
     if (!selectedFile) newErrors.file = 'Please select a file to upload';
@@ -342,14 +351,16 @@ const AddDocumentModal = ({ isOpen, onClose, onSuccess }) => {
     setUploading(true);
     
     try {
-      // Get current user info (you might need to adjust this based on your auth system)
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      // Use current user from auth context
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
       
       const metadata = {
         type: formData.type,
         docType: formData.docType,
-        uploadedBy: currentUser.firstName + ' ' + currentUser.lastName || 'Unknown User',
-        uploadedByRole: currentUser.role || 'employee',
+        uploadedBy: user._id || user.userId || 'Unknown User ID',
+        uploadedByRole: user.role || 'employee',
         description: formData.description || undefined,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : undefined,
       };

@@ -1,6 +1,7 @@
 // Enhanced Questionnaire.jsx with input restrictions
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, FileText, Calendar, AlertCircle, Check, Upload } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import InsuranceApiService from "../../services/insurance-api";
 import DocumentApiService from "../../services/document-api";
 
@@ -12,6 +13,7 @@ export const Questionnaire = ({
    onComplete,
    initialFormData = {}
 }) => {
+   const { user } = useAuth(); // Get user from auth context
    const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
    const [formData, setFormData] = useState(initialFormData);
    const [errors, setErrors] = useState({});
@@ -432,14 +434,11 @@ if (question.questionType === 'date' && value) {
          // Can be extended to handle multiple files if needed
          const file = files[0];
 
-         // Get current user ID from localStorage
-         const currentUserId = localStorage.getItem('userId');
-
          const uploadResponse = await DocumentApiService.uploadDocument(file, {
             type: 'claim',
             docType: 'questionnaire_answer',
-            uploadedBy: currentUserId || claimId, // Fallback to claimId if userId not found
-            uploadedByRole: 'employee',
+            uploadedBy: user._id || user.userId || 'Unknown User ID',
+            uploadedByRole: user.role || 'employee',
             refId: claimId,
             description: `Answer to ${questionId}`,
             tags: `questionnaire,${questionId}`

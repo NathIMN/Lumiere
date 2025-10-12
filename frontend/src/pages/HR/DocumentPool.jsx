@@ -22,8 +22,10 @@ import {
   Plus
 } from 'lucide-react';
 import documentApiService from '../../services/document-api';
+import userApiService from '../../services/user-api';
 import reportsApiService from '../../services/reports-api';
 import AddDocumentModal from '../../components/AddDocumentModal';
+import UserDisplayName from '../../components/UserDisplayName';
 
 // Helper functions
 const formatFileSize = (bytes) => {
@@ -174,7 +176,7 @@ const DocumentReportsDropdown = ({ documents, filters, onGenerateReport }) => {
 };
 
 // Document Card Component for Grid Layout
-const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArchive, onVerify, documentCategories }) => {
+const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArchive, onVerify, documentCategories, usersCache }) => {
   const [thumbnailUrl, setThumbnailUrl] = useState(null);
   const [thumbnailLoading, setThumbnailLoading] = useState(true);
 
@@ -305,7 +307,12 @@ const DocumentCard = ({ document, onPreview, onDownload, onEdit, onDelete, onArc
 
         <div className="mb-3">
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            <span className="font-medium">Uploaded by:</span> {document.uploadedBy}
+            <span className="font-medium">Uploaded by:</span>{' '}
+            <UserDisplayName 
+              userId={document.uploadedBy} 
+              className="text-gray-600 dark:text-gray-400"
+              userCache={usersCache}
+            />
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500 capitalize">
             {document.uploadedByRole}
@@ -403,6 +410,7 @@ const DocumentPool = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [stats, setStats] = useState({});
+  const [usersCache, setUsersCache] = useState(new Map()); // Cache for user data
   
   const documentApi = documentApiService;
 
@@ -439,7 +447,30 @@ const DocumentPool = () => {
   useEffect(() => {
     loadDocuments();
     loadStats();
+    loadUsers(); // Load all users for the cache
   }, [filters]);
+
+  const loadUsers = async () => {
+    try {
+      // Only load users once (when the cache is empty)
+      if (usersCache.size === 0) {
+        const response = await userApiService.getUsers();
+        const users = response.users || [];
+        
+        // Create a Map for efficient lookup by user ID
+        const userMap = new Map();
+        users.forEach(user => {
+          userMap.set(user._id, user);
+        });
+        
+        setUsersCache(userMap);
+        console.log(`Cached ${users.length} users for display names`);
+      }
+    } catch (err) {
+      console.warn('Failed to load users for name display:', err.message);
+      // Continue without user cache - UserDisplayName will handle individual lookups
+    }
+  };
 
   const loadDocuments = async () => {
     try {
@@ -879,6 +910,7 @@ const DocumentPool = () => {
                     onArchive={handleArchive}
                     onVerify={handleVerify}
                     documentCategories={documentCategories}
+                    usersCache={usersCache}
                   />
                 ))}
               </div>
@@ -892,6 +924,7 @@ const DocumentPool = () => {
         <DocumentPreviewModal 
           document={selectedDocument} 
           onClose={() => setShowPreview(false)} 
+          usersCache={usersCache}
         />
       )}
 
@@ -915,7 +948,7 @@ const DocumentPool = () => {
 };
 
 // Document Preview Modal Component
-const DocumentPreviewModal = ({ document, onClose }) => {
+const DocumentPreviewModal = ({ document, onClose, usersCache }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1080,6 +1113,17 @@ const DocumentPreviewModal = ({ document, onClose }) => {
                 {document.isVerified ? 'Yes' : 'No'}
               </p>
             </div>
+          </div>
+          <div className="mt-3">
+            <span className="font-medium text-gray-900 dark:text-white">Uploaded by:</span>{' '}
+            <UserDisplayName 
+              userId={document.uploadedBy} 
+              className="text-gray-600 dark:text-gray-400"
+              userCache={usersCache}
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-500 capitalize ml-2">
+              ({document.uploadedByRole})
+            </span>
           </div>
           {document.metadata?.tags && document.metadata.tags.length > 0 && (
             <div className="mt-3">

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap, BarChart3, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import InsuranceApiService from "../../services/insurance-api";
 import DocumentApiService from "../../services/document-api";
 import reportsApiService from '../../services/reports-api';
 
 export const EmployeeClaims = () => {
+   const { user } = useAuth(); // Get user from auth context
    const [activeFilter, setActiveFilter] = useState('all');
    const [searchTerm, setSearchTerm] = useState('');
    const [claims, setClaims] = useState([]);
@@ -287,8 +289,8 @@ export const EmployeeClaims = () => {
                const uploadResponse = await DocumentApiService.uploadDocument(fileData.file, {
                   type: 'claim',
                   docType: 'questionnaire_answer',
-                  uploadedBy: selectedClaim.employeeId,
-                  uploadedByRole: 'employee',
+                  uploadedBy: user._id || user.userId || 'Unknown User ID',
+                  uploadedByRole: user.role || 'employee',
                   refId: selectedClaim._id,
                   description: fileData.description || `Answer to ${fileData.questionId}`,
                   tags: `questionnaire,${selectedClaim.claimType},${fileData.questionId}`
