@@ -103,18 +103,61 @@ export const AdminPolicies = () => {
     try {
       setLoading(true);
       
-      // Load policies with current filters
-      const policiesResponse = await insuranceApiService.getPolicies({
-        ...filters,
+      // Prepare backend query parameters (exclude search, handle it client-side)
+      const { search, ...backendFilters } = filters;
+      const queryParams = {
+        ...backendFilters,
         page: pagination.page,
         limit: pagination.limit
-      });
+      };
       
-      setPolicies(policiesResponse.policies);
+      // Load policies with filters (excluding search)
+      const policiesResponse = await insuranceApiService.getPolicies(queryParams);
+      let filteredPolicies = policiesResponse.policies || [];
+      
+      // Apply client-side search filter with specific matching rules
+      if (search) {
+        const searchTerm = search.toLowerCase().trim();
+        if (searchTerm) {
+          filteredPolicies = filteredPolicies.filter(policy => {
+            // Policy ID: substring match
+            const matchesPolicyId = policy.policyId?.toLowerCase().includes(searchTerm);
+            
+            // Agent first name and last name: starts-with match
+            let matchesAgentName = false;
+            if (policy.insuranceAgent?.profile) {
+              const firstName = (policy.insuranceAgent.profile.firstName || '').toLowerCase();
+              const lastName = (policy.insuranceAgent.profile.lastName || '').toLowerCase();
+              
+              matchesAgentName = 
+                firstName.startsWith(searchTerm) ||
+                lastName.startsWith(searchTerm);
+            }
+            
+            // Agent email: starts-with match (including domain part)
+            let matchesAgentEmail = false;
+            if (policy.insuranceAgent?.email) {
+              const email = policy.insuranceAgent.email.toLowerCase();
+              const emailParts = email.split('@');
+              const emailUser = emailParts[0] || '';
+              const emailDomain = emailParts[1] || '';
+              
+              matchesAgentEmail = 
+                email.startsWith(searchTerm) ||
+                emailUser.startsWith(searchTerm) ||
+                emailDomain.startsWith(searchTerm);
+            }
+            
+            return matchesPolicyId || matchesAgentName || matchesAgentEmail;
+          });
+        }
+      }
+      
+      setPolicies(filteredPolicies);
       setPagination(prev => ({
         ...prev,
-        total: policiesResponse.totalPolicies,
-        pages: policiesResponse.totalPages
+        total: search ? filteredPolicies.length : policiesResponse.totalPolicies,
+        pages: search ? Math.ceil(filteredPolicies.length / pagination.limit) : policiesResponse.totalPages
       }));
       
       // Load insurance agents if not already loaded
@@ -887,7 +930,7 @@ export const AdminPolicies = () => {
                 <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search policies by ID or notes..."
+                  placeholder="Search by policy ID, agent name, or agent email..."
                   value={filters.search}
                   onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -961,6 +1004,23 @@ export const AdminPolicies = () => {
           </div>
         ) : (
           <>
+            {/* Search Results Indicator */}
+            {filters.search && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                  <Search className="h-5 w-5" />
+                  <span>
+                    Showing {policies.length} result{policies.length !== 1 ? 's' : ''} for "{filters.search}"
+                  </span>
+                  {policies.length === 0 && (
+                    <span className="text-blue-600 dark:text-blue-300 ml-2">
+                      - Try searching by policy ID, agent name, or agent email
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {/* Policies Table */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="overflow-x-auto">
@@ -1276,7 +1336,7 @@ export const AdminPolicies = () => {
                     <option value="">Select Insurance Agent</option>
                     {insuranceAgents.map(agent => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.profile?.firstName} {agent.profile?.lastName} - {agent.email}
+                        {agent.profile?.firstName} {agent.profile?.lastName} | {agent.email}
                       </option>
                     ))}
                   </select>
@@ -1626,7 +1686,7 @@ export const AdminPolicies = () => {
                   >
                     {insuranceAgents.map(agent => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.profile?.firstName} {agent.profile?.lastName} - {agent.email}
+                        {agent.profile?.firstName} {agent.profile?.lastName} | {agent.email}
                       </option>
                     ))}
                   </select>
