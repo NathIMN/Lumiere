@@ -4,7 +4,7 @@ import reportsApiService from '../../services/reports-api';
 import { policyService } from '../../services/policyService';
 import {
   Search, Filter, Eye, Clock, AlertTriangle, CheckCircle, XCircle, FileText, User, Building2,
-  Calendar, DollarSign, ChevronRight, RefreshCw, MoreHorizontal, ArrowRight, ArrowLeft, Star,
+  Calendar, Coins, ChevronRight, RefreshCw, MoreHorizontal, ArrowRight, ArrowLeft, Star,
   Flag, Download, Upload, MessageSquare, Send, Edit3, Zap, TrendingUp, Activity, Users, PieChart,
   AlertCircle, Info, Target, BarChart3, ThumbsUp, ThumbsDown, RotateCcw, Bookmark, BookmarkCheck,
   Settings, Plus, Minus, Save, X, Check, Grid3X3, List, Maximize2, Minimize2, SortAsc, SortDesc,
@@ -29,7 +29,7 @@ const ReportsDropdown = ({ filters, onGenerateReport }) => {
       id: 'financial', 
       label: 'Financial Report', 
       description: 'Generate financial summary report',
-      icon: 'DollarSign' 
+      icon: 'Coins' 
     },
   ];
 
@@ -1617,7 +1617,7 @@ const paginatedClaims = useMemo(() => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
-                      <DollarSign className="w-4 h-4" />
+                      <Coins className="w-4 h-4" />
                       <span className="text-sm font-semibold">
                         Amount: Rs. {(claim.hrForwardingDetails.forwardedAmount || getClaimAmount(claim)).toLocaleString()}
                       </span>
@@ -2394,7 +2394,7 @@ const paginatedClaims = useMemo(() => {
 
                         <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-200">
                           <h3 className="text-xl font-semibold text-emerald-800 mb-4 flex items-center gap-2">
-                            <DollarSign className="w-5 h-5" />
+                            <Coins className="w-5 h-5" />
                             Claim Information
                           </h3>
                           <div className="space-y-3">

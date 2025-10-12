@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   X, 
   Calendar, 
-  DollarSign, 
+  Coins, 
   Shield, 
   Users, 
   User,
@@ -229,7 +229,7 @@ export const PolicyDetailsModal = ({ policy, isOpen, onClose }) => {
                 {/* Coverage Details */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
+                    <Coins className="h-5 w-5" />
                     Coverage Details
                   </h3>
                   

@@ -8,7 +8,7 @@ import DocumentApiService from '../../services/document-api';
 import {
    Calendar,
    Clock,
-   DollarSign,
+   Coins,
    FileText,
    CheckCircle,
    XCircle,
@@ -292,7 +292,7 @@ export const ClaimDetails = () => {
                         <div className="group">
                            <label className="block text-sm font-medium text-slate-500 dark:text-neutral-400 mb-2">Requested Amount</label>
                            <div className="flex items-center space-x-3 p-3 rounded-xl bg-gradient-to-r from-slate-50 to-slate-100 dark:from-neutral-800 dark:to-neutral-700 group-hover:from-green-50 group-hover:to-green-100 dark:group-hover:from-green-900/20 dark:group-hover:to-green-800/20 transition-all duration-200">
-                              <DollarSign className="w-5 h-5 text-slate-400 dark:text-neutral-500 group-hover:text-green-500 dark:group-hover:text-green-400" />
+                              <Coins className="w-5 h-5 text-slate-400 dark:text-neutral-500 group-hover:text-green-500 dark:group-hover:text-green-400" />
                               <span className="font-bold text-slate-900 dark:text-white">
                                  {formatCurrency(claim.claimAmount?.requested)}
                               </span>

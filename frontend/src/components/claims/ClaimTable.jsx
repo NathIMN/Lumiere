@@ -5,7 +5,7 @@ import {
   ArrowLeft, 
   ChevronUp, 
   ChevronDown,
-  DollarSign,
+  Coins,
   User,
   FileText,
   Clock,

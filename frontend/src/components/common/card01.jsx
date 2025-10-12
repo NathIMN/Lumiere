@@ -5,7 +5,7 @@ import {
   CheckCircle, 
   XCircle, 
   AlertCircle, 
-  DollarSign, 
+  Coins, 
   Users, 
   TrendingUp,
   Heart,

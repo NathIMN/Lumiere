@@ -158,37 +158,30 @@ export const HRClaimReview = () => {
 
     let filteredClaims = [...allClaims];
 
-    // Filter by Claim ID (exact match)
+    // ✅ Filter by Claim ID (substring match - case insensitive)
     if (filters.claimId && filters.claimId.trim()) {
-      filteredClaims = filteredClaims.filter(claim => 
-        claim.claimId === filters.claimId.trim()
-      );
+      const searchTerm = filters.claimId.trim().toUpperCase();
+      filteredClaims = filteredClaims.filter(claim => {
+        const claimId = (claim.claimId || '').toUpperCase();
+        return claimId.includes(searchTerm);
+      });
     }
 
-    // Filter by Employee Name (first name starts with, then space + last name starts with)
+    // ✅ Filter by Employee Name (word start match)
     if (filters.employeeName && filters.employeeName.trim()) {
       const searchTerm = filters.employeeName.trim().toLowerCase();
-      const searchParts = searchTerm.split(/\s+/);
+      const searchWords = searchTerm.split(/\s+/);
       
       filteredClaims = filteredClaims.filter(claim => {
         if (!claim.employeeId || !claim.employeeId.fullName) return false;
         
         const fullName = claim.employeeId.fullName.toLowerCase();
+        const nameWords = fullName.split(/\s+/);
         
-        if (searchParts.length === 1) {
-          return fullName.startsWith(searchParts[0]);
-        } else if (searchParts.length >= 2) {
-          const nameParts = fullName.split(/\s+/);
-          
-          if (nameParts.length < 2) return false;
-          
-          const firstName = nameParts[0];
-          const lastName = nameParts[nameParts.length - 1];
-          
-          return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
-        }
-        
-        return false;
+        // Check if every search word matches at least one name word (starting with)
+        return searchWords.every(searchWord => 
+          nameWords.some(nameWord => nameWord.startsWith(searchWord))
+        );
       });
     }
 
@@ -292,40 +285,30 @@ export const HRClaimReview = () => {
       // Apply initial frontend filtering
       let filteredClaims = claimsData;
 
-      // Filter by Claim ID (exact match)
+      // ✅ Filter by Claim ID (substring match - case insensitive)
       if (filters.claimId && filters.claimId.trim()) {
-        filteredClaims = filteredClaims.filter(claim => 
-          claim.claimId === filters.claimId.trim()
-        );
+        const searchTerm = filters.claimId.trim().toUpperCase();
+        filteredClaims = filteredClaims.filter(claim => {
+          const claimId = (claim.claimId || '').toUpperCase();
+          return claimId.includes(searchTerm);
+        });
       }
 
-      // Filter by Employee Name (first name starts with, then space + last name starts with)
+      // ✅ Filter by Employee Name (word start match)
       if (filters.employeeName && filters.employeeName.trim()) {
         const searchTerm = filters.employeeName.trim().toLowerCase();
-        const searchParts = searchTerm.split(/\s+/);
+        const searchWords = searchTerm.split(/\s+/);
         
         filteredClaims = filteredClaims.filter(claim => {
           if (!claim.employeeId || !claim.employeeId.fullName) return false;
           
           const fullName = claim.employeeId.fullName.toLowerCase();
+          const nameWords = fullName.split(/\s+/);
           
-          if (searchParts.length === 1) {
-            // Single word: match if full name starts with this word
-            return fullName.startsWith(searchParts[0]);
-          } else if (searchParts.length >= 2) {
-            // Multiple words: match first name starts with first part AND last name starts with second part
-            const nameParts = fullName.split(/\s+/);
-            
-            if (nameParts.length < 2) return false;
-            
-            const firstName = nameParts[0];
-            const lastName = nameParts[nameParts.length - 1];
-            
-            // Check if first name starts with first search part AND last name starts with second search part
-            return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
-          }
-          
-          return false;
+          // Check if every search word matches at least one name word (starting with)
+          return searchWords.every(searchWord => 
+            nameWords.some(nameWord => nameWord.startsWith(searchWord))
+          );
         });
       }
       

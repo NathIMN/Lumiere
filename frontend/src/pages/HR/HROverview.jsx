@@ -10,7 +10,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  DollarSign,
+  Coins,
   Activity,
   Calendar,
   RefreshCw,
@@ -443,7 +443,7 @@ export const HROverview = () => {
           title="Total Coverage" 
           value={formatCurrencyShort(dashboardData.policies.totalCoverage)}
           subtitle={formatCurrency(dashboardData.policies.totalCoverage)}
-          icon={DollarSign}
+          icon={Coins}
           color="green"
         />
         <StatCard 

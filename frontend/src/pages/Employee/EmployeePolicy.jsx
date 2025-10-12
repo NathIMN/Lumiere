@@ -3,9 +3,8 @@ import InsuranceApiService from "../../services/insurance-api";
 import reportsApiService from '../../services/reports-api';
 import LoadingScreen from './LoadingScreen';
 import {
-   Shield, Car, User, Calendar, DollarSign, FileText, Users,
+   Shield, Car, User, Calendar, Coins, FileText, Users,
    AlertCircle, Plus, Eye, Download, Loader2, RefreshCw, CheckCircle, Receipt,
-   Coins
 } from 'lucide-react';
 
 export const EmployeePolicy = () => {
