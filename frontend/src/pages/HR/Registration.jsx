@@ -326,14 +326,14 @@ export const Registration = () => {
     // Navigate to the correct route with underscore (as defined in AllRoutes.jsx)
     setTimeout(() => {
       try {
-        navigate('/hr/employee_directory', { 
+        navigate('/hr/employee', { 
           state: { refresh: true, newEmployee: registeredEmployee },
           replace: false 
         });
         console.log('✓ Navigation successful');
       } catch (error) {
         console.error('Navigation error:', error);
-        window.location.href = '/hr/employee_directory';
+        window.location.href = '/hr/employee';
       }
     }, 100);
   };

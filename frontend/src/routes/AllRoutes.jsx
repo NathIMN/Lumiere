@@ -135,7 +135,7 @@ export const AllRoutes = () => {
           <Route path="policies" element={<HRPolicyUser/>} />
           <Route path="claims" element={<HRClaimReview/>} />
           <Route path="document" element={<DocumentPool/>} />
-          <Route path="employee_directory" element={<EmployeeDirectory/>} />
+          <Route path="employee" element={<EmployeeDirectory/>} />
         </Route>
                
             
