@@ -100,12 +100,6 @@ const ReportsDropdown = ({ filters, onGenerateReport }) => {
       description: 'Generate financial summary report',
       icon: 'DollarSign' 
     },
-    // { 
-    //   id: 'activity', 
-    //   label: 'Activity Report', 
-    //   description: 'Generate HR activity and claim processing report',
-    //   icon: History 
-    // }
   ];
 
   const handleGenerateReport = async (reportType) => {
@@ -185,14 +179,12 @@ const ReportsDropdown = ({ filters, onGenerateReport }) => {
   );
 };
 
-// Updated Quick Action Panel Component - HR specific
-// REMOVED - Functionality moved to ClaimStats component to avoid duplication
-
 export const HRClaimReview = () => {
   const navigate = useNavigate();
   
   // State management
   const [claims, setClaims] = useState([]);
+  const [allClaims, setAllClaims] = useState([]); // Store unfiltered claims
   const [stats, setStats] = useState({});
   const [claimsRequiringAction, setClaimsRequiringAction] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -208,11 +200,9 @@ export const HRClaimReview = () => {
     employeeId: '',
     startDate: '',
     endDate: '',
-    searchTerm: '',
+    claimId: '',
+    employeeName: '',
     hrAction: '',
-    urgency: '',
-    hasReturnReason: '',
-    hasHRNotes: '',
     daysOld: ''
   });
   
@@ -245,19 +235,84 @@ export const HRClaimReview = () => {
     fetchClaims();
     fetchStats();
     fetchClaimsRequiringAction();
-  }, [filters, pagination.page, sortBy, sortOrder]);
+  }, [
+    filters.claimStatus,
+    filters.claimType,
+    filters.employeeId,
+    filters.startDate,
+    filters.endDate,
+    filters.hrAction,
+    filters.daysOld,
+    pagination.page,
+    sortBy,
+    sortOrder
+  ]); // Exclude claimId and employeeName from dependencies since they're filtered on frontend
+
+  // Apply frontend filtering whenever claimId or employeeName changes
+  useEffect(() => {
+    if (allClaims.length === 0) return;
+
+    let filteredClaims = [...allClaims];
+
+    // Filter by Claim ID (exact match)
+    if (filters.claimId && filters.claimId.trim()) {
+      filteredClaims = filteredClaims.filter(claim => 
+        claim.claimId === filters.claimId.trim()
+      );
+    }
+
+    // Filter by Employee Name (first name starts with, then space + last name starts with)
+    if (filters.employeeName && filters.employeeName.trim()) {
+      const searchTerm = filters.employeeName.trim().toLowerCase();
+      const searchParts = searchTerm.split(/\s+/);
+      
+      filteredClaims = filteredClaims.filter(claim => {
+        if (!claim.employeeId || !claim.employeeId.fullName) return false;
+        
+        const fullName = claim.employeeId.fullName.toLowerCase();
+        
+        if (searchParts.length === 1) {
+          // Single word: match if full name starts with this word
+          return fullName.startsWith(searchParts[0]);
+        } else if (searchParts.length >= 2) {
+          // Multiple words: match first name starts with first part AND last name starts with second part
+          const nameParts = fullName.split(/\s+/);
+          
+          if (nameParts.length < 2) return false;
+          
+          const firstName = nameParts[0];
+          const lastName = nameParts[nameParts.length - 1];
+          
+          // Check if first name starts with first search part AND last name starts with second search part
+          return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
+        }
+        
+        return false;
+      });
+    }
+
+    setClaims(filteredClaims);
+    setPagination(prev => ({
+      ...prev,
+      totalClaims: filteredClaims.length
+    }));
+  }, [filters.claimId, filters.employeeName, allClaims]);
 
   const fetchClaims = async () => {
     try {
       setLoading(true);
 
-      // Clean filters - remove empty values
-    const cleanFilters = Object.keys(filters).reduce((acc, key) => {
-      if (filters[key] && filters[key] !== '') {
-        acc[key] = filters[key];
-      }
-      return acc;
-    }, {});
+      // Clean filters - remove empty values and exclude frontend-only filters
+      const cleanFilters = Object.keys(filters).reduce((acc, key) => {
+        // Exclude claimId and employeeName from backend request (frontend filtering)
+        if (key === 'claimId' || key === 'employeeName') {
+          return acc;
+        }
+        if (filters[key] && filters[key] !== '') {
+          acc[key] = filters[key];
+        }
+        return acc;
+      }, {});
       
       // Enhanced debugging - log the exact request being sent
       const requestParams = {
@@ -329,17 +384,61 @@ export const HRClaimReview = () => {
           claimsData = [];
         }
       }
+
+      // Store all claims for frontend filtering
+      setAllClaims(claimsData);
+
+      // Apply initial frontend filtering
+      let filteredClaims = claimsData;
+
+      // Filter by Claim ID (exact match)
+      if (filters.claimId && filters.claimId.trim()) {
+        filteredClaims = filteredClaims.filter(claim => 
+          claim.claimId === filters.claimId.trim()
+        );
+      }
+
+      // Filter by Employee Name (first name starts with, then space + last name starts with)
+      if (filters.employeeName && filters.employeeName.trim()) {
+        const searchTerm = filters.employeeName.trim().toLowerCase();
+        const searchParts = searchTerm.split(/\s+/);
+        
+        filteredClaims = filteredClaims.filter(claim => {
+          if (!claim.employeeId || !claim.employeeId.fullName) return false;
+          
+          const fullName = claim.employeeId.fullName.toLowerCase();
+          
+          if (searchParts.length === 1) {
+            // Single word: match if full name starts with this word
+            return fullName.startsWith(searchParts[0]);
+          } else if (searchParts.length >= 2) {
+            // Multiple words: match first name starts with first part AND last name starts with second part
+            const nameParts = fullName.split(/\s+/);
+            
+            if (nameParts.length < 2) return false;
+            
+            const firstName = nameParts[0];
+            const lastName = nameParts[nameParts.length - 1];
+            
+            // Check if first name starts with first search part AND last name starts with second search part
+            return firstName.startsWith(searchParts[0]) && lastName.startsWith(searchParts[1]);
+          }
+          
+          return false;
+        });
+      }
       
       console.log('=== PROCESSED DATA DEBUG ===');
-      console.log('Final claimsData length:', claimsData.length);
+      console.log('Final claimsData length:', filteredClaims.length);
       console.log('Final paginationData:', paginationData);
-      console.log('First few claims:', claimsData.slice(0, 3));
+      console.log('First few claims:', filteredClaims.slice(0, 3));
       console.log('=============================');
       
-      setClaims(claimsData);
+      setClaims(filteredClaims);
       setPagination(prev => ({
         ...prev,
-        ...paginationData
+        ...paginationData,
+        totalClaims: filteredClaims.length // Update to show filtered count
       }));
       
     } catch (err) {
@@ -582,7 +681,7 @@ export const HRClaimReview = () => {
         </div>
       </div>
 
-      {/* Statistics Cards - HR Claim Status Overview and Financial Summary */}
+      {/* Statistics Cards */}
       <ClaimStats stats={stats} />
 
       {/* Claims Requiring Immediate Action */}
@@ -735,11 +834,9 @@ export const HRClaimReview = () => {
                     employeeId: '',
                     startDate: '',
                     endDate: '',
-                    searchTerm: '',
+                    claimId: '',
+                    employeeName: '',
                     hrAction: '',
-                    urgency: '',
-                    hasReturnReason: '',
-                    hasHRNotes: '',
                     daysOld: ''
                   });
                 }}

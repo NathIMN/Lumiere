@@ -5,14 +5,12 @@ import {
   ArrowLeft, 
   ChevronUp, 
   ChevronDown,
-  Calendar,
   DollarSign,
   User,
   FileText,
   Clock,
   CheckCircle,
   XCircle,
-  History,
   Send,
   AlertTriangle,
   MessageSquare
@@ -82,24 +80,21 @@ export const ClaimTable = ({
     return `Rs. ${amount.toLocaleString('en-LK')}`;
   };
 
-  // Fixed function to calculate days ago correctly
   const getDaysAgo = (dateString) => {
     if (!dateString) return 0;
     
     const today = new Date();
     const submittedDate = new Date(dateString);
     
-    // Set both dates to midnight for accurate day comparison
     today.setHours(0, 0, 0, 0);
     submittedDate.setHours(0, 0, 0, 0);
     
     const diffTime = today - submittedDate;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
-    return Math.max(0, diffDays); // Ensure we don't get negative days
+    return Math.max(0, diffDays);
   };
 
-  // Helper function to format "days ago" text
   const formatDaysAgo = (dateString) => {
     const days = getDaysAgo(dateString);
     
@@ -195,17 +190,8 @@ export const ClaimTable = ({
               className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
             >
               <div className="flex items-center space-x-1">
-                <span>Claim ID</span>
+                <span>Claim ID & Employee</span>
                 {getSortIcon('claimId')}
-              </div>
-            </th>
-            <th
-              onClick={() => onSort('employeeId')}
-              className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-            >
-              <div className="flex items-center space-x-1">
-                <span>Employee</span>
-                {getSortIcon('employeeId')}
               </div>
             </th>
             <th
@@ -264,17 +250,25 @@ export const ClaimTable = ({
                   urgencyIndicator?.level === 'medium' ? 'bg-yellow-50 dark:bg-yellow-900/10' : ''
                 }`}
               >
-                {/* Claim ID with urgency indicator */}
+                {/* Claim ID & Employee Name */}
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0 h-10 w-10">
+                      <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                        <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                      </div>
+                    </div>
                     <div>
                       <div className="flex items-center space-x-2">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {claim.claimId}
                         </div>
                         {hasActivity && (
                           <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" title="Recent activity"></div>
                         )}
+                      </div>
+                      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {claim.employeeId?.fullName || `${claim.employeeId?.firstName || ''} ${claim.employeeId?.lastName || ''}`.trim() || 'N/A'}
                       </div>
                       {urgencyIndicator && (
                         <div className="flex items-center space-x-1 mt-1">
@@ -282,30 +276,6 @@ export const ClaimTable = ({
                           <span className={`text-xs ${urgencyIndicator.color}`}>
                             {urgencyIndicator.message}
                           </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </td>
-
-                {/* Employee */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-8 w-8">
-                      <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                        <User className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                      </div>
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {claim.employeeId?.firstName} {claim.employeeId?.lastName}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {claim.employeeId?.email}
-                      </div>
-                      {claim.employeeId?.department && (
-                        <div className="text-xs text-gray-400 dark:text-gray-500">
-                          {claim.employeeId.department}
                         </div>
                       )}
                     </div>
@@ -440,7 +410,7 @@ export const ClaimTable = ({
         </tbody>
       </table>
 
-      {/* Summary Footer - Updated to include Rejected count */}
+      {/* Summary Footer */}
       <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
         <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center space-x-6">
