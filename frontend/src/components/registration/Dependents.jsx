@@ -77,16 +77,23 @@ const getDateRange = (relationship, employeeDob, dependents) => {
   const empDate = new Date(employeeDob);
   
   if (relationship === 'spouse') {
-    // Spouse: ±10 years from employee's birth date
+    // Spouse: Must be at least 18 years old and within ±10 years from employee's birth date
+    const today = new Date();
+    const eighteenYearsAgo = new Date(today);
+    eighteenYearsAgo.setFullYear(today.getFullYear() - 18);
+    
     const minDate = new Date(empDate);
     minDate.setFullYear(empDate.getFullYear() - 10);
     
     const maxDate = new Date(empDate);
     maxDate.setFullYear(empDate.getFullYear() + 10);
     
+    // Ensure spouse is at least 18 years old
+    const spouseMinDate = maxDate < eighteenYearsAgo ? maxDate : eighteenYearsAgo;
+    
     return {
       min: minDate.toISOString().split('T')[0],
-      max: maxDate.toISOString().split('T')[0]
+      max: spouseMinDate.toISOString().split('T')[0]
     };
   } else if (relationship === 'child') {
     // Child: Must be at least 18 years younger than employee
@@ -103,7 +110,7 @@ const getDateRange = (relationship, employeeDob, dependents) => {
       spouseMinDate.setFullYear(spouseDate.getFullYear() + 18);
     }
     
-    // Child must be 18 years younger than both employee and spouse (if exists)
+    // Child must be born at least 18 years after both employee and spouse (if exists)
     const minDate = spouseMinDate && spouseMinDate > empMinDate ? spouseMinDate : empMinDate;
     
     return {
@@ -121,11 +128,27 @@ const validateDependentDob = (relationship, dependentDob, employeeDob, dependent
   
   const depDate = new Date(dependentDob);
   const empDate = new Date(employeeDob);
+  const today = new Date();
+  
+  // Calculate age in years
+  const age = today.getFullYear() - depDate.getFullYear();
+  const monthDiff = today.getMonth() - depDate.getMonth();
+  const dayDiff = today.getDate() - depDate.getDate();
+  const actualAge = (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) ? age - 1 : age;
   
   if (relationship === 'spouse') {
+    // Check if spouse is at least 18 years old
+    if (actualAge < 18) {
+      return {
+        type: 'error',
+        message: `⚠️ Spouse must be at least 18 years old (currently ${actualAge} years old)`
+      };
+    }
+    
+    // Check age difference with employee
     const yearsDiff = Math.abs(depDate.getFullYear() - empDate.getFullYear());
     
-    if (yearsDiff > 10) {
+    if (yearsDiff > 15) {
       return {
         type: 'error',
         message: `⚠️ Spouse's age must be within 10 years of employee's age`
@@ -136,8 +159,8 @@ const validateDependentDob = (relationship, dependentDob, employeeDob, dependent
       message: '✓ Valid spouse date of birth'
     };
   } else if (relationship === 'child') {
-    // Check against employee
-    const empYearsDiff = empDate.getFullYear() - depDate.getFullYear();
+    // Check against employee - child must be born at least 18 years after employee
+    const empYearsDiff = depDate.getFullYear() - empDate.getFullYear();
     if (empYearsDiff < 18) {
       return {
         type: 'error',
@@ -145,11 +168,11 @@ const validateDependentDob = (relationship, dependentDob, employeeDob, dependent
       };
     }
     
-    // Check against spouse if exists
+    // Check against spouse if exists - child must be born at least 18 years after spouse
     const spouse = dependents.find(dep => dep.relationship === 'spouse' && dep.dateOfBirth);
     if (spouse) {
       const spouseDate = new Date(spouse.dateOfBirth);
-      const spouseYearsDiff = spouseDate.getFullYear() - depDate.getFullYear();
+      const spouseYearsDiff = depDate.getFullYear() - spouseDate.getFullYear();
       if (spouseYearsDiff < 18) {
         return {
           type: 'error',
@@ -249,7 +272,7 @@ const Dependents = ({ dependents, onAdd, onRemove, onUpdate, employeeDateOfBirth
                     {/* ✅ NEW: Show relationship info */}
                     <p className="text-xs text-gray-500 mt-1">
                       {dependent.relationship === 'spouse' 
-                        ? 'Must be within ±10 years of employee age'
+                        ? 'Must be at least 18 years old and within ±10 years of employee age'
                         : 'Must be at least 18 years younger than parents'}
                     </p>
                   </div>
