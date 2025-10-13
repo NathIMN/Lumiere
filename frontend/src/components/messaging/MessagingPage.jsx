@@ -1051,7 +1051,7 @@ const MessagingPage = ({ userRole, config = {} }) => {
                         )}
                         <div className="relative group min-w-0" style={{ maxWidth: '350px' }}>
                           <div
-                            className={`px-4 py-2 rounded-lg word-break break-all overflow-wrap-anywhere ${
+                            className={`px-4 py-2 rounded-lg overflow-hidden ${
                               isOwn
                                 ? 'bg-red-900 text-white'
                                 : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600'
@@ -1093,13 +1093,14 @@ const MessagingPage = ({ userRole, config = {} }) => {
                             ) : (
                               <>
                                 <p 
-                                  className="text-sm break-all overflow-wrap-anywhere whitespace-pre-wrap word-break hyphens-auto overflow-hidden" 
+                                  className="text-sm whitespace-pre-wrap overflow-hidden" 
                                   style={{ 
-                                    wordBreak: 'break-all', 
-                                    overflowWrap: 'anywhere', 
-                                    wordWrap: 'break-word',
+                                    wordBreak: 'normal', 
+                                    overflowWrap: 'break-word',
                                     maxWidth: '300px',
-                                    overflow: 'hidden'
+                                    overflow: 'hidden',
+                                    hyphens: 'none',
+                                    wordWrap: 'break-word'
                                   }}
                                 >
                                   {message.content}
