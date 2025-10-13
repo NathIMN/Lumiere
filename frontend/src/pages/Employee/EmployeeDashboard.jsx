@@ -1,5 +1,5 @@
 
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useLocation } from "react-router-dom";
 import { SideBar } from '../../components/dashboard/SideBar';
 import { Header } from '../../components/dashboard/Header';
 import FloatingVoiceAssistant from '../../components/FloatingVoiceAssistant';
@@ -14,6 +14,7 @@ import {
 
 
 export const EmployeeDashboard = () => {
+   const location = useLocation();
 
    const employeeLinks = [
       { path: "overview", label: "Overview", icon: SquareKanban },
@@ -27,6 +28,10 @@ export const EmployeeDashboard = () => {
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);
    const [scrolled, setScrolled] = useState(false);
+
+   // Define pages where voice assistant should be hidden
+   const hideVoiceAssistantPaths = ['/employee/messaging'];
+   const shouldShowVoiceAssistant = !hideVoiceAssistantPaths.includes(location.pathname);
 
    const toggleSidebar = () => {
       setIsCollapsed(!isCollapsed);
@@ -61,8 +66,8 @@ export const EmployeeDashboard = () => {
 
          </div>
          
-         {/* Floating Voice Assistant */}
-         <FloatingVoiceAssistant />
+         {/* Floating Voice Assistant - Hidden on certain pages */}
+         {shouldShowVoiceAssistant && <FloatingVoiceAssistant />}
       </div>
    )
 }

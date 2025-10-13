@@ -14,7 +14,10 @@ export const ForwardToInsurerModal = ({ claim, onClose, onSuccess }) => {
 
   // Format amount in LKR
   const formatLKR = (amount) => {
-    return `Rs. ${amount.toLocaleString("en-LK")}`;
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR'
+    }).format(amount);
   };
   console.log("here ", claim.policy.coverage);
   // Predefined coverage types based on claim type
@@ -143,10 +146,10 @@ export const ForwardToInsurerModal = ({ claim, onClose, onSuccess }) => {
             "Please enter a valid positive amount";
         } else if (amount > 10000000) {
           newErrors[`coverage_${index}_amount`] =
-            "Amount cannot exceed Rs. 10,000,000";
+            "Amount cannot exceed LKR 10,000,000";
         } else if (amount < 1) {
           newErrors[`coverage_${index}_amount`] =
-            "Amount must be at least Rs. 1";
+            "Amount must be at least LKR 1";
         }
 
         // Check for too many decimal places

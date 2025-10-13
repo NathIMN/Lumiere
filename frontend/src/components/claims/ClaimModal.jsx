@@ -25,8 +25,11 @@ console.log("here : ",claim)
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return "Rs. 0";
-    return `Rs. ${amount.toLocaleString("en-LK")}`;
+    if (!amount) return "LKR 0";
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR'
+    }).format(amount);
   };
 
   const calculateDaysInSystem = (submittedDate) => {

@@ -26,6 +26,15 @@ import { ClaimHistory } from '../../components/claims/ClaimHistory';
 import insuranceApiService from '../../services/insurance-api';
 import reportsApiService from '../../services/reports-api';
 
+// Format currency helper
+const formatCurrency = (amount) => {
+  if (!amount) return 'LKR 0';
+  return new Intl.NumberFormat('en-LK', {
+    style: 'currency',
+    currency: 'LKR'
+  }).format(amount);
+};
+
 // Inline Notification Component
 const Notification = ({ message, type = 'success', onClose }) => {
   const getNotificationStyles = () => {
@@ -601,7 +610,7 @@ export const HRClaimReview = () => {
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                       {claim.employeeId?.firstName} {claim.employeeId?.lastName} • 
-                      Rs. {claim.claimAmount?.requested?.toLocaleString() || 0} • 
+                      {formatCurrency(claim.claimAmount?.requested || 0)} • 
                       {Math.ceil((new Date() - new Date(claim.submittedAt)) / (1000 * 60 * 60 * 24))} days old
                     </p>
                   </div>
