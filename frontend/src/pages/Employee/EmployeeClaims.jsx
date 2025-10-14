@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap, BarChart3, Receipt } from 'lucide-react';
+import { Plus, Search, FileText, Clock, CheckCircle, XCircle, AlertCircle, MessageSquare, Eye, Download, ChevronRight, TrendingUp, Calendar, Upload, Paperclip, X, User, Car, Zap, BarChart3, Receipt, FileBarChart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import InsuranceApiService from "../../services/insurance-api";
@@ -20,6 +20,10 @@ export const EmployeeClaims = () => {
    const [uploadLoading, setUploadLoading] = useState(false);
    const [uploadType, setUploadType] = useState('general'); // 'general' or 'questionnaire'
    const [questionnaireFileQuestions, setQuestionnaireFileQuestions] = useState([]);
+   const [filters, setFilters] = useState({
+      claimType: null,    // 'life' or 'vehicle'
+      claimOption: null   // depends on claimType
+   });
    const navigate = useNavigate();
 
    // Fetch claims on component mount and when filters change
@@ -151,31 +155,26 @@ export const EmployeeClaims = () => {
 
    const filteredClaims = claims.filter(claim => {
       const displayStatus = getDisplayStatus(claim.claimStatus);
-      const matchesFilter = activeFilter === 'all' || displayStatus === activeFilter;
       
-      // If no search term, just apply filter
-      if (!searchTerm.trim()) {
-        return matchesFilter;
+      // Status filter
+      const matchesStatus = activeFilter === 'all' || displayStatus === activeFilter;
+      
+      // Claim Type filter
+      const matchesType = !filters.claimType || claim.claimType === filters.claimType;
+      
+      // Claim Option filter
+      const claimOption = claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || '';
+      const matchesOption = !filters.claimOption || claimOption === filters.claimOption;
+      
+      // Search term filter (Claim ID only - substring match)
+      let matchesSearch = true;
+      if (searchTerm.trim()) {
+         const searchLower = searchTerm.trim().toLowerCase();
+         const claimId = (claim.claimId || '').toLowerCase();
+         matchesSearch = claimId.includes(searchLower);
       }
       
-      const searchLower = searchTerm.trim().toLowerCase();
-      
-      // ✅ Claim ID - substring match (case insensitive)
-      const claimId = (claim.claimId || '').toLowerCase();
-      const claimIdMatch = claimId.includes(searchLower);
-      
-      // ✅ Claim Type - starts with match
-      const claimType = (claim.claimType || '').toLowerCase();
-      const typeMatch = claimType.startsWith(searchLower);
-      
-      // ✅ Claim Option - starts with match
-      const claimOption = (claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || '').toLowerCase();
-      const optionMatch = claimOption.startsWith(searchLower);
-      
-      // Return true if matches filter AND any of the search fields match
-      const matchesSearch = claimIdMatch || typeMatch || optionMatch;
-      
-      return matchesFilter && matchesSearch;
+      return matchesStatus && matchesType && matchesOption && matchesSearch;
    });
 
    const stats = {
@@ -426,7 +425,7 @@ export const EmployeeClaims = () => {
             switch (activeFilter) {
                case 'processing':
                   // Don't filter by status, let backend handle all processing statuses
-                  statusFilter = undefined;
+                  statusFilter = 'hr';
                   break;
                case 'incomplete':
                   statusFilter = 'employee';
@@ -436,23 +435,36 @@ export const EmployeeClaims = () => {
             }
          }
 
-         const filters = {
+         // ✅ Build filters object with all active filters
+         const reportFilters = {
             status: statusFilter,
-            claimType: undefined // Could add filter for claim type
+            claimType: filters.claimType || undefined, // ✅ Add claim type filter
+            claimOption: filters.claimOption || undefined, // ✅ Add claim option filter
+            search: searchTerm.trim() || undefined
          };
 
          // Remove undefined values
-         Object.keys(filters).forEach(key => {
-            if (filters[key] === undefined) {
-               delete filters[key];
+         Object.keys(reportFilters).forEach(key => {
+            if (reportFilters[key] === undefined) {
+               delete reportFilters[key];
             }
          });
 
-         const blob = await reportsApiService.generateEmployeeClaimsSummaryReport(filters);
+         console.log('Generating report with filters:', reportFilters);
+
+         const blob = await reportsApiService.generateEmployeeClaimsSummaryReport(reportFilters);
          const url = window.URL.createObjectURL(blob);
          const link = document.createElement('a');
          link.href = url;
-         link.download = `my-claims-summary-${new Date().toISOString().split('T')[0]}.pdf`;
+         
+         // ✅ Better filename with all filter info
+         const typeSuffix = filters.claimType ? `-${filters.claimType}` : '';
+         const optionSuffix = filters.claimOption ? `-${filters.claimOption}` : '';
+         const statusSuffix = activeFilter !== 'all' ? `-${activeFilter}` : '';
+         const searchSuffix = searchTerm.trim() ? '-filtered' : '';
+         
+         link.download = `my-claims-summary${typeSuffix}${optionSuffix}${statusSuffix}${searchSuffix}-${new Date().toISOString().split('T')[0]}.pdf`;
+         
          document.body.appendChild(link);
          link.click();
          document.body.removeChild(link);
@@ -792,10 +804,18 @@ export const EmployeeClaims = () => {
                      <h1 className="text-3xl font-light text-gray-900 dark:text-white mb-2">Claims Portal</h1>
                      <p className="text-gray-600 dark:text-neutral-400">Manage your submissions and track progress</p>
                   </div>
-                  <button onClick={() => (navigate("/employee/claims/form"))} className="flex items-center space-x-2 px-4 py-2 bg-blue-900 text-white rounded-full transition-all duration-200 shadow-lg transform hover:scale-105">
-                     <Plus size={20} />
-                     New Claim
-                  </button>
+                  <div className="flex items-center gap-3">
+
+                     
+                     {/* New Claim Button */}
+                     <button 
+                        onClick={() => (navigate("/employee/claims/form"))} 
+                        className="flex items-center space-x-2 px-4 py-2 bg-orange-700 text-white rounded-full transition-all duration-200 shadow-lg transform hover:scale-105"
+                     >
+                        <Plus size={20} />
+                        New Claim
+                     </button>
+                  </div>
                </div>
 
                {/* Stats Cards */}
@@ -827,30 +847,129 @@ export const EmployeeClaims = () => {
                </div>
 
                {/* Search and Filters */}
-               <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
-                  <div className="relative flex-1">
-                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-neutral-500" size={20} />
-                     <input
-                        type="text"
-                        placeholder="Search claims by ID, type, or option..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent shadow-sm"
-                     />
-                  </div>
-                  <div className="flex gap-2">
-                     {['all', 'draft', 'incomplete', 'processing', 'approved', 'rejected'].map((filter) => (
+               <div className="flex flex-col gap-4">
+                  {/* Search Bar and Type Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                     {/* Search Bar */}
+                     <div className="relative flex-1">
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-neutral-500" size={20} />
+                        <input
+                           type="text"
+                           placeholder="Search claims by ID"
+                           value={searchTerm}
+                           onChange={(e) => setSearchTerm(e.target.value)}
+                           className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent shadow-sm"
+                        />
+                     </div>
+
+                     {/* Claim Type Filter Buttons */}
+                     <div className="flex gap-2">
                         <button
-                           key={filter}
-                           onClick={() => setActiveFilter(filter)}
-                           className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeFilter === filter
-                              ? 'bg-blue-900 text-white shadow-md'
-                              : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
-                              }`}
+                           onClick={() => setFilters({ ...filters, claimType: null, claimOption: null })}
+                           className={`px-4 py-0.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                              !filters.claimType
+                                 ? 'bg-blue-900 text-white shadow-md'
+                                 : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-800'
+                           }`}
                         >
-                           {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                           All Types
                         </button>
-                     ))}
+                        <button
+                           onClick={() => setFilters({ ...filters, claimType: 'life', claimOption: null })}
+                           className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                              filters.claimType === 'life'
+                                 ? 'bg-blue-900 text-white shadow-md'
+                                 : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-800'
+                           }`}
+                        >
+                           Life
+                        </button>
+                        <button
+                           onClick={() => setFilters({ ...filters, claimType: 'vehicle', claimOption: null })}
+                           className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                              filters.claimType === 'vehicle'
+                                 ? 'bg-blue-900 text-white shadow-md'
+                                 : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-800'
+                           }`}
+                        >
+                           Vehicle
+                        </button>
+                     </div>
+                  </div>
+
+                  {/* Filter Dropdowns Row */}
+                  <div className="flex flex-wrap gap-3">
+                     {/* Claim Option Filter - Dynamic based on Type */}
+                     <div className="flex-1 min-w-[180px]">
+                        <select
+                           value={filters.claimOption || 'all'}
+                           onChange={(e) => {
+                              const value = e.target.value === 'all' ? null : e.target.value;
+                              setFilters({ ...filters, claimOption: value });
+                           }}
+                           disabled={!filters.claimType}
+                           className="w-full px-4 py-2.5 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                           <option value="all">All Options</option>
+                           {filters.claimType === 'vehicle' && (
+                              <>
+                                 <option value="accident">Accident</option>
+                                 <option value="theft">Theft</option>
+                                 <option value="fire">Fire</option>
+                                 <option value="natural_disaster">Natural Disaster</option>
+                              </>
+                           )}
+                           {filters.claimType === 'life' && (
+                              <>
+                                 <option value="hospitalization">Hospitalization</option>
+                                 <option value="channelling">Channelling</option>
+                                 <option value="medication">Medication</option>
+                                 <option value="death">Death</option>
+                              </>
+                           )}
+                        </select>
+                     </div>
+
+                     {/* Status Filter */}
+                     <div className="flex-1 min-w-[150px]">
+                        <select
+                           value={activeFilter}
+                           onChange={(e) => setActiveFilter(e.target.value)}
+                           className="w-full px-4 py-2.5 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-900 text-sm font-medium"
+                        >
+                           <option value="all">All Status</option>
+                           <option value="draft">Draft</option>
+                           <option value="incomplete">Incomplete</option>
+                           <option value="processing">Processing</option>
+                           <option value="approved">Approved</option>
+                           <option value="rejected">Rejected</option>
+                        </select>
+                     </div>
+
+                     {/* Clear Filters Button */}
+                     {(filters.claimType || filters.claimOption || activeFilter !== 'all' || searchTerm) && (
+                        <button
+                           onClick={() => {
+                              setFilters({ claimType: null, claimOption: null });
+                              setActiveFilter('all');
+                              setSearchTerm('');
+                           }}
+                           className="px-4 py-2.5 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-800/40 text-red-700 dark:text-red-300 rounded-full text-sm font-medium transition-colors duration-200 flex items-center gap-2"
+                        >
+                           <X size={16} />
+                           Clear
+                        </button>
+                     )}
+
+                     {/* Generate Report Button */}
+                     <button 
+                        onClick={() => generateClaimsSummaryReport()}
+                        className="flex items-center space-x-2 px-4 py-2 bg-blue-900 dark:bg-purple-500 text-white rounded-full transition-all duration-200 shadow-lg transform hover:scale-105"
+                        title="Generate report based on current filters"
+                     >
+                        <FileBarChart size={20} />
+                        <span className="hidden sm:inline">Generate Report</span>
+                     </button>
                   </div>
                </div>
             </div>

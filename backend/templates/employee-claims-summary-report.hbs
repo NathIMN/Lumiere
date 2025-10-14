@@ -21,7 +21,6 @@
                 <th>Policy ID</th>
                 <th>Claim Type</th>
                 <th>Claim Option</th>
-                <th>Incident Date</th>
                 <th>Submission Date</th>
                 <th>Status</th>
                 <th>Requested Amount</th>
@@ -35,11 +34,10 @@
                 <td class="id-col">{{policyId}}</td>
                 <td>{{claimType}}</td>
                 <td>{{claimOption}}</td>
-                <td>{{formatDate incidentDate}}</td>
                 <td>{{formatDate submissionDate}}</td>
                 <td><span class="status {{status}}">{{status}}</span></td>
-                <td>${{formatCurrency requestedAmount}}</td>
-                <td>{{#if approvedAmount}}${{formatCurrency approvedAmount}}{{else}}N/A{{/if}}</td>
+                <td>Rs. {{formatCurrency requestedAmount}}</td>
+                <td>{{#if approvedAmount}}Rs. {{formatCurrency approvedAmount}}{{else}}N/A{{/if}}</td>
             </tr>
             {{/each}}
         </tbody>
@@ -47,7 +45,6 @@
 </div>
 
 {{#if claimsByType}}
-<div class="page-break"></div>
 <div class="letterhead">
     <div class="letterhead-left">
         <div class="company-name">LUMIERE INSURANCE</div>
@@ -55,7 +52,9 @@
         <p class="report-subtitle">{{reportSubtitle}}</p>
     </div>
     <div class="letterhead-right">
-        <img src="data:image/svg+xml;base64,{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
+               {{#if logoBase64}}
+               <img src="{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
+               {{/if}}
     </div>
 </div>
 
@@ -78,8 +77,8 @@
                 <td>{{type}}</td>
                 <td>{{totalClaims}}</td>
                 <td>{{approvedClaims}}</td>
-                <td>${{formatCurrency totalRequested}}</td>
-                <td>${{formatCurrency totalApproved}}</td>
+                <td>Rs. {{formatCurrency totalRequested}}</td>
+                <td>Rs. {{formatCurrency totalApproved}}</td>
                 <td>{{successRate}}%</td>
             </tr>
             {{/each}}
@@ -106,7 +105,7 @@
                 <td><span class="status {{status}}">{{status}}</span></td>
                 <td>{{count}}</td>
                 <td>{{percentage}}%</td>
-                <td>${{formatCurrency totalAmount}}</td>
+                <td>Rs. {{formatCurrency totalAmount}}</td>
             </tr>
             {{/each}}
         </tbody>
