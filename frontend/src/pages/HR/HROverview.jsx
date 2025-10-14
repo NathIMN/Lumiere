@@ -88,15 +88,37 @@ export const HROverview = () => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount && amount !== 0) return 'Rs. 0';
-    return `Rs. ${amount.toLocaleString('en-LK', { maximumFractionDigits: 0 })}`;
+    if (!amount && amount !== 0) return 'LKR 0';
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR'
+    }).format(amount);
   };
 
   const formatCurrencyShort = (amount) => {
-    if (!amount && amount !== 0) return 'Rs. 0';
-    if (amount >= 1000000) return `Rs. ${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `Rs. ${(amount / 1000).toFixed(1)}K`;
-    return `Rs. ${amount.toLocaleString('en-LK')}`;
+    if (!amount && amount !== 0) return 'LKR 0';
+    if (amount >= 1000000) {
+      const formatted = new Intl.NumberFormat('en-LK', {
+        style: 'currency',
+        currency: 'LKR',
+        notation: 'compact',
+        maximumFractionDigits: 1
+      }).format(amount);
+      return formatted;
+    }
+    if (amount >= 1000) {
+      const formatted = new Intl.NumberFormat('en-LK', {
+        style: 'currency',
+        currency: 'LKR',
+        notation: 'compact',
+        maximumFractionDigits: 1
+      }).format(amount);
+      return formatted;
+    }
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR'
+    }).format(amount);
   };
 
   const loadDashboardData = async () => {

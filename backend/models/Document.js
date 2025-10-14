@@ -120,9 +120,9 @@ const DocumentSchema = new mongoose.Schema(
       // Reference to related claim, policy, or user document
     },
     uploadedBy: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       required: [true, "Uploader information is required"],
-      trim: true,
     },
     uploadedByRole: {
       type: String,
@@ -145,8 +145,8 @@ const DocumentSchema = new mongoose.Schema(
       default: false,
     },
     verifiedBy: {
-      type: String,
-      trim: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
       default: null,
     },
     verifiedAt: {
@@ -188,7 +188,8 @@ const DocumentSchema = new mongoose.Schema(
     accessLog: [
       {
         accessedBy: {
-          type: String,
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
           required: true,
         },
         accessedByRole: {
@@ -203,7 +204,7 @@ const DocumentSchema = new mongoose.Schema(
         action: {
           type: String,
           required: true,
-          enum: ["view", "download", "update", "delete"],
+          enum: ["view", "download", "update", "delete", "ocr_extract"],
         },
       },
     ],
@@ -232,7 +233,7 @@ DocumentSchema.virtual("fileSizeFormatted").get(function () {
 // Instance method to log access
 DocumentSchema.methods.logAccess = function (accessedBy, role, action) {
   this.accessLog.push({
-    accessedBy,
+    accessedBy: mongoose.Types.ObjectId.isValid(accessedBy) ? accessedBy : new mongoose.Types.ObjectId(accessedBy),
     accessedByRole: role,
     action,
   });
@@ -242,7 +243,7 @@ DocumentSchema.methods.logAccess = function (accessedBy, role, action) {
 // Instance method to verify document
 DocumentSchema.methods.verify = function (verifiedBy) {
   this.isVerified = true;
-  this.verifiedBy = verifiedBy;
+  this.verifiedBy = mongoose.Types.ObjectId.isValid(verifiedBy) ? verifiedBy : new mongoose.Types.ObjectId(verifiedBy);
   this.verifiedAt = new Date();
   return this.save();
 };
@@ -254,7 +255,14 @@ DocumentSchema.statics.findByReference = function (type, refId) {
 
 // Static method to find user documents
 DocumentSchema.statics.findByUser = function (userId) {
-  return this.find({ userId, status: "active" }).sort({ createdAt: -1 });
+  const userObjectId = mongoose.Types.ObjectId.isValid(userId) ? userId : new mongoose.Types.ObjectId(userId);
+  return this.find({ userId: userObjectId, status: "active" }).sort({ createdAt: -1 });
+};
+
+// Static method to find documents by uploader
+DocumentSchema.statics.findByUploader = function (uploaderId) {
+  const uploaderObjectId = mongoose.Types.ObjectId.isValid(uploaderId) ? uploaderId : new mongoose.Types.ObjectId(uploaderId);
+  return this.find({ uploadedBy: uploaderObjectId, status: "active" }).sort({ createdAt: -1 });
 };
 
 // Pre-save middleware to generate document number if not provided

@@ -10,7 +10,9 @@ import {
   verifyDocument,
   getDocumentStats,
   archiveDocument,
+  extractTextFromDocument,
 } from "../controllers/documents.js";
+import { authenticate, authorize } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -29,5 +31,6 @@ router.get("/reference/:type/:refId", getDocumentsByReference);
 router.get("/user/:userId", getUserDocuments);
 router.patch("/:id/verify", verifyDocument);
 router.patch("/:id/archive", archiveDocument);
+router.post("/:id/ocr", authenticate, authorize('employee', 'hr_officer', 'admin'), extractTextFromDocument);
 
 export default router;

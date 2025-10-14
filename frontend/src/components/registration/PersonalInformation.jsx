@@ -116,7 +116,7 @@ const PersonalInformation = ({ formData, errors, onChange }) => {
             value={formData.dateOfBirth}
             onChange={(e) => onChange(e, 'profile')}
             min="1970-01-01"
-            max="2005-12-31"
+            max="2007-10-13"
             className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'}`}
           />
           {errors.dateOfBirth && <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>}

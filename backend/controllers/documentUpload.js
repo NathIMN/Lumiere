@@ -245,9 +245,24 @@ const uploadClaimDocument = asyncWrapper(async (req, res, next) => {
 
     const document = await Document.create(documentData);
 
+    console.log('Document created:', document._id);
+    console.log('Claim before adding document:', {
+      claimId: claim._id,
+      documentsCount: claim.documents.length,
+      documents: claim.documents
+    });
+
     // Add document reference to claim
     claim.documents.push(document._id);
+    console.log('Claim after adding document (before save):', {
+      claimId: claim._id,
+      documentsCount: claim.documents.length,
+      documents: claim.documents
+    });
+    
     await claim.save();
+    
+    console.log('Claim saved successfully');
 
     res.status(201).json({
       success: true,
@@ -345,10 +360,26 @@ const uploadMultipleClaimDocuments = asyncWrapper(async (req, res, next) => {
 
     const documents = await Promise.all(uploadPromises);
 
+    console.log('Multiple documents created:', documents.map(d => d._id));
+    console.log('Claim before adding documents:', {
+      claimId: claim._id,
+      documentsCount: claim.documents.length,
+      documents: claim.documents
+    });
+
     // Add document references to claim
     const documentIds = documents.map(doc => doc._id);
     claim.documents.push(...documentIds);
+    
+    console.log('Claim after adding documents (before save):', {
+      claimId: claim._id,
+      documentsCount: claim.documents.length,
+      documents: claim.documents
+    });
+    
     await claim.save();
+    
+    console.log('Claim with multiple documents saved successfully');
 
     res.status(201).json({
       success: true,

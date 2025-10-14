@@ -75,6 +75,7 @@ class GeminiService {
   }
 
   async formalizeMessage(userMessage) {
+    console.log("formalize called")
     try {
       // Check if model is available
       if (!this.model) {
