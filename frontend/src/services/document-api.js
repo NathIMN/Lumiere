@@ -720,6 +720,23 @@ class DocumentApiService {
     return this.uploadRequest(`/claims/${claimId}/documents/upload/multiple`, formData);
   }
 
+  // ==================== OCR METHODS ====================
+
+  /**
+   * Extract text from document using OCR
+   * @param {string} documentId - Document ID
+   * @returns {Promise<Object>} OCR response with extracted text
+   */
+  async extractTextFromDocument(documentId) {
+    if (!documentId) {
+      throw new Error('Document ID is required');
+    }
+    
+    return this.request(`/documents/${documentId}/ocr`, {
+      method: 'POST',
+    });
+  }
+
   // ==================== ENTITY SEARCH METHODS ====================
 
   /**

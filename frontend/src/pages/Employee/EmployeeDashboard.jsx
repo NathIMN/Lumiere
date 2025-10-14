@@ -30,7 +30,7 @@ export const EmployeeDashboard = () => {
    const [scrolled, setScrolled] = useState(false);
 
    // Define pages where voice assistant should be hidden
-   const hideVoiceAssistantPaths = ['/employee/messaging'];
+   const hideVoiceAssistantPaths = ['/employee/messaging', ];
    const shouldShowVoiceAssistant = !hideVoiceAssistantPaths.includes(location.pathname);
 
    const toggleSidebar = () => {

@@ -204,7 +204,7 @@ const DocumentSchema = new mongoose.Schema(
         action: {
           type: String,
           required: true,
-          enum: ["view", "download", "update", "delete"],
+          enum: ["view", "download", "update", "delete", "ocr_extract"],
         },
       },
     ],

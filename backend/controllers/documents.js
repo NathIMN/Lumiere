@@ -227,6 +227,76 @@ const archiveDocument = asyncWrapper(async (req, res, next) => {
   });
 });
 
+// Extract text from document using OCR
+const extractTextFromDocument = asyncWrapper(async (req, res, next) => {
+  const { id: documentID } = req.params;
+  
+  // Get the document from database
+  const document = await Document.findById(documentID);
+  if (!document) {
+    return next(createCustomError(`No document with id: ${documentID}`, 404));
+  }
+
+  // Check if user has permission to access this document
+  if (req.user.role === 'employee' && document.uploadedBy.toString() !== req.user.userId) {
+    return next(createCustomError('You can only extract text from your own documents', 403));
+  }
+
+  try {
+    // Import services
+    const azureBlobService = (await import('../services/azureBlobService.js')).default;
+    const ocrService = (await import('../services/ocrService.js')).default;
+
+    // Check if file type is supported for OCR
+    if (!ocrService.isSupported(document.mimeType)) {
+      return next(createCustomError(
+        `OCR is not supported for file type: ${document.mimeType}. Supported types: ${ocrService.getSupportedTypes().join(', ')}`, 
+        400
+      ));
+    }
+
+    // Extract blob path from Azure URL
+    const urlParts = document.azureBlobUrl.split('/');
+    const containerIndex = urlParts.findIndex(part => part === document.azureContainerName);
+    const blobPath = urlParts.slice(containerIndex + 1).join('/');
+
+    console.log('Downloading blob for OCR:', blobPath);
+
+    // Download the file from Azure Blob Storage
+    const downloadResponse = await azureBlobService.downloadFile(blobPath);
+    
+    // Convert the download response to buffer
+    const chunks = [];
+    const readableStream = downloadResponse.readableStreamBody;
+    
+    for await (const chunk of readableStream) {
+      chunks.push(chunk);
+    }
+    const fileBuffer = Buffer.concat(chunks);
+
+    console.log('File downloaded, starting OCR extraction...');
+
+    // Extract text using OCR.space API
+    const extractedText = await ocrService.extractTextFromFile(fileBuffer, document.mimeType);
+
+    // Log the access
+    if (req.user) {
+      await document.logAccess(req.user.userId, req.user.role, "ocr_extract");
+    }
+
+    res.status(200).json({
+      success: true,
+      extractedText,
+      documentId: documentID,
+      message: 'Text extracted successfully using OCR'
+    });
+
+  } catch (error) {
+    console.error('OCR extraction error:', error);
+    return next(createCustomError(`Failed to extract text: ${error.message}`, 500));
+  }
+});
+
 export {
   getAllDocuments,
   createDocument,
@@ -238,5 +308,6 @@ export {
   verifyDocument,
   getDocumentStats,
   archiveDocument,
+  extractTextFromDocument,
 };
 
