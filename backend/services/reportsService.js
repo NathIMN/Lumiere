@@ -1130,208 +1130,293 @@ async loadLogo() {
    * Generate Employee Claims Summary Report Data
    */
   async generateEmployeeClaimsSummaryReport(filters) {
-    try {
-      let query = { employeeId: filters.employeeId };
+  try {
+    let query = { employeeId: filters.employeeId };
 
-      console.log('generateEmployeeClaimsSummaryReport called with filters:', filters);
-      console.log('Initial employeeId query:', query);
-      console.log('Employee ID type:', typeof filters.employeeId);
+    console.log('generateEmployeeClaimsSummaryReport called with filters:', filters);
+    console.log('Initial employeeId query:', query);
 
-      // ✅ Add status filter
-      if (filters.status) {
-        query.claimStatus = filters.status;
-      }
+    // Add status filter
+    if (filters.status) {
+      query.claimStatus = filters.status;
+    }
 
-      // ✅ Add claim type filter
-      if (filters.claimType) {
-        query.claimType = filters.claimType;
-      }
+    // Add claim type filter
+    if (filters.claimType) {
+      query.claimType = filters.claimType;
+    }
 
-      // ✅ Add claim option filter (works for both life and vehicle claims)
-      if (filters.claimOption) {
-        query.$or = [
-          { claimOption: filters.claimOption },
-          { lifeClaimOption: filters.claimOption },
-          { vehicleClaimOption: filters.claimOption }
-        ];
-      }
+    // Add claim option filter
+    if (filters.claimOption) {
+      query.$or = [
+        { claimOption: filters.claimOption },
+        { lifeClaimOption: filters.claimOption },
+        { vehicleClaimOption: filters.claimOption }
+      ];
+    }
 
-      // ✅ Add search filter (search by claim ID)
-      if (filters.search) {
-        query.claimId = { $regex: filters.search, $options: 'i' }; // Case-insensitive substring match
-      }
+    // Add search filter
+    if (filters.search) {
+      query.claimId = { $regex: filters.search, $options: 'i' };
+    }
 
-      // ✅ Add date range filter if provided
-      if (filters.dateFrom && filters.dateTo) {
-        query.createdAt = {
-          $gte: filters.dateFrom,
-          $lte: filters.dateTo
+    // Add date range filter
+    if (filters.dateFrom && filters.dateTo) {
+      query.createdAt = {
+        $gte: filters.dateFrom,
+        $lte: filters.dateTo
+      };
+    }
+
+    console.log('Final MongoDB query:', query);
+
+    // Fetch claims with policy population
+    const claims = await Claim.find(query)
+      .populate('policy', 'policyId policyType status coverage premium validity insuranceAgent')
+      .populate({
+        path: 'policy',
+        populate: {
+          path: 'insuranceAgent',
+          select: 'profile.firstName profile.lastName email'
+        }
+      })
+      .populate('employeeId', 'profile.firstName profile.lastName email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    console.log('Found claims count:', claims.length);
+
+    // Get employee details
+    const employeeDetails = await this.getEmployeeDetails(filters.employeeId);
+    console.log('Employee details fetched:', employeeDetails.fullName);
+
+    // Get unique policies from claims
+    const uniquePolicyIds = [...new Set(claims.map(c => c.policy?._id?.toString()).filter(Boolean))];
+    console.log('Unique policies found:', uniquePolicyIds.length);
+
+    // Fetch detailed policy information
+    const policies = await Policy.find({ _id: { $in: uniquePolicyIds } })
+      .populate('insuranceAgent', 'profile.firstName profile.lastName email')
+      .lean();
+
+    // Format policies data
+    const policiesData = policies.map(policy => ({
+      policyId: policy.policyId || policy._id.toString().slice(-8).toUpperCase(),
+      policyType: policy.policyType?.toUpperCase() || 'N/A',
+      status: policy.status?.toUpperCase() || 'N/A',
+      coverageAmount: policy.coverage?.coverageAmount || 0,
+      premiumAmount: policy.premium?.amount || 0,
+      premiumFrequency: policy.premium?.frequency || 'N/A',
+      startDate: policy.validity?.startDate,
+      endDate: policy.validity?.endDate,
+      agentName: policy.insuranceAgent ? 
+        `${policy.insuranceAgent.profile?.firstName || 'N/A'} ${policy.insuranceAgent.profile?.lastName || 'N/A'}` : 
+        'Unassigned',
+      claimsCount: claims.filter(c => c.policy?._id?.toString() === policy._id.toString()).length
+    }));
+
+    // Generate statistics
+    const totalClaims = claims.length;
+    const approvedClaims = claims.filter(c => c.claimStatus === 'approved').length;
+    const rejectedClaims = claims.filter(c => c.claimStatus === 'rejected').length;
+    const pendingClaims = claims.filter(c => ['hr', 'insurer', 'employee'].includes(c.claimStatus)).length;
+    const totalRequested = claims.reduce((sum, c) => sum + (c.claimAmount?.requested || 0), 0);
+    const totalApproved = claims.filter(c => c.claimStatus === 'approved')
+      .reduce((sum, c) => sum + (c.claimAmount?.approved || 0), 0);
+
+    // Group by claim type
+    const claimsByType = claims.reduce((acc, claim) => {
+      const type = claim.claimType || 'Other';
+      if (!acc[type]) {
+        acc[type] = {
+          type,
+          totalClaims: 0,
+          approvedClaims: 0,
+          totalRequested: 0,
+          totalApproved: 0
         };
       }
-
-      console.log('Final MongoDB query:', query);
-
-      const claims = await Claim.find(query)
-        .populate('policy', 'policyId')
-        .populate('employeeId', 'profile.firstName profile.lastName email')
-        .sort({ createdAt: -1 })
-        .lean();
-
-      console.log('Found claims count:', claims.length);
-      console.log('Sample claim:', claims[0] ? {
-        claimId: claims[0].claimId,
-        employeeId: claims[0].employeeId,
-        claimStatus: claims[0].claimStatus,
-        claimType: claims[0].claimType,
-        claimOption: claims[0].claimOption || claims[0].lifeClaimOption || claims[0].vehicleClaimOption
-      } : 'No claims found');
-
-      // If no claims found, try alternative queries for debugging
-      if (claims.length === 0) {
-        console.log('No claims found, trying alternative queries...');
-        
-        // Try with string employeeId
-        const stringQuery = { employeeId: String(filters.employeeId) };
-        const stringClaims = await Claim.find(stringQuery).lean();
-        console.log('Claims with string employeeId:', stringClaims.length);
-        
-        // Try finding any claims for debugging
-        const anyClaims = await Claim.find({}).limit(3).lean();
-        console.log('Any claims in database (sample):', anyClaims.map(c => ({
-          claimId: c.claimId,
-          employeeId: c.employeeId,
-          employeeIdType: typeof c.employeeId
-        })));
+      acc[type].totalClaims++;
+      if (claim.claimStatus === 'approved') {
+        acc[type].approvedClaims++;
+        acc[type].totalApproved += claim.claimAmount?.approved || 0;
       }
+      acc[type].totalRequested += claim.claimAmount?.requested || 0;
+      return acc;
+    }, {});
 
-      // Generate statistics
-      const totalClaims = claims.length;
-      const approvedClaims = claims.filter(c => c.claimStatus === 'approved').length;
-      const rejectedClaims = claims.filter(c => c.claimStatus === 'rejected').length;
-      const pendingClaims = claims.filter(c => ['hr', 'insurer', 'employee'].includes(c.claimStatus)).length;
-      const totalRequested = claims.reduce((sum, c) => sum + (c.claimAmount?.requested || 0), 0);
-      const totalApproved = claims.filter(c => c.claimStatus === 'approved')
-        .reduce((sum, c) => sum + (c.claimAmount?.approved || 0), 0);
+    // Calculate success rates
+    Object.values(claimsByType).forEach(typeData => {
+      typeData.successRate = typeData.totalClaims > 0 ? 
+        ((typeData.approvedClaims / typeData.totalClaims) * 100).toFixed(1) : '0.0';
+    });
 
-      // Group by claim type
-      const claimsByType = claims.reduce((acc, claim) => {
-        const type = claim.claimType || 'Other';
-        if (!acc[type]) {
-          acc[type] = {
-            type,
-            totalClaims: 0,
-            approvedClaims: 0,
-            totalRequested: 0,
-            totalApproved: 0
-          };
-        }
-        acc[type].totalClaims++;
-        if (claim.claimStatus === 'approved') {
-          acc[type].approvedClaims++;
-          acc[type].totalApproved += claim.claimAmount?.approved || 0;
-        }
-        acc[type].totalRequested += claim.claimAmount?.requested || 0;
-        return acc;
-      }, {});
+    // Group by status
+    const claimsByStatus = claims.reduce((acc, claim) => {
+      const status = claim.claimStatus || 'unknown';
+      if (!acc[status]) {
+        acc[status] = {
+          status,
+          count: 0,
+          totalAmount: 0
+        };
+      }
+      acc[status].count++;
+      acc[status].totalAmount += claim.claimAmount?.requested || 0;
+      return acc;
+    }, {});
 
-      // Calculate success rates
-      Object.values(claimsByType).forEach(typeData => {
-        typeData.successRate = typeData.totalClaims > 0 ? 
-          ((typeData.approvedClaims / typeData.totalClaims) * 100).toFixed(1) : '0.0';
-      });
+    // Calculate percentages
+    Object.values(claimsByStatus).forEach(statusData => {
+      statusData.percentage = totalClaims > 0 ? 
+        ((statusData.count / totalClaims) * 100).toFixed(1) : '0.0';
+    });
 
-      // Group by status
-      const claimsByStatus = claims.reduce((acc, claim) => {
-        const status = claim.claimStatus || 'unknown';
-        if (!acc[status]) {
-          acc[status] = {
-            status,
-            count: 0,
-            totalAmount: 0
-          };
-        }
-        acc[status].count++;
-        acc[status].totalAmount += claim.claimAmount?.requested || 0;
-        return acc;
-      }, {});
-
-      // Calculate percentages
-      Object.values(claimsByStatus).forEach(statusData => {
-        statusData.percentage = totalClaims > 0 ? 
-          ((statusData.count / totalClaims) * 100).toFixed(1) : '0.0';
-      });
-
+    // Group claims by policy
+    const claimsByPolicy = policies.map(policy => {
+      const policyClaims = claims.filter(c => 
+        c.policy?._id?.toString() === policy._id.toString()
+      );
+      
       return {
-        claims: claims.map(claim => ({
-          claimId: claim.claimId || claim._id.toString().slice(-8).toUpperCase(),
-          policyId: claim.policy?.policyId || 'N/A',
-          claimType: claim.claimType || 'General',
-          claimOption: claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || 'N/A',
-          incidentDate: claim.incidentDate,
-          submissionDate: claim.createdAt,
-          status: claim.claimStatus,
-          requestedAmount: claim.claimAmount?.requested || 0,
-          approvedAmount: claim.claimAmount?.approved || null
-        })),
-        summary: {
-          totalClaims,
-          approvedClaims,
-          rejectedClaims,
-          pendingClaims,
-          totalRequested,
-          totalApproved,
-          approvalRate: totalClaims > 0 ? ((approvedClaims / totalClaims) * 100).toFixed(1) : '0.0'
-        },
-        claimsByType: Object.values(claimsByType),
-        claimsByStatus: Object.values(claimsByStatus)
+        policyId: policy.policyId,
+        policyType: policy.policyType?.toUpperCase() || 'N/A',
+        totalClaims: policyClaims.length,
+        approvedClaims: policyClaims.filter(c => c.claimStatus === 'approved').length,
+        rejectedClaims: policyClaims.filter(c => c.claimStatus === 'rejected').length,
+        pendingClaims: policyClaims.filter(c => ['hr', 'insurer', 'employee'].includes(c.claimStatus)).length,
+        totalRequested: policyClaims.reduce((sum, c) => sum + (c.claimAmount?.requested || 0), 0),
+        totalApproved: policyClaims.filter(c => c.claimStatus === 'approved')
+          .reduce((sum, c) => sum + (c.claimAmount?.approved || 0), 0)
       };
-    } catch (error) {
-      console.error('Error generating employee claims summary report:', error);
-      throw new Error('Failed to generate employee claims summary report');
-    }
+    });
+
+    return {
+      employee: employeeDetails,
+      policies: policiesData,
+      claims: claims.map(claim => ({
+        claimId: claim.claimId || claim._id.toString().slice(-8).toUpperCase(),
+        policyId: claim.policy?.policyId || 'N/A',
+        claimType: claim.claimType || 'General',
+        claimOption: claim.claimOption || claim.lifeClaimOption || claim.vehicleClaimOption || 'N/A',
+        incidentDate: claim.incidentDate,
+        submissionDate: claim.createdAt,
+        status: claim.claimStatus,
+        requestedAmount: claim.claimAmount?.requested || 0,
+        approvedAmount: claim.claimAmount?.approved || null
+      })),
+      summary: {
+        totalClaims,
+        approvedClaims,
+        rejectedClaims,
+        pendingClaims,
+        totalRequested,
+        totalApproved,
+        approvalRate: totalClaims > 0 ? ((approvedClaims / totalClaims) * 100).toFixed(1) : '0.0',
+        totalPolicies: policiesData.length,
+        activePolicies: policiesData.filter(p => p.status === 'ACTIVE').length
+      },
+      claimsByType: Object.values(claimsByType),
+      claimsByStatus: Object.values(claimsByStatus),
+      claimsByPolicy: claimsByPolicy
+    };
+  } catch (error) {
+    console.error('Error generating employee claims summary report:', error);
+    throw new Error('Failed to generate employee claims summary report');
   }
+}
+
+/**
+ * Generate Enhanced Employee Claims Summary PDF Report
+ */
+async generateEmployeeClaimsSummaryPDF(reportData, filters) {
+  try {
+    const baseTemplate = await this.loadTemplate('base');
+    const contentTemplate = await this.loadTemplate('employee-claims-summary-report');
+    const logoBase64 = await this.loadLogo();
+
+    const templateData = {
+      reportTitle: 'My Claims Summary Report',
+      reportSubtitle: 'Comprehensive overview of all submitted claims',
+      generatedBy: reportData.employee.fullName,
+      generatedDate: moment().format('MMMM DD, YYYY'),
+      reportPeriod: filters.dateFrom && filters.dateTo ? 
+        `${moment(filters.dateFrom).format('MMM DD, YYYY')} - ${moment(filters.dateTo).format('MMM DD, YYYY')}` : 
+        'All Time',
+      totalRecords: reportData.claims.length,
+      reportType: 'Claims Summary',
+      currentYear: new Date().getFullYear(),
+      timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
+      logoBase64: logoBase64,
+      theme: this.getReportTheme('default'),
+      ...reportData,
+      summary: [
+        { label: 'Total Claims', value: reportData.summary.totalClaims },
+        { label: 'Approved Claims', value: reportData.summary.approvedClaims },
+        { label: 'Rejected Claims', value: reportData.summary.rejectedClaims },
+        { label: 'Total Requested', value: `Rs. ${reportData.summary.totalRequested.toLocaleString('en-LK')}` },
+        { label: 'Total Approved', value: `Rs. ${reportData.summary.totalApproved.toLocaleString('en-LK')}` },
+        { label: 'Approval Rate', value: `${reportData.summary.approvalRate}%` },
+        //{ label: 'Active Policies', value: `${reportData.summary.activePolicies} / ${reportData.summary.totalPolicies}` }
+      ]
+    };
+
+    console.log('🧾 Final Summary Data for Template:', templateData.summary);
+
+    handlebars.registerPartial('content', contentTemplate);
+    const html = baseTemplate(templateData);
+    return await this.generatePDF(html);
+  } catch (error) {
+    console.error('Error generating employee claims summary PDF:', error);
+    throw new Error('Failed to generate employee claims summary PDF report');
+  }
+}
 
   /**
-   * Generate Employee Claims Summary PDF Report
-   */
-  async generateEmployeeClaimsSummaryPDF(reportData, filters) {
-    try {
-      const baseTemplate = await this.loadTemplate('base');
-      const contentTemplate = await this.loadTemplate('employee-claims-summary-report');
-      const logoBase64 = await this.loadLogo();
+ * Get Employee Details by Employee ID (ObjectId)
+ * @param {ObjectId} employeeId - The employee's ObjectId
+ * @returns {Object} Employee details
+ */
+async getEmployeeDetails(employeeId) {
+  try {
+    console.log('Fetching employee details for:', employeeId);
+    
+    const employee = await User.findById(employeeId)
+      .select('-password -__v')
+      .lean();
 
-      const templateData = {
-        reportTitle: 'My Claims Summary Report',
-        reportSubtitle: 'Comprehensive overview of all submitted claims',
-        generatedBy: 'Employee',
-        generatedDate: moment().format('MMMM DD, YYYY'),
-        reportPeriod: filters.dateFrom && filters.dateTo ? 
-          `${moment(filters.dateFrom).format('MMM DD, YYYY')} - ${moment(filters.dateTo).format('MMM DD, YYYY')}` : 
-          'All Time',
-        totalRecords: reportData.claims.length,
-        reportType: 'Claims Summary',
-        currentYear: new Date().getFullYear(),
-        timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
-        logoBase64: logoBase64,
-        theme: this.getReportTheme('default'),
-        summary: [
-          { label: 'Total Claims', value: reportData.summary.totalClaims },
-          { label: 'Approved Claims', value: reportData.summary.approvedClaims },
-          { label: 'Pending Claims', value: reportData.summary.pendingClaims },
-          { label: 'Approval Rate', value: `${reportData.summary.approvalRate}%` }
-        ],
-        ...reportData
-      };
-
-      handlebars.registerPartial('content', contentTemplate);
-      const html = baseTemplate(templateData);
-      return await this.generatePDF(html);
-    } catch (error) {
-      console.error('Error generating employee claims summary PDF:', error);
-      throw new Error('Failed to generate employee claims summary PDF report');
+    if (!employee) {
+      throw new Error('Employee not found');
     }
-  }
 
+    console.log('Found employee:', {
+      userId: employee.userId,
+      name: `${employee.profile?.firstName} ${employee.profile?.lastName}`,
+      email: employee.email
+    });
+    // Format employee data for reports
+    return {
+      employeeId: employee._id,
+      userId: employee.userId || employee._id.toString().slice(-6).toUpperCase(),
+      fullName: `${employee.profile?.firstName || 'N/A'} ${employee.profile?.lastName || 'N/A'}`,
+      email: employee.email || 'N/A',
+      phone: employee.profile?.phoneNumber || 'N/A',
+      address: employee.profile?.address || 'N/A',
+      dateOfBirth: employee.profile?.dateOfBirth || null,
+      nic: employee.profile?.nic || 'N/A',
+      gender: employee.profile?.gender || 'N/A',
+      department: employee.employment?.department || 'Unassigned',
+      designation: employee.employment?.designation || 'N/A',
+      employmentType: employee.employment?.employmentType || 'N/A',
+      hireDate: employee.employment?.joinDate || employee.createdAt,
+      status: employee.status || 'active',
+    };
+
+      } catch (error) {
+    console.error('Error fetching employee details:', error);
+    throw new Error('Failed to fetch employee details');
+  }
+}
   /**
    * Generate Employee Policy Report Data
    */
