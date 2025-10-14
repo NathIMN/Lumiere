@@ -350,7 +350,7 @@ export const EmployeePolicy = () => {
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6">
                <div className="flex items-center relative z-10">
-                  <Shield className="w-8 h-8 text-red-900 dark:text-blue-400" />
+                  <Shield className="w-8 h-8 text-blue-900 dark:text-blue-400" />
                   <div className="ml-4">
                      <p className="text-sm text-gray-600 dark:text-gray-400">Active Policies</p>
                      <p className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -362,7 +362,7 @@ export const EmployeePolicy = () => {
 
             <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6">
                <div className="flex items-center">
-                  <Coins className="w-8 h-8 text-red-900 dark:text-green-400" />
+                  <Coins className="w-8 h-8 text-blue-900 dark:text-green-400" />
                   <div className="ml-4">
                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Coverage</p>
                      <p className="text-2xl font-semibold text-gray-900 dark:text-white">
@@ -374,7 +374,7 @@ export const EmployeePolicy = () => {
 
             <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-gray-200 dark:border-neutral-700 p-6">
                <div className="flex items-center">
-                  <Calendar className="w-8 h-8 text-red-900 dark:text-purple-400" />
+                  <Calendar className="w-8 h-8 text-blue-900 dark:text-purple-400" />
                   <div className="ml-4">
                      <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Premium</p>
                      <p className="text-2xl font-semibold text-gray-900 dark:text-white">

@@ -765,8 +765,8 @@ export const EmployeeClaims = () => {
          <div className="min-h-screen bg-white dark:bg-neutral-800 p-6">
             <div className="max-w-7xl mx-auto">
                <div className="text-center py-12">
-                  <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-                  <p className="text-red-600 dark:text-red-400 text-lg mb-2">Error Loading Claims</p>
+                  <AlertCircle className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+                  <p className="text-blue-600 dark:text-blue-400 text-lg mb-2">Error Loading Claims</p>
                   <p className="text-gray-500 dark:text-neutral-400 mb-4">{error}</p>
                   <button
                      onClick={() => fetchClaims()}
@@ -789,10 +789,10 @@ export const EmployeeClaims = () => {
             <div className="mb-8">
                <div className="flex items-center justify-between mb-6">
                   <div>
-                     <h1 className="text-4xl font-light text-gray-900 dark:text-white mb-2">Claims Portal</h1>
+                     <h1 className="text-3xl font-light text-gray-900 dark:text-white mb-2">Claims Portal</h1>
                      <p className="text-gray-600 dark:text-neutral-400">Manage your submissions and track progress</p>
                   </div>
-                  <button onClick={() => (navigate("/employee/claims/form"))} className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-red-900 to-[#151E3D] text-white rounded-full hover:from-red-800 hover:to-[#1a2332] transition-all duration-200 shadow-lg transform hover:scale-105">
+                  <button onClick={() => (navigate("/employee/claims/form"))} className="flex items-center space-x-2 px-4 py-2 bg-blue-900 text-white rounded-full transition-all duration-200 shadow-lg transform hover:scale-105">
                      <Plus size={20} />
                      New Claim
                   </button>
@@ -835,7 +835,7 @@ export const EmployeeClaims = () => {
                         placeholder="Search claims by ID, type, or option..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-red-900 focus:border-transparent shadow-sm"
+                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700 rounded-full text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-blue-900 focus:border-transparent shadow-sm"
                      />
                   </div>
                   <div className="flex gap-2">
@@ -844,7 +844,7 @@ export const EmployeeClaims = () => {
                            key={filter}
                            onClick={() => setActiveFilter(filter)}
                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${activeFilter === filter
-                              ? 'bg-red-900 text-white shadow-md'
+                              ? 'bg-blue-900 text-white shadow-md'
                               : 'bg-gray-100 dark:bg-neutral-900 text-gray-700 dark:text-neutral-300 hover:bg-gray-200 dark:hover:bg-neutral-700'
                               }`}
                         >
