@@ -124,19 +124,25 @@ export const NotificationProvider = ({ children }) => {
           break;
           
         case 'NEW_NOTIFICATION':
-          // Check if notification already exists to prevent duplicates
-          const notificationExists = notifications.some(
-            notif => (notif._id || notif.id) === (event.notification._id || event.notification.id)
-          );
-          
-          if (!notificationExists) {
-            // Add new notification to the beginning of the list
-            setNotifications(prev => [event.notification, ...prev]);
-            setUnreadCount(prev => prev + 1);
+          // Use functional state update to check for duplicates with current state
+          setNotifications(prev => {
+            // Check if notification already exists to prevent duplicates
+            const notificationExists = prev.some(
+              notif => (notif._id || notif.id) === (event.notification._id || event.notification.id)
+            );
             
-            // Show success toast or other UI feedback
-            showNotificationToast(event.notification);
-          }
+            if (!notificationExists) {
+              console.log('Adding new notification:', event.notification.id || event.notification._id);
+              // Increment unread count and show toast for new notifications
+              setUnreadCount(prevCount => prevCount + 1);
+              showNotificationToast(event.notification);
+              // Add new notification to the beginning of the list
+              return [event.notification, ...prev];
+            } else {
+              console.log('Duplicate notification detected, skipping:', event.notification.id || event.notification._id);
+              return prev;
+            }
+          });
           break;
           
         case 'NOTIFICATION_READ':
@@ -165,10 +171,13 @@ export const NotificationProvider = ({ children }) => {
             prev.filter(notif => (notif._id || notif.id) !== event.notificationId)
           );
           // Update unread count if deleted notification was unread
-          const deletedNotif = notifications.find(n => (n._id || n.id) === event.notificationId);
-          if (deletedNotif && !deletedNotif.isRead) {
-            setUnreadCount(prev => Math.max(0, prev - 1));
-          }
+          setNotifications(prev => {
+            const deletedNotif = prev.find(n => (n._id || n.id) === event.notificationId);
+            if (deletedNotif && !deletedNotif.isRead) {
+              setUnreadCount(prevCount => Math.max(0, prevCount - 1));
+            }
+            return prev.filter(notif => (notif._id || notif.id) !== event.notificationId);
+          });
           break;
           
         default:
@@ -177,7 +186,7 @@ export const NotificationProvider = ({ children }) => {
     });
 
     return unsubscribe;
-  }, [notifications]);
+  }, []); // Remove notifications dependency
 
   // Cleanup on unmount
   useEffect(() => {

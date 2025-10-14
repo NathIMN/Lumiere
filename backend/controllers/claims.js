@@ -1,8 +1,262 @@
 import Claim from "../models/Claim.js";
 import Policy from "../models/Policy.js";
+import User from "../models/User.js";
+import Notification from "../models/Notification.js";
+import EmailService from "../services/emailService.js";
 import asyncWrapper from "../middleware/async.js";
 import { createCustomError } from "../errors/custom-error.js";
 import { uploadClaimDocument, uploadMultipleClaimDocuments } from "./documentUpload.js";
+import { 
+  sendInAppNotification, 
+  sendCombinedNotification 
+} from "./notifications.js";
+import { socketHandler } from "../server.js";
+
+// Helper function to send claim-related notifications
+const sendClaimNotification = async (userId, notificationType, claim, additionalData = {}) => {
+  try {
+    // Define notification content based on type
+    const notifications = {
+      'claim_submitted': {
+        title: 'Claim Submitted Successfully',
+        message: `Your ${claim.claimType} insurance claim #${claim.claimId} has been submitted and is under review by HR.`,
+        type: 'success',
+        actionButton: {
+          text: 'View Claim',
+          url: `/employee/claims/${claim._id}`
+        }
+      },
+      'claim_forwarded_to_insurer': {
+        title: 'Claim Forwarded to Insurer',
+        message: `${claim.claimType} claim #${claim.claimId} has been forwarded to the insurance agent for review.`,
+        type: 'info',
+        actionButton: {
+          text: 'View Claim',
+          url: `/agent/claims-review/${claim._id}`
+        }
+      },
+      'claim_approved': {
+        title: 'Claim Approved! ✅',
+        message: `Great news! Your ${claim.claimType} claim #${claim.claimId} has been approved${additionalData.approvedAmount ? ` for $${additionalData.approvedAmount.toLocaleString()}` : ''}.`,
+        type: 'success',
+        priority: 'high',
+        actionButton: {
+          text: 'View Claim',
+          url: `/employee/claims/${claim._id}`
+        }
+      },
+      'claim_rejected': {
+        title: 'Claim Rejected',
+        message: `Your ${claim.claimType} claim #${claim.claimId} has been rejected. Please review the details for more information.`,
+        type: 'error',
+        priority: 'high',
+        actionButton: {
+          text: 'View Claim',
+          url: `/employee/claims/${claim._id}`
+        }
+      },
+      'claim_returned_to_employee': {
+        title: 'Additional Information Required',
+        message: `Your ${claim.claimType} claim #${claim.claimId} has been returned. Please provide additional information as requested.`,
+        type: 'warning',
+        priority: 'high',
+        actionButton: {
+          text: 'Update Claim',
+          url: `/employee/claims/${claim._id}`
+        }
+      },
+      'claim_returned_to_hr': {
+        title: 'Claim Returned for Review',
+        message: `${claim.claimType} claim #${claim.claimId} has been returned by the insurance agent for further review.`,
+        type: 'warning',
+        priority: 'medium',
+        actionButton: {
+          text: 'Review Claim',
+          url: `/hr/claims/${claim._id}`
+        }
+      },
+      'new_claim_for_hr': {
+        title: 'New Claim for Review',
+        message: `A new ${claim.claimType} claim #${claim.claimId} has been submitted and requires HR review.`,
+        type: 'info',
+        priority: 'medium',
+        actionButton: {
+          text: 'Review Claim',
+          url: `/hr/claims/${claim._id}`
+        }
+      },
+      'new_claim_for_agent': {
+        title: 'New Claim for Decision',
+        message: `A ${claim.claimType} claim #${claim.claimId} has been forwarded and requires your decision.`,
+        type: 'info',
+        priority: 'medium',
+        actionButton: {
+          text: 'Review Claim',
+          url: `/agent/claims-review/${claim._id}`
+        }
+      }
+    };
+
+    const notification = notifications[notificationType];
+    if (!notification) {
+      console.error(`Unknown notification type: ${notificationType}`);
+      return;
+    }
+
+    // Create notification directly in database
+    const newNotification = await Notification.create({
+      userId,
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      priority: notification.priority || 'medium',
+      category: 'claim',
+      actionButton: notification.actionButton,
+      metadata: {
+        claimId: claim._id,
+        claimNumber: claim.claimId,
+        claimType: claim.claimType,
+        claimStatus: claim.claimStatus,
+        ...additionalData
+      }
+    });
+
+    // Emit real-time notification via Socket.IO if user is connected
+    if (socketHandler && socketHandler.connectedUsers.has(userId.toString())) {
+      console.log(`🔌 User ${userId} is connected, sending real-time notification`);
+      socketHandler.io.to(`user_${userId}`).emit("new_notification", {
+        id: newNotification._id,
+        title: newNotification.title,
+        message: newNotification.message,
+        type: newNotification.type,
+        priority: newNotification.priority,
+        category: newNotification.category,
+        actionButton: newNotification.actionButton,
+        createdAt: newNotification.createdAt,
+      });
+    } else {
+      console.log(`⚠️ User ${userId} is not connected or socketHandler not available`);
+      if (socketHandler) {
+        console.log(`Connected users: ${Array.from(socketHandler.connectedUsers)}`);
+      }
+    }
+
+    // Send email notifications for critical events (employee only)
+    const emailNotificationTypes = [
+      'claim_returned_to_employee',
+      'claim_approved', 
+      'claim_rejected'
+    ];
+
+    if (emailNotificationTypes.includes(notificationType)) {
+      try {
+        // Get user email
+        const user = await User.findById(userId);
+        if (user && user.email) {
+          console.log(`📧 Sending email notification to ${user.email} for ${notificationType}`);
+          
+          // Create email-friendly subject and message
+          let emailSubject = notification.title;
+          let emailMessage = notification.message;
+          
+          // Add more detailed email content
+          if (notificationType === 'claim_approved') {
+            emailSubject = `✅ Insurance Claim Approved - ${claim.claimId}`;
+            emailMessage = `
+Great news! Your ${claim.claimType} insurance claim has been approved.
+
+Claim Details:
+• Claim Number: ${claim.claimId}
+• Claim Type: ${claim.claimType.charAt(0).toUpperCase() + claim.claimType.slice(1)} Insurance
+${additionalData.approvedAmount ? `• Approved Amount: $${additionalData.approvedAmount.toLocaleString()}` : ''}
+
+Next Steps:
+Your payment will be processed and you should receive it within 2-3 business days.
+
+You can view your claim details by logging into your employee dashboard.
+            `;
+          } else if (notificationType === 'claim_rejected') {
+            emailSubject = `❌ Insurance Claim Rejected - ${claim.claimId}`;
+            emailMessage = `
+We regret to inform you that your ${claim.claimType} insurance claim has been rejected.
+
+Claim Details:
+• Claim Number: ${claim.claimId}
+• Claim Type: ${claim.claimType.charAt(0).toUpperCase() + claim.claimType.slice(1)} Insurance
+${additionalData.rejectionReason ? `• Rejection Reason: ${additionalData.rejectionReason}` : ''}
+
+Next Steps:
+Please review the rejection details in your employee dashboard. You may contact HR if you have questions about this decision.
+            `;
+          } else if (notificationType === 'claim_returned_to_employee') {
+            emailSubject = `📋 Additional Information Required - ${claim.claimId}`;
+            emailMessage = `
+Your ${claim.claimType} insurance claim requires additional information.
+
+Claim Details:
+• Claim Number: ${claim.claimId}
+• Claim Type: ${claim.claimType.charAt(0).toUpperCase() + claim.claimType.slice(1)} Insurance
+${additionalData.returnReason ? `• Required Information: ${additionalData.returnReason}` : ''}
+
+Next Steps:
+Please log into your employee dashboard to provide the requested information and resubmit your claim.
+            `;
+          }
+
+          await EmailService.sendNotificationEmail(
+            user.email,
+            emailSubject,
+            emailMessage,
+            {
+              priority: notification.priority || 'medium',
+              actionButton: notification.actionButton
+            }
+          );
+          
+          console.log(`✅ Email sent successfully to ${user.email}`);
+        }
+      } catch (emailError) {
+        console.error(`❌ Failed to send email notification:`, emailError);
+        // Don't throw error - in-app notification should still work
+      }
+    }
+
+    console.log(`✅ Claim notification sent: ${notification.title} to user ${userId}`);
+
+  } catch (error) {
+    console.error('Error sending claim notification:', error);
+  }
+};
+
+// Helper function to notify HR officers about new claims
+const notifyHROfficers = async (claim) => {
+  try {
+    const hrOfficers = await User.find({ role: 'hr_officer' });
+    console.log(`🔍 Found ${hrOfficers.length} HR officers to notify about claim ${claim.claimId}`);
+    
+    for (const hr of hrOfficers) {
+      console.log(`📨 Sending notification to HR officer: ${hr.email} (${hr._id})`);
+      await sendClaimNotification(hr._id, 'new_claim_for_hr', claim);
+    }
+  } catch (error) {
+    console.error('Error notifying HR officers:', error);
+  }
+};
+
+// Helper function to notify insurance agents about new claims
+const notifyInsuranceAgents = async (claim) => {
+  try {
+    const agents = await User.find({ role: 'insurance_agent' });
+    console.log(`🔍 Found ${agents.length} insurance agents to notify about claim ${claim.claimId}`);
+    
+    for (const agent of agents) {
+      console.log(`📨 Sending notification to insurance agent: ${agent.email} (${agent._id})`);
+      await sendClaimNotification(agent._id, 'new_claim_for_agent', claim);
+    }
+  } catch (error) {
+    console.error('Error notifying insurance agents:', error);
+  }
+};
 
 // Create initial draft claim with type and option
 const createClaim = asyncWrapper(async (req, res, next) => {
@@ -175,6 +429,12 @@ const submitClaim = asyncWrapper(async (req, res, next) => {
   try {
     await claim.submitToHR();
 
+    // Send notification to employee confirming submission
+    await sendClaimNotification(claim.employeeId, 'claim_submitted', claim);
+    
+    // Notify all HR officers about new claim
+    await notifyHROfficers(claim);
+
     res.status(200).json({
       success: true,
       message: "Claim submitted to HR successfully",
@@ -221,6 +481,12 @@ const forwardToInsurer = asyncWrapper(async (req, res, next) => {
 
   try {
     await claim.forwardToInsurer(coverageBreakdown, hrNotes, userId);
+
+    // Send notification to employee about forwarding
+    await sendClaimNotification(claim.employeeId, 'claim_forwarded_to_insurer', claim);
+    
+    // Notify all insurance agents about new claim
+    await notifyInsuranceAgents(claim);
 
     res.status(200).json({
       success: true,
@@ -350,6 +616,17 @@ const makeDecision = asyncWrapper(async (req, res, next) => {
       await policy.save();
     }
 
+    // Send notification to employee about claim decision
+    if (status === "approved") {
+      await sendClaimNotification(claim.employeeId, 'claim_approved', claim, { 
+        approvedAmount 
+      });
+    } else {
+      await sendClaimNotification(claim.employeeId, 'claim_rejected', claim, { 
+        rejectionReason 
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: `Claim ${status} successfully`,
@@ -393,6 +670,21 @@ const returnClaim = asyncWrapper(async (req, res, next) => {
     await claim.returnToPreviousStage(returnReason, userId);
 
     const nextStage = claim.claimStatus === "employee" ? "employee" : "hr";
+
+    // Send notification based on where the claim is being returned
+    if (nextStage === "employee") {
+      await sendClaimNotification(claim.employeeId, 'claim_returned_to_employee', claim, { 
+        returnReason 
+      });
+    } else if (nextStage === "hr") {
+      // Find the HR officer who originally forwarded it (if available) or notify all HR officers
+      const hrOfficers = await User.find({ role: 'hr_officer' });
+      for (const hr of hrOfficers) {
+        await sendClaimNotification(hr._id, 'claim_returned_to_hr', claim, { 
+          returnReason 
+        });
+      }
+    }
 
     res.status(200).json({
       success: true,

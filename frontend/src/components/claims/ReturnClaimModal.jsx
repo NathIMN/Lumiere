@@ -287,7 +287,7 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
           )}
 
           {/* Debug Information for Development */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* {process.env.NODE_ENV === 'development' && (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-2">
                 Debug Information (Development Only)
@@ -301,7 +301,7 @@ export const ReturnClaimModal = ({ claim, onClose, onSuccess }) => {
                 <p>Return Reason Length: {returnReason.trim().length}</p>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
