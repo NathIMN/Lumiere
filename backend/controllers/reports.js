@@ -427,13 +427,15 @@ const generateEmployeeClaimsSummaryReport = asyncHandler(async (req, res) => {
     dateTo, 
     status,
     claimType,
+    claimOption,
+    search, 
     format = 'pdf' 
   } = req.query;
   const employeeId = req.user.userId || req.user.id;
 
   console.log('generateEmployeeClaimsSummaryReport called:');
   console.log('employeeId:', employeeId);
-  console.log('filters:', { dateFrom, dateTo, status, claimType });
+  console.log('filters:', { dateFrom, dateTo, status, claimType, claimOption, search });
 
   // Validate query parameters
   if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
@@ -445,7 +447,9 @@ const generateEmployeeClaimsSummaryReport = asyncHandler(async (req, res) => {
     dateFrom: dateFrom ? new Date(dateFrom) : null,
     dateTo: dateTo ? new Date(dateTo) : null,
     status,
-    claimType
+    claimType,
+    claimOption,
+    search   
   };
 
   const reportData = await reportsService.generateEmployeeClaimsSummaryReport(filters);

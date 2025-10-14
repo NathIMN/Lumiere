@@ -1113,7 +1113,7 @@ async loadLogo() {
         currentYear: new Date().getFullYear(),
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
-        theme: this.getReportTheme('claims'),
+        theme: this.getReportTheme('default'),
         ...reportData
       };
 
@@ -1137,14 +1137,31 @@ async loadLogo() {
       console.log('Initial employeeId query:', query);
       console.log('Employee ID type:', typeof filters.employeeId);
 
+      // ✅ Add status filter
       if (filters.status) {
         query.claimStatus = filters.status;
       }
 
+      // ✅ Add claim type filter
       if (filters.claimType) {
         query.claimType = filters.claimType;
       }
 
+      // ✅ Add claim option filter (works for both life and vehicle claims)
+      if (filters.claimOption) {
+        query.$or = [
+          { claimOption: filters.claimOption },
+          { lifeClaimOption: filters.claimOption },
+          { vehicleClaimOption: filters.claimOption }
+        ];
+      }
+
+      // ✅ Add search filter (search by claim ID)
+      if (filters.search) {
+        query.claimId = { $regex: filters.search, $options: 'i' }; // Case-insensitive substring match
+      }
+
+      // ✅ Add date range filter if provided
       if (filters.dateFrom && filters.dateTo) {
         query.createdAt = {
           $gte: filters.dateFrom,
@@ -1164,10 +1181,12 @@ async loadLogo() {
       console.log('Sample claim:', claims[0] ? {
         claimId: claims[0].claimId,
         employeeId: claims[0].employeeId,
-        claimStatus: claims[0].claimStatus
+        claimStatus: claims[0].claimStatus,
+        claimType: claims[0].claimType,
+        claimOption: claims[0].claimOption || claims[0].lifeClaimOption || claims[0].vehicleClaimOption
       } : 'No claims found');
 
-      // If no claims found, try alternative queries
+      // If no claims found, try alternative queries for debugging
       if (claims.length === 0) {
         console.log('No claims found, trying alternative queries...');
         
@@ -1294,7 +1313,7 @@ async loadLogo() {
         currentYear: new Date().getFullYear(),
         timestamp: moment().format('MMMM DD, YYYY [at] h:mm A'),
         logoBase64: logoBase64,
-        theme: this.getReportTheme('claims'),
+        theme: this.getReportTheme('default'),
         summary: [
           { label: 'Total Claims', value: reportData.summary.totalClaims },
           { label: 'Approved Claims', value: reportData.summary.approvedClaims },
@@ -1489,18 +1508,6 @@ async loadLogo() {
         reportTitle: reportData.reportTitle,
         reportSubtitle: `Generated on ${new Date(reportData.generatedAt).toLocaleDateString()}`,
         generatedBy: reportData.generatedBy,
-        generatedDate: new Date(reportData.generatedAt).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        reportPeriod: reportData.reportPeriod || 'All Time',
-        totalRecords: reportData.documents ? reportData.documents.length : 0,
-        reportType: reportData.reportType || 'Document Analytics',
-        currentYear: new Date().getFullYear(),
-        timestamp: new Date().toISOString(),
         generatedAt: reportData.generatedAt,
         appliedFilters: reportData.appliedFilters,
         logoBase64: logoBase64,

@@ -10,7 +10,7 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
             h-[calc(100vh-2rem)] 
             bg-white dark:bg-neutral-900
             border-2
-            text-red-900 dark:text-gray-100 shadow-xl dark:shadow-black/20
+            text-[#002B5C] dark:text-gray-100 shadow-xl dark:shadow-black/20
             transition-[width] duration-700 ease-in-out z-50 flex flex-col
             rounded-xl
             ${isCollapsed ? "w-20" : "w-64"}
@@ -33,7 +33,7 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
                className="p-1 rounded-lg hover:bg-white dark:hover:bg-neutral-800 transition-colors"
             >
                <Menu
-                  className={`w-8 h-8 text-red-900 hover:text-black dark:text-gray-400 transform transition-transform duration-300 ${
+                  className={`w-8 h-8 text-[#002B5C] hover:text-black dark:text-gray-400 transform transition-transform duration-300 ${
                      isCollapsed ? "rotate-90" : "rotate-0"
                   }`}
                />
@@ -52,8 +52,8 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
                            to={link.path}
                            className={({ isActive }) => {
                               const activeStyles = isActive
-                                 ? "p-4 text-dark text-white dark:text-white shadow-sm dark:shadow-black/10"
-                                 : "text-grey-900 dark:text-gray400 hover:bg-gray-100 dark:hover:bg-neutral-800 hover:text-gray-900 dark:hover:text-gray-200";
+                                 ? "p-4 text-white dark:text-white shadow-sm dark:shadow-black/10"
+                                 : " dark:text-gray400 hover:bg-[#1E88E530] dark:hover:bg-neutral-800 hover:text-gray-900 dark:hover:text-gray-200";
 
                               return `flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group ${activeStyles}`;
                            }}
@@ -96,7 +96,7 @@ export const SideBar = ({ links, toggleSidebar, isCollapsed, color }) => {
          {!isCollapsed && (
             <div className="p-4 border-t border-gray-200 dark:border-neutral-700">
                <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-                  Powered by <span className="font-semibold text-red-900 dark:text-gray-300">Lumiere.inc</span>
+                  Powered by <span className="font-semibold text-[#0A2342] dark:text-gray-300">Lumiere.inc</span>
                </p>
             </div>
          )}
