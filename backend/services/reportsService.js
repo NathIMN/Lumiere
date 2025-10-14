@@ -1489,6 +1489,18 @@ async loadLogo() {
         reportTitle: reportData.reportTitle,
         reportSubtitle: `Generated on ${new Date(reportData.generatedAt).toLocaleDateString()}`,
         generatedBy: reportData.generatedBy,
+        generatedDate: new Date(reportData.generatedAt).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        reportPeriod: reportData.reportPeriod || 'All Time',
+        totalRecords: reportData.documents ? reportData.documents.length : 0,
+        reportType: reportData.reportType || 'Document Analytics',
+        currentYear: new Date().getFullYear(),
+        timestamp: new Date().toISOString(),
         generatedAt: reportData.generatedAt,
         appliedFilters: reportData.appliedFilters,
         logoBase64: logoBase64,

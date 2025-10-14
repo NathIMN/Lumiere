@@ -85,6 +85,7 @@ const streamMessage = asyncWrapper(async (req, res) => {
 
 // Formalize a message to make it professional
 const formalizeMessage = asyncWrapper(async (req, res) => {
+    console.log("formalize called lmfao");
     const { message } = req.body;
 
     if (!message || !message.trim()) {

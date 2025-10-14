@@ -103,6 +103,14 @@ export const AdminPolicies = () => {
     try {
       setLoading(true);
       
+      // Load insurance agents first if not already loaded
+      let agents = insuranceAgents;
+      if (agents.length === 0) {
+        const agentsResponse = await userApiService.getUsersByRole("insurance_agent");
+        agents = agentsResponse.users || [];
+        setInsuranceAgents(agents);
+      }
+      
       // Prepare backend query parameters (exclude search, handle it client-side)
       const { search, ...backendFilters } = filters;
       const queryParams = {
@@ -114,6 +122,50 @@ export const AdminPolicies = () => {
       // Load policies with filters (excluding search)
       const policiesResponse = await insuranceApiService.getPolicies(queryParams);
       let filteredPolicies = policiesResponse.policies || [];
+      
+      console.log('🔍 Debug: Raw policies before mapping:', filteredPolicies.length);
+      console.log('🔍 Debug: First policy agent field:', filteredPolicies[0]?.insuranceAgent);
+      console.log('🔍 Debug: Available agents for mapping:', agents.map(a => ({ id: a._id, name: `${a.profile?.firstName} ${a.profile?.lastName}` })));
+      
+      // Map agent information to policies
+      filteredPolicies = filteredPolicies.map((policy, index) => {
+        console.log(`🔍 Debug: Policy ${index} (${policy.policyId}) - Agent before mapping:`, policy.insuranceAgent);
+        
+        if (policy.insuranceAgent) {
+          let agentId;
+          
+          // Get agent ID whether it's a string or object
+          if (typeof policy.insuranceAgent === 'string') {
+            agentId = policy.insuranceAgent;
+          } else if (typeof policy.insuranceAgent === 'object' && policy.insuranceAgent._id) {
+            agentId = policy.insuranceAgent._id;
+          }
+          
+          console.log(`🔍 Debug: Policy ${index} - Looking for agent ID:`, agentId);
+          
+          // Find the full agent object with profile data
+          if (agentId) {
+            const agentData = agents.find(agent => agent._id === agentId);
+            console.log(`🔍 Debug: Policy ${index} - Found agent:`, agentData ? { 
+              id: agentData._id, 
+              name: `${agentData.profile?.firstName} ${agentData.profile?.lastName}`,
+              hasProfile: !!agentData.profile
+            } : 'NOT FOUND');
+            
+            if (agentData) {
+              // Replace with the full agent object that has profile data
+              policy.insuranceAgent = agentData;
+            }
+          }
+        }
+        
+        console.log(`🔍 Debug: Policy ${index} - Agent after mapping:`, policy.insuranceAgent?.profile ? {
+          name: `${policy.insuranceAgent.profile.firstName} ${policy.insuranceAgent.profile.lastName}`,
+          hasProfile: true
+        } : 'NO PROFILE DATA');
+        
+        return policy;
+      });
       
       // Apply client-side search filter with specific matching rules
       if (search) {
@@ -159,12 +211,6 @@ export const AdminPolicies = () => {
         total: search ? filteredPolicies.length : policiesResponse.totalPolicies,
         pages: search ? Math.ceil(filteredPolicies.length / pagination.limit) : policiesResponse.totalPages
       }));
-      
-      // Load insurance agents if not already loaded
-      if (insuranceAgents.length === 0) {
-        const agentsResponse = await userApiService.getUsers({ role: 'insurance_agent' });
-        setInsuranceAgents(agentsResponse.users || []);
-      }
       
       // Load statistics
       const statsResponse = await insuranceApiService.getPolicyStatistics();
@@ -1100,10 +1146,43 @@ export const AdminPolicies = () => {
                             </div>
                             <div className="ml-3">
                               <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {policy.insuranceAgent?.profile?.firstName} {policy.insuranceAgent?.profile?.lastName}
+                                {(() => {
+                                  const agent = policy.insuranceAgent;
+                                  if (!agent) return 'No Agent Assigned';
+                                  
+                                  console.log('🎯 Debug: Agent object:', agent);
+                                  console.log('🎯 Debug: Agent profile:', agent.profile);
+                                  
+                                  // The profile data exists directly on the agent object
+                                  const firstName = agent.profile?.firstName;
+                                  const lastName = agent.profile?.lastName;
+                                  
+                                  console.log('🎯 Debug: Name fields:', { firstName, lastName });
+                                  
+                                  if (firstName || lastName) {
+                                    return `${firstName || ''} ${lastName || ''}`.trim();
+                                  }
+                                  
+                                  // Fallback to fullName if available
+                                  if (agent.fullName && agent.fullName.trim()) {
+                                    return agent.fullName.trim();
+                                  }
+                                  
+                                  // Last resort: extract name from email
+                                  if (agent.email) {
+                                    const emailPart = agent.email.split('@')[0];
+                                    const name = emailPart
+                                      .split(/[._-]/)
+                                      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                                      .join(' ');
+                                    return name || 'Insurance Agent';
+                                  }
+                                  
+                                  return 'Insurance Agent';
+                                })()}
                               </div>
                               <div className="text-sm text-gray-500 dark:text-gray-400">
-                                {policy.insuranceAgent?.email}
+                                {policy.insuranceAgent?.email || 'No email available'}
                               </div>
                             </div>
                           </div>
@@ -1336,7 +1415,7 @@ export const AdminPolicies = () => {
                     <option value="">Select Insurance Agent</option>
                     {insuranceAgents.map(agent => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.profile?.firstName} {agent.profile?.lastName} | {agent.email}
+                        {agent.profile?.firstName} {agent.profile?.lastName} - {agent.email}
                       </option>
                     ))}
                   </select>
@@ -1686,7 +1765,7 @@ export const AdminPolicies = () => {
                   >
                     {insuranceAgents.map(agent => (
                       <option key={agent._id} value={agent._id}>
-                        {agent.profile?.firstName} {agent.profile?.lastName} | {agent.email}
+                        {agent.profile?.firstName} {agent.profile?.lastName} - {agent.email}
                       </option>
                     ))}
                   </select>

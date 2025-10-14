@@ -635,7 +635,7 @@ const DocumentPool = () => {
       
       // Show success message
       const reportTitle = reportType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
-      alert(`${reportTitle} PDF report generated successfully!\n\nReport details:\n• ${documents.length} documents included\n• Professional PDF format\n• Comprehensive analytics\n• Category breakdowns\n• Verification status\n\nThe PDF report has been downloaded.`);
+      //alert(`${reportTitle} PDF report generated successfully!\n\nReport details:\n• ${documents.length} documents included\n• Professional PDF format\n• Comprehensive analytics\n• Category breakdowns\n• Verification status\n\nThe PDF report has been downloaded.`);
       
     } catch (error) {
       console.error('Error generating document report:', error);

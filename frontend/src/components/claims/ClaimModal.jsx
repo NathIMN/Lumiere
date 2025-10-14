@@ -1,10 +1,12 @@
 /* eslint-disable no-unused-vars */
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import documentApiService from "../../services/document-api";
+import geminiApiService from "../../services/gemini-api";
 import {
   X, User, FileText, Coins, Calendar, Shield, ArrowRight, ArrowLeft,
   CheckCircle, XCircle, Clock, Download, ChevronDown, ChevronUp, MessageSquare,
-  AlertCircle, Info, Eye, History, Package, Send,
+  AlertCircle, Info, Eye, History, Package, Send, Paperclip, FileImage, FileCode,
+  Sparkles,
 } from "lucide-react";
 
 export const ClaimModal = ({
@@ -13,8 +15,122 @@ export const ClaimModal = ({
   const [expandedSections, setExpandedSections] = useState({});
   const [selectedTab, setSelectedTab] = useState("overview");
   const [downloadingDocs, setDownloadingDocs] = useState(new Set());
+  const [claimDocuments, setClaimDocuments] = useState([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(false);
+  const [ocrResults, setOcrResults] = useState({});
+  const [extractingOcr, setExtractingOcr] = useState(new Set());
+  const [reformattingText, setReformattingText] = useState(new Set());
 console.log("here : ",claim)
   if (!claim) return null;
+
+  // Fetch claim documents when modal opens
+  useEffect(() => {
+    if (claim && claim._id) {
+      fetchClaimDocuments();
+    }
+  }, [claim._id]);
+
+  const fetchClaimDocuments = async () => {
+    setLoadingDocuments(true);
+    try {
+      // Get documents by reference to the claim
+      const response = await documentApiService.getDocumentsByReference('claim', claim._id);
+      if (response.success && response.documents) {
+        setClaimDocuments(response.documents);
+      } else {
+        setClaimDocuments([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch claim documents:', error);
+      setClaimDocuments([]);
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
+
+  const extractTextFromDocument = async (documentId) => {
+    setExtractingOcr(prev => new Set([...prev, documentId]));
+    try {
+      const response = await documentApiService.extractTextFromDocument(documentId);
+      if (response.success && response.extractedText) {
+        setOcrResults(prev => ({
+          ...prev,
+          [documentId]: response.extractedText
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to extract text from document:', error);
+      setOcrResults(prev => ({
+        ...prev,
+        [documentId]: 'Failed to extract text from this document.'
+      }));
+    } finally {
+      setExtractingOcr(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentId);
+        return newSet;
+      });
+    }
+  };
+
+  const reformatExtractedText = async (documentId, documentType = 'claim_document') => {
+    const extractedText = ocrResults[documentId];
+    if (!extractedText || extractedText === 'Failed to extract text from this document.') {
+      console.warn('No valid extracted text to reformat');
+      return;
+    }
+
+    setReformattingText(prev => new Set([...prev, documentId]));
+    try {
+      const response = await geminiApiService.reformatOCRText(extractedText, documentType);
+      if (response.success && response.reformatted) {
+        // Update the main OCR results with the reformatted text
+        setOcrResults(prev => ({
+          ...prev,
+          [documentId]: response.reformatted
+        }));
+      } else {
+        // Even if not successful, try to use the fallback result
+        if (response.reformatted && response.reformatted !== extractedText) {
+          setOcrResults(prev => ({
+            ...prev,
+            [documentId]: response.reformatted
+          }));
+        } else {
+          console.warn('Reformatting did not improve the text');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to reformat extracted text:', error);
+      // Don't update OCR results if reformatting fails completely
+    } finally {
+      setReformattingText(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentId);
+        return newSet;
+      });
+    }
+  };
+
+  const getDocumentIcon = (mimeType) => {
+    if (mimeType?.includes('image/')) {
+      return <FileImage className="h-5 w-5 text-blue-600" />;
+    } else if (mimeType?.includes('pdf')) {
+      return <FileText className="h-5 w-5 text-red-600" />;
+    } else if (mimeType?.includes('text/')) {
+      return <FileCode className="h-5 w-5 text-green-600" />;
+    } else {
+      return <Paperclip className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return "Not set";
@@ -25,8 +141,11 @@ console.log("here : ",claim)
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return "Rs. 0";
-    return `Rs. ${amount.toLocaleString("en-LK")}`;
+    if (!amount) return "LKR 0";
+    return new Intl.NumberFormat('en-LK', {
+      style: 'currency',
+      currency: 'LKR'
+    }).format(amount);
   };
 
   const calculateDaysInSystem = (submittedDate) => {
@@ -260,6 +379,7 @@ console.log("here : ",claim)
   const tabs = [
     { id: "overview", label: "Overview", icon: Eye },
     { id: "questionnaire", label: "Questionnaire", icon: FileText },
+    { id: "documents", label: "Documents", icon: Paperclip },
     { id: "history", label: "Activity", icon: History },
   ];
 
@@ -513,6 +633,144 @@ console.log("here : ",claim)
                   <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Questionnaire Data</h3>
                   <p className="text-gray-600 dark:text-gray-400">No questionnaire responses are available for this claim.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Documents Tab */}
+          {selectedTab === "documents" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+                  Claim Documents
+                </h3>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {claimDocuments.length} document{claimDocuments.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {loadingDocuments ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  <span className="ml-3 text-gray-600 dark:text-gray-400">Loading documents...</span>
+                </div>
+              ) : claimDocuments.length === 0 ? (
+                <div className="text-center py-12">
+                  <Paperclip className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Documents Found</h3>
+                  <p className="text-gray-600 dark:text-gray-400">No documents have been uploaded for this claim yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {claimDocuments.map((doc) => (
+                    <div key={doc._id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      {/* Document Header */}
+                      <div className="bg-gray-50 dark:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {getDocumentIcon(doc.mimeType)}
+                            <div>
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                {doc.originalName || doc.filename}
+                              </h4>
+                              <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span>{formatFileSize(doc.size)}</span>
+                                <span>{doc.docType?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                                <span>{formatDate(doc.uploadedAt || doc.createdAt)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleViewDocument(doc)}
+                              className="flex items-center space-x-1 px-3 py-1 text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/40 rounded-lg transition-colors"
+                            >
+                              <Eye className="h-4 w-4" />
+                              <span>View</span>
+                            </button>
+                            <button
+                              onClick={() => handleDownloadDocument(doc)}
+                              disabled={downloadingDocs.has(doc._id)}
+                              className="flex items-center space-x-1 px-3 py-1 text-sm bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-800/40 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {downloadingDocs.has(doc._id) ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                              <span>Download</span>
+                            </button>
+                            <button
+                              onClick={() => extractTextFromDocument(doc._id)}
+                              disabled={extractingOcr.has(doc._id)}
+                              className="flex items-center space-x-1 px-3 py-1 text-sm bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-800/40 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {extractingOcr.has(doc._id) ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                              ) : (
+                                <FileCode className="h-4 w-4" />
+                              )}
+                              <span>Extract Text</span>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Document Description */}
+                        {doc.metadata?.description && (
+                          <div className="mt-3 pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              <span className="font-medium">Description:</span> {doc.metadata.description}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* OCR Results */}
+                      {ocrResults[doc._id] && (
+                        <div className="p-4 bg-white dark:bg-gray-800">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center space-x-2">
+                              <FileCode className="h-5 w-5 text-purple-600" />
+                              <h5 className="font-medium text-gray-900 dark:text-white">Extracted Text</h5>
+                              {reformattingText.has(doc._id) && (
+                                <span className="text-xs text-purple-600 bg-purple-100 dark:bg-purple-900/20 px-2 py-1 rounded-full">
+                                  ✨ AI Reformatting...
+                                </span>
+                              )}
+                            </div>
+                            {/* Reformat Button */}
+                            {ocrResults[doc._id] !== 'Failed to extract text from this document.' && (
+                              <button
+                                onClick={() => reformatExtractedText(doc._id, doc.docType)}
+                                disabled={reformattingText.has(doc._id)}
+                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {reformattingText.has(doc._id) ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                                    <span>Reformatting...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    <span>Reformat</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                          
+                          {/* Single Text Display */}
+                          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 max-h-64 overflow-y-auto">
+                            <div className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                              {ocrResults[doc._id]}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

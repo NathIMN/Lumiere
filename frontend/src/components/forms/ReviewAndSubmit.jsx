@@ -16,6 +16,7 @@ export const ReviewAndSubmit = ({
    const [errors, setErrors] = useState({});
    const [finalConsent, setFinalConsent] = useState(false);
    const [showSuccessModal, setShowSuccessModal] = useState(false);
+   const [uploadingDocuments, setUploadingDocuments] = useState(false);
    const navigate = useNavigate();
 
    const MAX_AMOUNT = 10000000;
@@ -92,15 +93,49 @@ const MIN_AMOUNT = 0;
       setErrors({});
 
       try {
-         // For now, we'll handle additional documents properly
-         // TODO: Upload additional documents and get their IDs
+         // Handle additional documents upload
          let documentIds = [];
 
          if (additionalDocuments.length > 0) {
             console.log('Additional documents to upload:', additionalDocuments);
-            // For now, we'll skip file uploads and just submit without additional documents
-            // In a full implementation, you would upload files here and get their ObjectIds
-            console.warn('File upload not implemented in ReviewAndSubmit - skipping additional documents');
+            setUploadingDocuments(true);
+            
+            try {
+               // Upload additional documents to the claim
+               if (additionalDocuments.length === 1) {
+                  // Single document upload
+                  const file = additionalDocuments[0];
+                  const uploadResponse = await InsuranceApiService.uploadClaimDocument(claimId, file, {
+                     docType: 'supporting',
+                     description: 'Additional supporting document uploaded during claim submission'
+                  });
+                  
+                  if (uploadResponse.success && uploadResponse.document) {
+                     documentIds.push(uploadResponse.document._id);
+                     console.log('Successfully uploaded single document:', uploadResponse.document._id);
+                  }
+               } else {
+                  // Multiple documents upload
+                  const files = additionalDocuments;
+                  const docTypes = additionalDocuments.map(() => 'supporting');
+                  
+                  const uploadResponse = await InsuranceApiService.uploadMultipleClaimDocuments(claimId, files, {
+                     docTypes,
+                     description: 'Additional supporting documents uploaded during claim submission'
+                  });
+                  
+                  if (uploadResponse.success && uploadResponse.documents) {
+                     documentIds = uploadResponse.documents.map(doc => doc._id);
+                     console.log('Successfully uploaded multiple documents:', documentIds);
+                  }
+               }
+            } catch (uploadError) {
+               console.error('Failed to upload additional documents:', uploadError);
+               setUploadingDocuments(false);
+               throw new Error(`Failed to upload additional documents: ${uploadError.message}`);
+            } finally {
+               setUploadingDocuments(false);
+            }
          }
 
          const submissionData = {
@@ -378,10 +413,15 @@ const MIN_AMOUNT = 0;
                <div className="flex justify-center pt-6">
                   <button
                      onClick={handleFinalSubmit}
-                     disabled={submitting || !finalConsent || !claimAmount}
+                     disabled={submitting || uploadingDocuments || !finalConsent || !claimAmount}
                      className="bg-green-600 text-white px-12 py-4 rounded-xl hover:bg-green-700 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 shadow-lg hover:shadow-xl"
                   >
-                     {submitting ? (
+                     {uploadingDocuments ? (
+                        <>
+                           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                           Uploading Documents...
+                        </>
+                     ) : submitting ? (
                         <>
                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                            Submitting Claim...

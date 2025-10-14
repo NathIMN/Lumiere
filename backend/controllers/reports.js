@@ -2,6 +2,8 @@ import asyncHandler from '../middleware/async.js';
 import reportsService from '../services/reportsService.js';
 import { StatusCodes } from 'http-status-codes';
 import { createCustomError } from '../errors/custom-error.js';
+import User from '../models/User.js';
+import mongoose from 'mongoose';
 
 /**
  * @desc    Generate User Profiles Report
@@ -513,6 +515,40 @@ const generateDocumentsReport = asyncHandler(async (req, res) => {
     });
   }
 
+  // Extract all unique user IDs from uploadedBy fields (including invalid ones)
+  const allUploaderIds = [...new Set(documents
+    .map(doc => doc.uploadedBy)
+    .filter(id => id) // Keep all non-empty IDs
+  )];
+
+  // Separate valid and invalid ObjectIds
+  const validUploaderIds = allUploaderIds.filter(id => mongoose.Types.ObjectId.isValid(id));
+  const invalidUploaderIds = allUploaderIds.filter(id => !mongoose.Types.ObjectId.isValid(id));
+
+  // Fetch user data for valid IDs
+  const users = await User.find({ 
+    _id: { $in: validUploaderIds } 
+  }).select('_id profile.firstName profile.lastName email');
+
+  // Create a lookup map for user names
+  const userLookup = users.reduce((acc, user) => {
+    const fullName = `${user.profile.firstName} ${user.profile.lastName}`.trim();
+    acc[user._id.toString()] = fullName || user.email || 'Unknown User';
+    return acc;
+  }, {});
+
+  // Add entries for invalid IDs
+  invalidUploaderIds.forEach(id => {
+    userLookup[id] = 'Deleted User';
+  });
+
+  // Add entries for valid IDs that don't have corresponding users (deleted users)
+  validUploaderIds.forEach(id => {
+    if (!userLookup[id]) {
+      userLookup[id] = 'Deleted User';
+    }
+  });
+
   // Process the documents data
   const processedDocuments = documents.map(doc => ({
     name: doc.name || doc.originalName || 'Unknown',
@@ -522,7 +558,7 @@ const generateDocumentsReport = asyncHandler(async (req, res) => {
     sizeFormatted: formatFileSize(doc.size || 0),
     status: doc.status || 'Unknown',
     isVerified: doc.isVerified || false,
-    uploadedBy: doc.uploadedBy || 'Unknown',
+    uploadedBy: userLookup[doc.uploadedBy] || doc.uploadedBy || 'Unknown',
     uploadedByRole: doc.uploadedByRole || 'Unknown',
     createdAt: doc.createdAt || new Date(),
     updatedAt: doc.updatedAt || new Date(),
@@ -550,26 +586,68 @@ const generateDocumentsReport = asyncHandler(async (req, res) => {
     roleBreakdown: processedDocuments.reduce((acc, doc) => {
       acc[doc.uploadedByRole] = (acc[doc.uploadedByRole] || 0) + 1;
       return acc;
-    }, {})
+    }, {}),
+    // Calculate size breakdowns
+    categorySizeBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.category] = (acc[doc.category] || 0) + (doc.size || 0);
+      return acc;
+    }, {}),
+    typeSizeBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.type] = (acc[doc.type] || 0) + (doc.size || 0);
+      return acc;
+    }, {}),
+    roleSizeBreakdown: processedDocuments.reduce((acc, doc) => {
+      acc[doc.uploadedByRole] = (acc[doc.uploadedByRole] || 0) + (doc.size || 0);
+      return acc;
+    }, {}),
+    // Calculate average size breakdowns
+    typeAvgSizeBreakdown: {}
   };
+
+  // Calculate average sizes by type
+  Object.keys(summary.typeBreakdown).forEach(type => {
+    const count = summary.typeBreakdown[type];
+    const totalSize = summary.typeSizeBreakdown[type] || 0;
+    summary.typeAvgSizeBreakdown[type] = count > 0 ? totalSize / count : 0;
+  });
+
+  // Format all size values to human readable format
+  summary.categorySizeBreakdownFormatted = {};
+  Object.keys(summary.categorySizeBreakdown).forEach(category => {
+    summary.categorySizeBreakdownFormatted[category] = formatFileSize(summary.categorySizeBreakdown[category]);
+  });
+
+  summary.typeAvgSizeBreakdownFormatted = {};
+  Object.keys(summary.typeAvgSizeBreakdown).forEach(type => {
+    summary.typeAvgSizeBreakdownFormatted[type] = formatFileSize(summary.typeAvgSizeBreakdown[type]);
+  });
+
+  summary.roleSizeBreakdownFormatted = {};
+  Object.keys(summary.roleSizeBreakdown).forEach(role => {
+    summary.roleSizeBreakdownFormatted[role] = formatFileSize(summary.roleSizeBreakdown[role]);
+  });
 
   summary.verificationRate = summary.totalDocuments > 0 ? 
     ((summary.verifiedCount / summary.totalDocuments) * 100).toFixed(1) : 0;
   summary.totalSizeFormatted = formatFileSize(summary.totalSize);
 
+  // Get user's full name for report attribution
+  const generatedBy = req.user ? 
+    (() => {
+      const firstName = req.user.profile?.firstName || req.user.firstName || '';
+      const lastName = req.user.profile?.lastName || req.user.lastName || '';
+      return `${firstName} ${lastName}`.trim() || req.user.email || 'Unknown User';
+    })() :
+    'System Administrator';
+
   const reportData = {
     reportTitle: getDocumentReportTitle(reportType),
     reportType,
+    reportPeriod: determineReportPeriod(filters),
     summary,
     documents: processedDocuments,
     filters,
-    generatedBy: req.user ? 
-      (() => {
-        const firstName = req.user.firstName || '';
-        const lastName = req.user.lastName || '';
-        return `${firstName} ${lastName}`.trim() || req.user.email || 'Unknown User';
-      })() :
-      'System Administrator',
+    generatedBy,
     generatedAt: new Date().toISOString(),
     appliedFilters: Object.entries(filters).filter(([k,v]) => v && v !== '').map(([k,v]) => `${k}=${v}`).join(', ') || 'None'
   };
@@ -611,6 +689,20 @@ const getDocumentReportTitle = (reportType) => {
     'verification-summary': 'Document Verification Summary Report'
   };
   return titles[reportType] || 'Document Management Report';
+};
+
+// Helper function to determine report period from filters
+const determineReportPeriod = (filters) => {
+  if (filters.dateFrom && filters.dateTo) {
+    const from = new Date(filters.dateFrom).toLocaleDateString();
+    const to = new Date(filters.dateTo).toLocaleDateString();
+    return `${from} - ${to}`;
+  } else if (filters.dateFrom) {
+    return `From ${new Date(filters.dateFrom).toLocaleDateString()}`;
+  } else if (filters.dateTo) {
+    return `Until ${new Date(filters.dateTo).toLocaleDateString()}`;
+  }
+  return 'All Time';
 };
 
 export {
