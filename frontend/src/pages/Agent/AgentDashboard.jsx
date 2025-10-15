@@ -11,7 +11,7 @@ export const AgentDashboard = () => {
     { path: '/agent/questionnaires', label: 'Questionnaires', icon: HelpCircle },
   ];
 
-const color = "#800020";
+const color = "#1E88E5";
 
    const [isDark, setIsDark] = useState(false);
    const [isCollapsed, setIsCollapsed] = useState(false);

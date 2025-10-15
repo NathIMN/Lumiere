@@ -1,30 +1,136 @@
-{{!-- {{#if summary}}
-<div class="table-section">
-    <h2 class="table-title">Claims Summary</h2>
-    <div class="summary-cards">
-        {{#each summary}}
-        <div class="summary-card">
-            <h4>{{label}}</h4>
-            <div class="value">{{value}}</div>
-        </div>
-        {{/each}}
+{{!-- Combined Employee Profile and Summary Section --}}
+    {{!-- Employee Information Table --}}
+    <div class="table-section" style="margin-bottom: 20px;">
+        <h2 class="table-title">Employee Profile</h2>
+        <table class="data-table" style="width: 60%; margin: 0 auto;">
+            <tbody>
+                <tr>
+                    <td style="font-weight: 600; background: var(--header-bg); width: 40%;">Employee ID</td>
+                    <td class="id-col">{{employee.userId}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 600; background: var(--header-bg);">Full Name</td>
+                    <td class="name-col">{{employee.fullName}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 600; background: var(--header-bg);">Email</td>
+                    <td class="email-col">{{employee.email}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 600; background: var(--header-bg);">Department</td>
+                    <td>{{employee.department}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 600; background: var(--header-bg);">Designation</td>
+                    <td>{{employee.designation}}</td>
+                </tr>
+                <tr>
+                    <td style="font-weight: 600; background: var(--header-bg);">Status</td>
+                    <td><span class="status {{employee.status}}">{{employee.status}}</span></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
-</div>
-{{/if}} --}}
 
-<div class="table-section large-table cols-9">
+
+
+    {{!-- Summary Cards --}}
+    <div class="table-section" style="margin-bottom: 30px;">
+        <h2 class="table-title">Claims Overview</h2>
+        <div class="summary-cards">
+            {{#each summary}}
+            <div class="summary-card">
+                <h4>{{label}}</h4>
+                <div class="value">{{value}}</div>
+            </div>
+            {{/each}}
+        </div>
+    </div>
+
+
+
+{{!-- Active Policies Section --}}
+{{#if policies}}
+<div class="table-section">
+    <h2 class="table-title">My Insurance Policies</h2>
+    <table class="data-table cols-7">
+        <thead>
+            <tr>
+                <th>Policy ID</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th class="currency">Coverage</th>
+                <th>Premium</th>
+                <th>Agent</th>
+                <th class="numeric">Claims</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each policies}}
+            <tr>
+                <td class="id-col">{{policyId}}</td>
+                <td>{{policyType}}</td>
+                <td><span class="status {{status}}">{{status}}</span></td>
+                <td class="currency">Rs. {{formatCurrency coverageAmount}}</td>
+                <td>Rs. {{formatCurrency premiumAmount}} / {{premiumFrequency}}</td>
+                <td>{{agentName}}</td>
+                <td class="numeric">{{claimsCount}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{!-- Claims by Policy Section --}}
+{{#if claimsByPolicy}}
+<div class="table-section">
+    <h2 class="table-title">Claims Distribution by Policy</h2>
+    <table class="data-table cols-8">
+        <thead>
+            <tr>
+                <th>Policy ID</th>
+                <th>Type</th>
+                <th class="numeric">Total</th>
+                <th class="numeric">Approved</th>
+                <th class="numeric">Rejected</th>
+                <th class="numeric">Pending</th>
+                <th class="currency">Requested</th>
+                <th class="currency">Approved Amt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each claimsByPolicy}}
+            <tr>
+                <td class="id-col">{{policyId}}</td>
+                <td>{{policyType}}</td>
+                <td class="numeric">{{totalClaims}}</td>
+                <td class="numeric">{{approvedClaims}}</td>
+                <td class="numeric">{{rejectedClaims}}</td>
+                <td class="numeric">{{pendingClaims}}</td>
+                <td class="currency">Rs. {{formatCurrency totalRequested}}</td>
+                <td class="currency">Rs. {{formatCurrency totalApproved}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
+{{/if}}
+
+{{!-- Claims History Section --}}
+<div class="table-section large-table">
     <h2 class="table-title">My Claims History</h2>
-    <table class="data-table">
+    <table class="data-table cols-8">
         <thead>
             <tr>
                 <th>Claim ID</th>
                 <th>Policy ID</th>
-                <th>Claim Type</th>
-                <th>Claim Option</th>
+                <th>Type</th>
+                <th>Option</th>
                 <th>Submission Date</th>
                 <th>Status</th>
-                <th>Requested Amount</th>
-                <th>Approved Amount</th>
+                <th class="currency">Requested</th>
+                <th class="currency">Approved</th>
             </tr>
         </thead>
         <tbody>
@@ -36,50 +142,38 @@
                 <td>{{claimOption}}</td>
                 <td>{{formatDate submissionDate}}</td>
                 <td><span class="status {{status}}">{{status}}</span></td>
-                <td>Rs. {{formatCurrency requestedAmount}}</td>
-                <td>{{#if approvedAmount}}Rs. {{formatCurrency approvedAmount}}{{else}}N/A{{/if}}</td>
+                <td class="currency">Rs. {{formatCurrency requestedAmount}}</td>
+                <td class="currency">{{#if approvedAmount}}Rs. {{formatCurrency approvedAmount}}{{else}}N/A{{/if}}</td>
             </tr>
             {{/each}}
         </tbody>
     </table>
 </div>
 
+{{!-- Claims by Type Section --}}
 {{#if claimsByType}}
-<div class="letterhead">
-    <div class="letterhead-left">
-        <div class="company-name">LUMIERE INSURANCE</div>
-        <h1 class="report-title">{{reportTitle}}</h1>
-        <p class="report-subtitle">{{reportSubtitle}}</p>
-    </div>
-    <div class="letterhead-right">
-               {{#if logoBase64}}
-               <img src="{{logoBase64}}" alt="Lumiere Logo" class="logo-img" />
-               {{/if}}
-    </div>
-</div>
-
-<div class="table-section cols-6">
+<div class="table-section">
     <h2 class="table-title">Claims by Type</h2>
-    <table class="data-table">
+    <table class="data-table cols-6">
         <thead>
             <tr>
                 <th>Claim Type</th>
-                <th>Total Claims</th>
-                <th>Approved Claims</th>
-                <th>Total Requested</th>
-                <th>Total Approved</th>
-                <th>Success Rate</th>
+                <th class="numeric">Total Claims</th>
+                <th class="numeric">Approved</th>
+                <th class="currency">Total Requested</th>
+                <th class="currency">Total Approved</th>
+                <th class="numeric">Success Rate</th>
             </tr>
         </thead>
         <tbody>
             {{#each claimsByType}}
             <tr>
                 <td>{{type}}</td>
-                <td>{{totalClaims}}</td>
-                <td>{{approvedClaims}}</td>
-                <td>Rs. {{formatCurrency totalRequested}}</td>
-                <td>Rs. {{formatCurrency totalApproved}}</td>
-                <td>{{successRate}}%</td>
+                <td class="numeric">{{totalClaims}}</td>
+                <td class="numeric">{{approvedClaims}}</td>
+                <td class="currency">Rs. {{formatCurrency totalRequested}}</td>
+                <td class="currency">Rs. {{formatCurrency totalApproved}}</td>
+                <td class="numeric">{{successRate}}%</td>
             </tr>
             {{/each}}
         </tbody>
@@ -87,25 +181,26 @@
 </div>
 {{/if}}
 
+{{!-- Claims by Status Section --}}
 {{#if claimsByStatus}}
-<div class="table-section cols-6">
+<div class="table-section">
     <h2 class="table-title">Claims by Status</h2>
-    <table class="data-table">
+    <table class="data-table cols-6">
         <thead>
             <tr>
                 <th>Status</th>
-                <th>Count</th>
-                <th>Percentage</th>
-                <th>Total Amount</th>
+                <th class="numeric">Count</th>
+                <th class="numeric">Percentage</th>
+                <th class="currency">Total Amount</th>
             </tr>
         </thead>
         <tbody>
             {{#each claimsByStatus}}
             <tr>
                 <td><span class="status {{status}}">{{status}}</span></td>
-                <td>{{count}}</td>
-                <td>{{percentage}}%</td>
-                <td>Rs. {{formatCurrency totalAmount}}</td>
+                <td class="numeric">{{count}}</td>
+                <td class="numeric">{{percentage}}%</td>
+                <td class="currency">Rs. {{formatCurrency totalAmount}}</td>
             </tr>
             {{/each}}
         </tbody>
