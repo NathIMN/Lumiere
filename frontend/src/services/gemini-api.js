@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
  */
 class GeminiApiService {
   constructor() {
-    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBLY8xqKZ6uNRZQAoTCO4TRggTUl8tVoJw";
+    this.apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     
     if (!this.apiKey) {
       console.warn('Gemini API key not found. Text formalization will use fallback method.');
