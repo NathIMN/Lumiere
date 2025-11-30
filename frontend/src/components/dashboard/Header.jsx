@@ -118,11 +118,11 @@ export const Header = ({ onToggleTheme, isDark, isCollapsed, scrolled }) => {
               {/* User Info */}
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {user?.firstName} {user?.lastName}
+                  {user?.profile.firstName} {user?.profile.lastName}
                 </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                {/* <p className="text-xs text-gray-500 dark:text-gray-400">
                   {user?.email}
-                </p>
+                </p> */}
                 <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                   {user?.role?.replace('_', ' ')}
                 </p>
