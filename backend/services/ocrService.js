@@ -25,7 +25,7 @@ class OCRService {
         isOverlayRequired: false, // We only need the text
         detectOrientation: true, // Auto-rotate if needed
         scale: true, // Improve OCR for low-resolution images
-        OCREngine: 2, // Engine 2 for better text recognition
+        OCREngine: 1, // Engine 2 for better text recognition
         filetype: this.getFileType(mimeType)
       };
 
