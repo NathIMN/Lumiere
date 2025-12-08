@@ -133,6 +133,65 @@ npm run dev
 
 The backend runs on `http://localhost:5000` and frontend on `http://localhost:5173`.
 
+## Screenshots
+
+### Employee Dashboard with Voice Assistant
+<table>
+<tr>
+<td width="50%"><b>Light Mode</b></td>
+<td width="50%"><b>Dark Mode</b></td>
+</tr>
+<tr>
+<td><img src="./screenshots/employee_dashboard_with_voice_assistant_light.png" alt="Employee Dashboard Light Mode"/></td>
+<td><img src="./screenshots/employee_dashboard_with_voice_assistant_dark.png" alt="Employee Dashboard Dark Mode"/></td>
+</tr>
+</table>
+
+### Claim Questionnaire
+<table>
+<tr>
+<td width="50%"><b>Light Mode</b></td>
+<td width="50%"><b>Dark Mode</b></td>
+</tr>
+<tr>
+<td><img src="./screenshots/questionnaire_light.png" alt="Questionnaire Light Mode"/></td>
+<td><img src="./screenshots/questionnaire_dark.png" alt="Questionnaire Dark Mode"/></td>
+</tr>
+</table>
+
+### HR Dashboard Document Pool
+<table>
+<tr>
+<td width="50%"><b>Light Mode</b></td>
+<td width="50%"><b>Dark Mode</b></td>
+</tr>
+<tr>
+<td><img src="./screenshots/hr_dashboard_document_pool_light.png" alt="Document Pool Light Mode"/></td>
+<td><img src="./screenshots/hr_dashboard_document_pool_dark.png" alt="Document Pool Dark Mode"/></td>
+</tr>
+</table>
+
+### Document OCR and Reformat
+<table>
+<tr>
+<td width="50%"><b>Light Mode</b></td>
+<td width="50%"><b>Dark Mode</b></td>
+</tr>
+<tr>
+<td><img src="./screenshots/document_ocr_and_reformat_light.png" alt="Document OCR Light Mode"/></td>
+<td><img src="./screenshots/document_ocr_and_reformat_dark.png" alt="Document OCR Dark Mode"/></td>
+</tr>
+</table>
+
+### Sample Reports
+
+The system generates comprehensive PDF reports with detailed analytics:
+
+- **[Employee Claims Summary Report](./screenshots/my-claims-summary-2025-12-08-1.pdf)** - Individual employee claim history and status
+- **[Policy Users Report](./screenshots/policy-users-report-2025-12-08-3.pdf)** - Policy holder information and coverage details
+
+And many more other report types
+
 ## Key Modules
 
 - **Claims**: Submit and track insurance claims with document attachments
