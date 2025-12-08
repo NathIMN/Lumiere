@@ -51,7 +51,7 @@ Instructions:
 - Make it appropriate for business communication`;
 
       const response = await this.genAI.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: "models/gemini-2.5-flash",
         contents: prompt
       });
 
@@ -61,7 +61,8 @@ Instructions:
         success: true,
         original: casualText,
         formalized: formalizedText,
-        service: 'gemini'
+        service: 'gemini',
+        model: 'gemini-2.5-flash'
       };
     } catch (error) {
       console.error('Gemini API Error:', error);
@@ -186,7 +187,7 @@ ${extractedText.trim()}
 **CLEANED AND FORMATTED OUTPUT**:`;
 
       const response = await this.genAI.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: "models/gemini-2.5-flash",
         contents: prompt
       });
 
@@ -196,7 +197,8 @@ ${extractedText.trim()}
         success: true,
         original: extractedText,
         reformatted: reformattedText,
-        service: 'gemini'
+        service: 'gemini',
+        model: 'gemini-2.5-flash'
       };
     } catch (error) {
       console.error('Gemini OCR Reformat Error:', error);
@@ -262,7 +264,7 @@ ${extractedText.trim()}
       }
       
       const response = await this.genAI.models.generateContent({
-        model: "gemini-2.0-flash-exp",
+        model: "gemini-2.0-flash",
         contents: "Hello"
       });
       
